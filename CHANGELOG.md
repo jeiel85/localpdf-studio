@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## v0.2.3 - 2026-05-18
+
+### CI / Build
+
+- v0.2.0~v0.2.2 release 워크플로가 Tauri 업데이터 서명 키 미설정으로 실패하던 문제 해결
+- `tauri.conf.json` `createUpdaterArtifacts: false`로 임시 비활성화 (NSIS .exe / MSI / Portable ZIP은 정상 생성됨)
+- `release.yml`에서 `TAURI_SIGNING_PRIVATE_KEY` 환경변수 제거, `includeUpdaterJson: false`로 변경
+- 자동 업데이트 기능은 추후 서명 키 생성/등록 후 재활성화 예정 (`docs/04_RELEASE_UPDATE.md` 참고)
+
+(v0.2.2의 모든 성능 개선 포함)
+
+---
+
 ## v0.2.2 - 2026-05-18
 
 ### Performance
