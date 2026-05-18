@@ -42,7 +42,20 @@ impl From<std::io::Error> for OcrError {
 }
 
 pub fn find_tesseract() -> Result<TesseractTool, OcrError> {
-    let path = which::which("tesseract").map_err(|_| OcrError::NotFound)?;
+    find_tesseract_with(None)
+}
+
+pub fn find_tesseract_with(override_path: Option<&str>) -> Result<TesseractTool, OcrError> {
+    let path = match override_path {
+        Some(value) if !value.trim().is_empty() => {
+            let candidate = PathBuf::from(value);
+            if !candidate.exists() {
+                return Err(OcrError::NotFound);
+            }
+            candidate
+        }
+        _ => which::which("tesseract").map_err(|_| OcrError::NotFound)?,
+    };
 
     let version = Command::new(&path)
         .arg("--version")
@@ -160,4 +173,65 @@ pub fn extract_text(
 
     let text = std::fs::read_to_string(output_path)?;
     Ok(text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let dir = std::env::temp_dir().join(format!("ocr_test_{name}_{nanos}"));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn fake_tool() -> TesseractTool {
+        TesseractTool {
+            path: PathBuf::from("/nonexistent/tesseract"),
+            version: "fake".to_string(),
+            languages: vec!["eng".to_string()],
+        }
+    }
+
+    #[test]
+    fn run_ocr_rejects_missing_input() {
+        let dir = temp_dir("missing_in");
+        let out = dir.join("out.txt");
+        let result = run_ocr(Path::new("Z:/nope.png"), &out, "eng", 300, &fake_tool());
+        assert!(matches!(result, Err(OcrError::FileNotFound(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn run_ocr_rejects_empty_language() {
+        let dir = temp_dir("empty_lang");
+        let input = dir.join("page.png");
+        fs::write(&input, b"fake").unwrap();
+        let out = dir.join("out.txt");
+        let result = run_ocr(&input, &out, "   ", 300, &fake_tool());
+        assert!(matches!(result, Err(OcrError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn run_ocr_rejects_existing_output() {
+        let dir = temp_dir("existing_out");
+        let input = dir.join("page.png");
+        fs::write(&input, b"fake").unwrap();
+        let out = dir.join("out.txt");
+        fs::write(&out, b"prev").unwrap();
+        let result = run_ocr(&input, &out, "eng", 300, &fake_tool());
+        assert!(matches!(result, Err(OcrError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn find_tesseract_with_nonexistent_override_returns_not_found() {
+        let result = find_tesseract_with(Some("Z:/no/such/tesseract.exe"));
+        assert!(matches!(result, Err(OcrError::NotFound)));
+    }
 }

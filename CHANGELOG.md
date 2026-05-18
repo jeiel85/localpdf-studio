@@ -1,5 +1,58 @@
 # CHANGELOG.md
 
+## v0.2.0 - 2026-05-18
+
+### Added
+
+- **설정 화면**: 사이드바에 "설정" 탭 추가. 자동 저장. 8개 섹션 / 17개 옵션
+  - 뷰어: 초기 줌 모드, 사용자 지정 배율, 휠 동작, 회전 단위, 렌더 품질, 기본 페이지 레이아웃, 기본 맞춤 모드
+  - 외부 도구: qpdf/tesseract 실행 파일 경로 수동 지정 (PATH 미등록 시 fallback)
+  - 출력: 기본 출력 폴더, 작업 완료 후 결과 폴더 자동 열기
+  - 개인정보: 최근 파일 기록 토글, 최대 개수, 임시 파일 정리 정책, 최근 파일 일괄 삭제
+  - OCR: 기본 언어 프리셋
+  - 성능: 대용량 PDF 스트리밍 임계값 (10~1000 MB)
+  - 업데이트: 시작 시 자동 확인 토글
+  - UI: 테마(다크/라이트/시스템 — 라이트/시스템은 향후), 단축키 안내 표시
+- **백엔드 settings 모듈** (`settings.rs`): JSON 영속화, 부분 업데이트 시 결손 필드 기본값 fallback
+- **새 Tauri 명령**: `get_settings`, `update_settings`, `reset_settings`, `clear_recent_files`, `get_app_data_path`
+- **외부 도구 패널 강화**: "다시 확인" 버튼, 버전·경로·역할 표시, 미설치 시 다운로드 가이드와 "다운로드 페이지 열기" 버튼 (시스템 브라우저), URL 복사용 박스
+- **PDF 로딩 진행률 오버레이**: pdf.js `loadingTask.onProgress` 연동. % + MB/MB 표시. 스트리밍 시 indeterminate 애니메이션
+- **연속 스크롤 레이아웃**: Adobe식 Continuous 모드. IntersectionObserver 기반 가상화 (보이는 영역 ±400px만 렌더). 스크롤 위치로 현재 페이지 자동 추적. 썸네일 클릭 시 해당 페이지로 자동 스크롤
+- **페이지 맞춤 모드 3종**: 너비에 맞춤 (`↔`), 페이지에 맞춤 (`⤢`), 실제 크기 (`1:1`). 컨테이너 크기 기반 동적 배율 계산
+- **툴바 토글 그룹**: 단일/연속 레이아웃, 너비/페이지/실제 맞춤 — active 표시 + 호버 효과
+- **테스트 인프라**: Vitest + Testing Library + jsdom 셋업. Tauri invoke 모킹 패턴 (`vi.hoisted`)
+- **Rust 단위 테스트**: settings, qpdf_service, ocr_service — 총 18개
+- **프론트엔드 컴포넌트 테스트**: base64, ToolsPanel, SettingsPanel, Sidebar, PdfCanvas, Toolbar — 총 35개
+
+### Fixed
+
+- **`qpdf_service::validate_pdf_files` 1개 파일 거부 버그**: 모든 단일 파일 명령(`encrypt`, `decrypt`, `extract`, `rotate`, `compress`, `metadata`)에서 무조건 "병합할 PDF 2개 이상 필요" 오류가 나던 문제 수정. 2개 이상 검사는 `merge_pdfs` 진입부로 이동
+- **뷰어 영역 스크롤 동작**: `.viewer-stage` / `.main-pane`에 `min-height: 0` 추가. CSS Grid의 `1fr` 행이 콘텐츠로 인해 늘어나면서 `overflow: auto`가 무력화되던 문제 해결
+- **PdfCanvas 렌더링 루프**: `onFittedScale`/`onPageChange`/`loadProgress`가 useEffect 의존성에 들어가 매 렌더마다 effect가 재실행되며 "렌더링 중..." 메시지가 잠기고 UI가 반응하지 않던 문제. 콜백을 `useRef`로 stash하여 effect deps 제거
+
+### Changed
+
+- 하드코딩 값을 설정 기반으로 라우팅:
+  - `MAX_INITIAL_VIEWER_LOAD_BYTES (250 MB)` → `settings.performance.streamingThresholdMb`
+  - `RECENT_FILES_LIMIT (20)` → `settings.privacy.recentFilesLimit`
+  - 뷰어 초기 배율 (`1.2`) → `settings.viewer.initialScale`
+  - 회전 단위 (`90°`) → `settings.viewer.rotationStep`
+  - PDF 초기 레이아웃 → `settings.viewer.pageLayout`
+- qpdf/tesseract 탐지 로직 확장: 설정의 override 경로 우선 사용, 없으면 `which::which` fallback
+- `add_recent_file`: `record_recent_files=false` 시 기록 건너뛰고 기존 목록만 반환
+- 의존성 추가: `@tauri-apps/plugin-opener` (이미 Rust/capability 등록돼 있었으나 JS 패키지만 누락)
+- 의존성 추가: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm run build`: 통과 (메인 번들 1.10 MB, pdf.worker 2.16 MB)
+- `npm test`: 35/35 통과 (6개 테스트 파일)
+- `cargo test`: 18/18 통과
+- `cargo check`: 통과 (경고 없음)
+
+---
+
 ## v0.1.0 - 2026-05-18
 
 ### Added

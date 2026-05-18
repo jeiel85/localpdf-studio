@@ -1,7 +1,20 @@
 import { useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { checkExternalTools } from '../lib/tauriCommands';
 import type { ExternalToolStatus, PdfFilePayload } from '../types';
+
+const TOOL_INSTALL_GUIDE: Record<string, { url: string; hint: string }> = {
+  qpdf: {
+    url: 'https://github.com/qpdf/qpdf/releases',
+    hint: 'qpdf-XX-mingw64.zip을 다운받아 압축 해제 후 bin 경로를 PATH에 추가하세요.',
+  },
+  tesseract: {
+    url: 'https://github.com/UB-Mannheim/tesseract/wiki',
+    hint: 'Windows 설치 시 한국어(kor) 언어 데이터 포함을 선택하세요.',
+  },
+};
 
 type ToolAction = 'encrypt' | 'decrypt' | 'extract' | 'rotate' | 'compress' | 'metadata';
 
@@ -9,13 +22,41 @@ export function ToolsPanel({
   currentFile,
   tools,
   onStatus,
+  onToolsChange,
 }: {
   currentFile: PdfFilePayload | null;
   tools: ExternalToolStatus[];
   onStatus: (message: string) => void;
+  onToolsChange?: (next: ExternalToolStatus[]) => void;
 }) {
   const [activeAction, setActiveAction] = useState<ToolAction | null>(null);
   const [running, setRunning] = useState(false);
+  const [rechecking, setRechecking] = useState(false);
+
+  async function recheckTools() {
+    setRechecking(true);
+    onStatus('외부 도구 상태를 다시 확인합니다.');
+    try {
+      const next = await checkExternalTools();
+      onToolsChange?.(next);
+      const missing = next.filter((t) => !t.available).map((t) => t.displayName);
+      onStatus(missing.length === 0
+        ? '모든 외부 도구가 설치되어 있습니다.'
+        : `미설치: ${missing.join(', ')}`);
+    } catch (err) {
+      onStatus(`상태 확인 실패: ${(err as Error).message ?? err}`);
+    } finally {
+      setRechecking(false);
+    }
+  }
+
+  async function handleOpenUrl(url: string) {
+    try {
+      await openUrl(url);
+    } catch (err) {
+      onStatus(`링크 열기 실패: ${(err as Error).message ?? err}`);
+    }
+  }
 
   return (
     <div className="tools-panel">
@@ -80,19 +121,50 @@ export function ToolsPanel({
       )}
 
       <section className="panel">
-        <h2>외부 도구</h2>
+        <div className="panel-header">
+          <h2>외부 도구</h2>
+          <button type="button" className="btn-small" disabled={rechecking} onClick={recheckTools}>
+            {rechecking ? '확인 중…' : '다시 확인'}
+          </button>
+        </div>
         {tools.length === 0 ? (
           <p className="empty-text">도구 상태를 확인 중입니다.</p>
         ) : (
-          tools.map((tool) => (
-            <div className="tool-row" key={tool.name}>
-              <span className={tool.available ? 'dot ok' : 'dot warn'} />
-              <div>
-                <strong>{tool.displayName}</strong>
-                <small>{tool.available ? tool.path : '설치 필요'}</small>
+          tools.map((tool) => {
+            const guide = TOOL_INSTALL_GUIDE[tool.name];
+            return (
+              <div className="tool-card" key={tool.name}>
+                <div className="tool-row">
+                  <span className={tool.available ? 'dot ok' : 'dot warn'} />
+                  <div>
+                    <strong>{tool.displayName}</strong>
+                    {tool.available ? (
+                      <>
+                        <small>{tool.version ?? '버전 정보 없음'}</small>
+                        <small className="tool-path">{tool.path}</small>
+                      </>
+                    ) : (
+                      <small className="tool-missing">설치되지 않음 — 아래 안내로 설치 후 다시 확인을 누르세요.</small>
+                    )}
+                    {tool.requiredFor.length > 0 && (
+                      <small className="tool-required-for">사용처: {tool.requiredFor.join(', ')}</small>
+                    )}
+                  </div>
+                </div>
+                {!tool.available && guide && (
+                  <div className="tool-install">
+                    <p className="tool-hint">{guide.hint}</p>
+                    <div className="tool-install-actions">
+                      <button type="button" onClick={() => handleOpenUrl(guide.url)}>
+                        다운로드 페이지 열기
+                      </button>
+                      <code className="tool-url" title="클릭해서 선택 후 복사">{guide.url}</code>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </section>
     </div>

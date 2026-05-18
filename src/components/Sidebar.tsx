@@ -18,6 +18,7 @@ export function Sidebar({
     { key: 'merge', label: '병합' },
     { key: 'tools', label: '도구' },
     { key: 'advanced', label: '고급' },
+    { key: 'settings', label: '설정' },
   ];
 
   return (

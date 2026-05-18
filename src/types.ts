@@ -31,6 +31,8 @@ export type ViewerState = {
   pageCount: number;
   scale: number;
   rotation: number;
+  layout: PageLayout;
+  fitMode: FitMode;
 };
 
 export type OutlineItem = {
@@ -52,7 +54,88 @@ export type RecentFileEntry = {
   openedAt: string;
 };
 
-export type SidebarTab = 'document' | 'thumbnails' | 'outline' | 'search' | 'merge' | 'tools' | 'advanced';
+export type SidebarTab = 'document' | 'thumbnails' | 'outline' | 'search' | 'merge' | 'tools' | 'advanced' | 'settings';
+
+export type ViewerZoomMode = 'fit-width' | 'fit-height' | 'custom';
+export type WheelAction = 'scroll' | 'zoom';
+export type RenderQuality = 'auto' | 'high' | 'low';
+export type TempCleanupMode = 'immediate' | 'on-exit' | 'never';
+export type ThemeMode = 'dark' | 'light' | 'system';
+export type PageLayout = 'single' | 'continuous';
+export type FitMode = 'custom' | 'fit-width' | 'fit-page' | 'actual';
+
+export type ViewerSettings = {
+  initialZoomMode: ViewerZoomMode;
+  initialScale: number;
+  wheelAction: WheelAction;
+  rotationStep: number;
+  renderQuality: RenderQuality;
+  pageLayout: PageLayout;
+  defaultFitMode: FitMode;
+};
+
+export type ExternalToolSettings = {
+  qpdfPath: string | null;
+  tesseractPath: string | null;
+};
+
+export type OutputSettings = {
+  defaultFolder: string | null;
+  openFolderAfterJob: boolean;
+};
+
+export type PrivacySettings = {
+  recordRecentFiles: boolean;
+  recentFilesLimit: number;
+  tempCleanup: TempCleanupMode;
+};
+
+export type OcrSettings = {
+  defaultLanguage: string;
+};
+
+export type PerformanceSettings = {
+  streamingThresholdMb: number;
+};
+
+export type UpdateSettings = {
+  checkOnStartup: boolean;
+};
+
+export type UiSettings = {
+  theme: ThemeMode;
+  showShortcutHelp: boolean;
+};
+
+export type AppSettings = {
+  viewer: ViewerSettings;
+  externalTools: ExternalToolSettings;
+  output: OutputSettings;
+  privacy: PrivacySettings;
+  ocr: OcrSettings;
+  performance: PerformanceSettings;
+  update: UpdateSettings;
+  ui: UiSettings;
+};
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  viewer: {
+    initialZoomMode: 'custom',
+    initialScale: 1.2,
+    wheelAction: 'scroll',
+    rotationStep: 90,
+    renderQuality: 'auto',
+    pageLayout: 'single',
+    defaultFitMode: 'custom',
+  },
+  externalTools: { qpdfPath: null, tesseractPath: null },
+  output: { defaultFolder: null, openFolderAfterJob: false },
+  privacy: { recordRecentFiles: true, recentFilesLimit: 20, tempCleanup: 'on-exit' },
+  ocr: { defaultLanguage: 'kor+eng' },
+  performance: { streamingThresholdMb: 250 },
+  update: { checkOnStartup: true },
+  ui: { theme: 'dark', showShortcutHelp: false },
+};
 
 export type DocTab = {
   id: string;

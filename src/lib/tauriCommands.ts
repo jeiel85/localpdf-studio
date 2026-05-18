@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppInfo, ExternalToolStatus, PdfFilePayload, RecentFileEntry, StartupContext } from '../types';
+import type { AppInfo, AppSettings, ExternalToolStatus, PdfFilePayload, RecentFileEntry, StartupContext } from '../types';
 
 export async function getAppInfo(): Promise<AppInfo> {
   return invoke<AppInfo>('app_info');
@@ -55,4 +55,24 @@ export async function getActiveJobs(): Promise<
   { id: string; name: string; status: string; progress: number; message: string }[]
 > {
   return invoke('get_active_jobs');
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  return invoke<AppSettings>('get_settings');
+}
+
+export async function updateSettings(next: AppSettings): Promise<AppSettings> {
+  return invoke<AppSettings>('update_settings', { next });
+}
+
+export async function resetSettings(): Promise<AppSettings> {
+  return invoke<AppSettings>('reset_settings');
+}
+
+export async function clearRecentFiles(): Promise<void> {
+  return invoke<void>('clear_recent_files');
+}
+
+export async function getAppDataPath(): Promise<string> {
+  return invoke<string>('get_app_data_path');
 }

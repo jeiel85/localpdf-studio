@@ -3,20 +3,31 @@ mod job_queue;
 mod ocr_service;
 mod protocol;
 mod qpdf_service;
+mod settings;
 mod startup;
 mod watermark_service;
 
 use job_queue::new_job_manager;
+use settings::{load_from_dir, SettingsState};
 use startup::{parse_startup_context, StartupContextState};
 use std::sync::Mutex;
 
 pub fn run() {
+    let initial_settings = std::env::var("APPDATA")
+        .ok()
+        .map(|appdata| {
+            let app_dir = std::path::PathBuf::from(appdata).join("LocalPDF Studio");
+            load_from_dir(&app_dir)
+        })
+        .unwrap_or_default();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(StartupContextState(Mutex::new(parse_startup_context())))
+        .manage(SettingsState(Mutex::new(initial_settings)))
         .manage(new_job_manager())
         .register_uri_scheme_protocol("pdf-local", |_app, request| {
             protocol::pdf_local_protocol(request)
@@ -47,6 +58,11 @@ pub fn run() {
             commands::check_qpdf_available,
             commands::get_job_status,
             commands::get_active_jobs,
+            commands::get_settings,
+            commands::update_settings,
+            commands::reset_settings,
+            commands::clear_recent_files,
+            commands::get_app_data_path,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run LocalPDF Studio");

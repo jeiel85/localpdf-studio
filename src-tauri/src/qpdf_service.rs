@@ -51,8 +51,22 @@ impl From<io::Error> for QpdfError {
     }
 }
 
+#[allow(dead_code)]
 pub fn find_qpdf() -> Result<QpdfTool, QpdfError> {
-    let path = which::which("qpdf").map_err(|_| QpdfError::NotFound)?;
+    find_qpdf_with(None)
+}
+
+pub fn find_qpdf_with(override_path: Option<&str>) -> Result<QpdfTool, QpdfError> {
+    let path = match override_path {
+        Some(value) if !value.trim().is_empty() => {
+            let candidate = PathBuf::from(value);
+            if !candidate.exists() {
+                return Err(QpdfError::NotFound);
+            }
+            candidate
+        }
+        _ => which::which("qpdf").map_err(|_| QpdfError::NotFound)?,
+    };
 
     let version = Command::new(&path)
         .arg("--version")
@@ -76,12 +90,6 @@ pub fn find_qpdf() -> Result<QpdfTool, QpdfError> {
 pub fn validate_pdf_files(paths: &[PathBuf]) -> Result<(), QpdfError> {
     if paths.is_empty() {
         return Err(QpdfError::InvalidInput("파일 목록이 비어 있습니다.".to_string()));
-    }
-
-    if paths.len() < 2 {
-        return Err(QpdfError::InvalidInput(
-            "병합할 PDF 파일이 2개 이상 필요합니다.".to_string(),
-        ));
     }
 
     for path in paths {
@@ -147,6 +155,11 @@ pub fn merge_pdfs(
     output_path: &Path,
     qpdf_tool: &QpdfTool,
 ) -> Result<MergeResult, QpdfError> {
+    if input_files.len() < 2 {
+        return Err(QpdfError::InvalidInput(
+            "병합할 PDF 파일이 2개 이상 필요합니다.".to_string(),
+        ));
+    }
     validate_pdf_files(input_files)?;
     check_output_overwrite(output_path)?;
 
@@ -461,4 +474,101 @@ pub fn read_metadata(input_file: &Path, qpdf_tool: &QpdfTool) -> Result<String, 
 
     let json = String::from_utf8_lossy(&output.stdout).to_string();
     Ok(json)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let dir = std::env::temp_dir().join(format!("qpdf_test_{name}_{nanos}"));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_pdf_like(path: &Path, content: &[u8]) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, content).unwrap();
+    }
+
+    #[test]
+    fn validate_rejects_empty_list() {
+        let result = validate_pdf_files(&[]);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+    }
+
+    #[test]
+    fn validate_accepts_single_pdf() {
+        let dir = temp_dir("single_ok");
+        let pdf = dir.join("a.pdf");
+        write_pdf_like(&pdf, b"%PDF-1.4\n%fake\n");
+
+        let result = validate_pdf_files(&[pdf]);
+        assert!(result.is_ok(), "single valid PDF should pass: {result:?}");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn validate_rejects_missing_file() {
+        let result = validate_pdf_files(&[PathBuf::from("Z:/this/does/not/exist.pdf")]);
+        assert!(matches!(result, Err(QpdfError::FileNotFound(_))));
+    }
+
+    #[test]
+    fn validate_rejects_non_pdf_extension() {
+        let dir = temp_dir("ext");
+        let path = dir.join("not_a.pdf.txt");
+        write_pdf_like(&path, b"hello");
+        let result = validate_pdf_files(&[path]);
+        assert!(matches!(result, Err(QpdfError::NotPdfFile(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn validate_rejects_empty_pdf() {
+        let dir = temp_dir("empty");
+        let pdf = dir.join("empty.pdf");
+        write_pdf_like(&pdf, b"");
+        let result = validate_pdf_files(&[pdf]);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn check_output_overwrite_blocks_existing_file() {
+        let dir = temp_dir("overwrite");
+        let out = dir.join("out.pdf");
+        write_pdf_like(&out, b"existing");
+        let result = check_output_overwrite(&out);
+        assert!(matches!(result, Err(QpdfError::OutputExists(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn check_output_overwrite_allows_new_path() {
+        let dir = temp_dir("new_out");
+        let out = dir.join("does_not_exist.pdf");
+        assert!(check_output_overwrite(&out).is_ok());
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn find_qpdf_with_nonexistent_override_returns_not_found() {
+        let result = find_qpdf_with(Some("Z:/no/such/qpdf.exe"));
+        assert!(matches!(result, Err(QpdfError::NotFound)));
+    }
+
+    #[test]
+    fn find_qpdf_with_empty_override_falls_through_to_path() {
+        // We don't assert availability — just that empty override doesn't crash.
+        // If qpdf is installed, this returns Ok; otherwise NotFound. Either is fine.
+        let _ = find_qpdf_with(Some(""));
+        let _ = find_qpdf_with(Some("   "));
+    }
 }

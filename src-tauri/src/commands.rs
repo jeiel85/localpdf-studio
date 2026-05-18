@@ -1,6 +1,7 @@
 use crate::job_queue::{JobManagerState, JobStatus};
 use crate::ocr_service;
 use crate::qpdf_service;
+use crate::settings::{self, AppSettings, SettingsState};
 use crate::startup::{StartupContext, StartupContextState};
 use crate::watermark_service;
 use base64::{engine::general_purpose, Engine as _};
@@ -12,8 +13,19 @@ use std::{
 };
 use tauri::State;
 
-const MAX_INITIAL_VIEWER_LOAD_BYTES: u64 = 250 * 1024 * 1024;
-const RECENT_FILES_LIMIT: usize = 20;
+fn settings_snapshot(state: &State<'_, SettingsState>) -> AppSettings {
+    state.0.lock().map(|guard| guard.clone()).unwrap_or_default()
+}
+
+fn resolve_qpdf(state: &State<'_, SettingsState>) -> Result<qpdf_service::QpdfTool, String> {
+    let override_path = settings_snapshot(state).external_tools.qpdf_path;
+    qpdf_service::find_qpdf_with(override_path.as_deref()).map_err(|e| e.to_string())
+}
+
+fn resolve_tesseract(state: &State<'_, SettingsState>) -> Result<ocr_service::TesseractTool, String> {
+    let override_path = settings_snapshot(state).external_tools.tesseract_path;
+    ocr_service::find_tesseract_with(override_path.as_deref()).map_err(|e| e.to_string())
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,7 +101,10 @@ pub fn get_startup_context(state: State<'_, StartupContextState>) -> Result<Star
 }
 
 #[tauri::command]
-pub fn load_pdf_base64(path: String) -> Result<PdfFilePayload, String> {
+pub fn load_pdf_base64(
+    path: String,
+    settings: State<'_, SettingsState>,
+) -> Result<PdfFilePayload, String> {
     let pdf_path = validate_pdf_path(&path)?;
     let metadata =
         fs::metadata(&pdf_path).map_err(|error| format!("파일 정보를 읽을 수 없습니다: {error}"))?;
@@ -104,7 +119,10 @@ pub fn load_pdf_base64(path: String) -> Result<PdfFilePayload, String> {
         .unwrap_or("document.pdf")
         .to_string();
 
-    if metadata.len() > MAX_INITIAL_VIEWER_LOAD_BYTES {
+    let threshold_mb = settings_snapshot(&settings).performance.streaming_threshold_mb.max(1);
+    let threshold_bytes = threshold_mb.saturating_mul(1024 * 1024);
+
+    if metadata.len() > threshold_bytes {
         let url = format!(
             "pdf-local://localhost/{}",
             pdf_path.to_string_lossy().replace('\\', "/")
@@ -167,15 +185,30 @@ pub fn load_pdf_outline(path: String) -> Result<Vec<OutlineItem>, String> {
 }
 
 #[tauri::command]
-pub fn check_external_tools() -> Vec<ExternalToolStatus> {
+pub fn check_external_tools(settings: State<'_, SettingsState>) -> Vec<ExternalToolStatus> {
+    let snap = settings_snapshot(&settings);
     vec![
-        tool_status("qpdf", "qpdf", &["병합", "분할", "암호화", "최적화"]),
-        tool_status("tesseract", "Tesseract OCR", &["OCR", "스캔 PDF 텍스트화"]),
+        tool_status(
+            "qpdf",
+            "qpdf",
+            &["병합", "분할", "암호화", "최적화"],
+            snap.external_tools.qpdf_path.as_deref(),
+        ),
+        tool_status(
+            "tesseract",
+            "Tesseract OCR",
+            &["OCR", "스캔 PDF 텍스트화"],
+            snap.external_tools.tesseract_path.as_deref(),
+        ),
     ]
 }
 
 #[tauri::command]
-pub fn run_pdf_operation(operation: String, files: Vec<String>) -> Result<String, String> {
+pub fn run_pdf_operation(
+    operation: String,
+    files: Vec<String>,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
     if files.is_empty() {
         return Err("작업할 PDF 파일이 없습니다.".to_string());
     }
@@ -189,7 +222,7 @@ pub fn run_pdf_operation(operation: String, files: Vec<String>) -> Result<String
             if files.len() < 2 {
                 return Err("병합할 PDF 파일이 2개 이상 필요합니다. 사이드바의 병합 패널을 사용하세요.".to_string());
             }
-            let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+            let tool = resolve_qpdf(&settings)?;
             let input_paths: Vec<PathBuf> = files.iter().map(PathBuf::from).collect();
             let stem = input_paths[0]
                 .file_stem()
@@ -235,12 +268,26 @@ pub fn get_recent_files() -> Result<Vec<RecentFileEntry>, String> {
 pub fn add_recent_file(
     path: String,
     file_name: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<Vec<RecentFileEntry>, String> {
+    let snap = settings_snapshot(&settings);
     let app_dir = get_app_data_dir()?;
+    let recent_path = app_dir.join("recent_files.json");
+
+    if !snap.privacy.record_recent_files {
+        return Ok(if recent_path.exists() {
+            fs::read_to_string(&recent_path)
+                .ok()
+                .and_then(|content| serde_json::from_str(&content).ok())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        });
+    }
+
     fs::create_dir_all(&app_dir)
         .map_err(|e| format!("앱 데이터 디렉터리를 생성할 수 없습니다: {e}"))?;
 
-    let recent_path = app_dir.join("recent_files.json");
     let mut entries: Vec<RecentFileEntry> = if recent_path.exists() {
         let content = fs::read_to_string(&recent_path).unwrap_or_default();
         serde_json::from_str(&content).unwrap_or_default()
@@ -260,7 +307,8 @@ pub fn add_recent_file(
         },
     );
 
-    entries.truncate(RECENT_FILES_LIMIT);
+    let limit = (snap.privacy.recent_files_limit as usize).max(1);
+    entries.truncate(limit);
 
     let json = serde_json::to_string_pretty(&entries)
         .map_err(|e| format!("최근 파일 목록을 저장할 수 없습니다: {e}"))?;
@@ -271,8 +319,58 @@ pub fn add_recent_file(
 }
 
 #[tauri::command]
-pub fn check_qpdf_available() -> Result<QpdfInfo, String> {
-    match qpdf_service::find_qpdf() {
+pub fn get_settings(settings: State<'_, SettingsState>) -> Result<AppSettings, String> {
+    Ok(settings_snapshot(&settings))
+}
+
+#[tauri::command]
+pub fn update_settings(
+    next: AppSettings,
+    settings: State<'_, SettingsState>,
+) -> Result<AppSettings, String> {
+    let app_dir = get_app_data_dir()?;
+    settings::save_to_dir(&app_dir, &next)?;
+    let mut guard = settings
+        .0
+        .lock()
+        .map_err(|_| "설정 잠금 오류".to_string())?;
+    *guard = next.clone();
+    Ok(next)
+}
+
+#[tauri::command]
+pub fn reset_settings(settings: State<'_, SettingsState>) -> Result<AppSettings, String> {
+    let defaults = AppSettings::default();
+    let app_dir = get_app_data_dir()?;
+    settings::save_to_dir(&app_dir, &defaults)?;
+    let mut guard = settings
+        .0
+        .lock()
+        .map_err(|_| "설정 잠금 오류".to_string())?;
+    *guard = defaults.clone();
+    Ok(defaults)
+}
+
+#[tauri::command]
+pub fn clear_recent_files() -> Result<(), String> {
+    let app_dir = get_app_data_dir()?;
+    let recent_path = app_dir.join("recent_files.json");
+    if recent_path.exists() {
+        fs::remove_file(&recent_path)
+            .map_err(|e| format!("최근 파일 목록 삭제 실패: {e}"))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_app_data_path() -> Result<String, String> {
+    get_app_data_dir().map(|p| p.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn check_qpdf_available(settings: State<'_, SettingsState>) -> Result<QpdfInfo, String> {
+    let override_path = settings_snapshot(&settings).external_tools.qpdf_path;
+    match qpdf_service::find_qpdf_with(override_path.as_deref()) {
         Ok(tool) => Ok(QpdfInfo {
             available: true,
             path: tool.path.to_string_lossy().to_string(),
@@ -303,8 +401,12 @@ pub struct MergeResult {
 }
 
 #[tauri::command]
-pub fn merge_pdfs(input_files: Vec<String>, output_path: String) -> Result<MergeResult, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+pub fn merge_pdfs(
+    input_files: Vec<String>,
+    output_path: String,
+    settings: State<'_, SettingsState>,
+) -> Result<MergeResult, String> {
+    let tool = resolve_qpdf(&settings)?;
 
     let input_paths: Vec<PathBuf> = input_files.iter().map(PathBuf::from).collect();
     let output = PathBuf::from(&output_path);
@@ -327,8 +429,12 @@ pub struct SplitResult {
 }
 
 #[tauri::command]
-pub fn split_pdf(input_file: String, output_dir: String) -> Result<SplitResult, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+pub fn split_pdf(
+    input_file: String,
+    output_dir: String,
+    settings: State<'_, SettingsState>,
+) -> Result<SplitResult, String> {
+    let tool = resolve_qpdf(&settings)?;
 
     let input = PathBuf::from(&input_file);
     let dir = PathBuf::from(&output_dir);
@@ -351,8 +457,9 @@ pub fn encrypt_pdf(
     output_path: String,
     user_password: String,
     owner_password: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_path);
     qpdf_service::encrypt_pdf(&input, &output, &user_password, &owner_password, &tool)
@@ -365,8 +472,9 @@ pub fn decrypt_pdf(
     input_file: String,
     output_path: String,
     password: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_path);
     qpdf_service::decrypt_pdf(&input, &output, &password, &tool)
@@ -379,8 +487,9 @@ pub fn extract_pages(
     input_file: String,
     output_path: String,
     page_range: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_path);
     qpdf_service::extract_pages(&input, &output, &page_range, &tool)
@@ -394,8 +503,9 @@ pub fn rotate_pages(
     output_path: String,
     angle: u16,
     page_range: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_path);
     qpdf_service::rotate_pages(&input, &output, angle, &page_range, &tool)
@@ -404,8 +514,12 @@ pub fn rotate_pages(
 }
 
 #[tauri::command]
-pub fn compress_pdf(input_file: String, output_path: String) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+pub fn compress_pdf(
+    input_file: String,
+    output_path: String,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_path);
     qpdf_service::compress_pdf(&input, &output, &tool)
@@ -414,8 +528,11 @@ pub fn compress_pdf(input_file: String, output_path: String) -> Result<String, S
 }
 
 #[tauri::command]
-pub fn read_pdf_metadata(input_file: String) -> Result<String, String> {
-    let tool = qpdf_service::find_qpdf().map_err(|e| e.to_string())?;
+pub fn read_pdf_metadata(
+    input_file: String,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
     let input = PathBuf::from(&input_file);
     qpdf_service::read_metadata(&input, &tool).map_err(|e| e.to_string())
 }
@@ -440,8 +557,11 @@ pub fn get_active_jobs(manager: State<'_, JobManagerState>) -> Result<Vec<JobSta
 }
 
 #[tauri::command]
-pub fn check_tesseract_available() -> Result<TesseractInfo, String> {
-    match ocr_service::find_tesseract() {
+pub fn check_tesseract_available(
+    settings: State<'_, SettingsState>,
+) -> Result<TesseractInfo, String> {
+    let override_path = settings_snapshot(&settings).external_tools.tesseract_path;
+    match ocr_service::find_tesseract_with(override_path.as_deref()) {
         Ok(tool) => Ok(TesseractInfo {
             available: true,
             path: tool.path.to_string_lossy().to_string(),
@@ -472,8 +592,9 @@ pub fn run_ocr(
     output_file: String,
     language: String,
     dpi: u32,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let tesseract = ocr_service::find_tesseract().map_err(|e| e.to_string())?;
+    let tesseract = resolve_tesseract(&settings)?;
     let input = PathBuf::from(&input_file);
     let output = PathBuf::from(&output_file);
     ocr_service::run_ocr(&input, &output, &language, dpi, &tesseract)
@@ -531,8 +652,19 @@ fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {
     Ok(pdf_path)
 }
 
-fn tool_status(command_name: &str, display_name: &str, required_for: &[&str]) -> ExternalToolStatus {
-    let path = which::which(command_name).ok();
+fn tool_status(
+    command_name: &str,
+    display_name: &str,
+    required_for: &[&str],
+    override_path: Option<&str>,
+) -> ExternalToolStatus {
+    let path = override_path
+        .and_then(|p| {
+            let pb = PathBuf::from(p);
+            if pb.exists() { Some(pb) } else { None }
+        })
+        .or_else(|| which::which(command_name).ok());
+
     let version = path
         .as_ref()
         .and_then(|tool_path| read_tool_version(tool_path));

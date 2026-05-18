@@ -14,6 +14,7 @@ import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { TabBar } from './components/TabBar';
 import { ThumbnailPanel } from './components/ThumbnailPanel';
+import { SettingsPanel } from './components/SettingsPanel';
 import { ToolsPanel } from './components/ToolsPanel';
 import { Toolbar } from './components/Toolbar';
 import { base64ToUint8Array } from './lib/base64';
@@ -22,17 +23,20 @@ import {
   addRecentFile,
   checkExternalTools,
   getAppInfo,
+  getSettings,
   getStartupContext,
   loadPdfBase64,
   runPdfOperation,
 } from './lib/tauriCommands';
-import type { AppInfo, DocTab, ExternalToolStatus, PdfFilePayload, SidebarTab, ViewerState } from './types';
+import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState } from './types';
 
 const DEFAULT_VIEWER: ViewerState = {
   currentPage: 1,
   pageCount: 0,
   scale: 1.2,
   rotation: 0,
+  layout: 'single',
+  fitMode: 'custom',
 };
 
 let tabCounter = 0;
@@ -48,6 +52,8 @@ export default function App() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [status, setStatus] = useState('준비됨');
   const [activeTab, setActiveTab] = useState<SidebarTab>('document');
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -66,10 +72,15 @@ export default function App() {
 
       const tabId = nextTabId();
       setStatus('PDF 파일을 읽는 중...');
+      setLoadProgress({ loaded: 0, total: 0 });
 
       try {
         const payload = await loadPdfBase64(path);
         let pdf: PDFDocumentProxy;
+
+        const onPdfProgress = (data: { loaded: number; total: number }) => {
+          setLoadProgress({ loaded: data.loaded, total: data.total ?? 0 });
+        };
 
         if (payload.url) {
           const loadingTask = pdfjsLib.getDocument({
@@ -79,17 +90,25 @@ export default function App() {
             cMapUrl: undefined,
             cMapPacked: true,
           });
+          loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
         } else {
           const bytes = base64ToUint8Array(payload.base64Data);
           const loadingTask = pdfjsLib.getDocument({ data: bytes });
+          loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
         }
 
         const newTab: DocTab = {
           id: tabId,
           file: payload,
-          viewer: { ...DEFAULT_VIEWER, pageCount: pdf.numPages },
+          viewer: {
+            ...DEFAULT_VIEWER,
+            pageCount: pdf.numPages,
+            scale: settings.viewer.initialScale,
+            layout: settings.viewer.pageLayout,
+            fitMode: settings.viewer.defaultFitMode,
+          },
         };
 
         documentsRef.current.set(tabId, pdf);
@@ -103,9 +122,11 @@ export default function App() {
         void addRecentFile(payload.path, payload.fileName).catch(() => {});
       } catch (error) {
         setStatus((error as Error).message ?? 'PDF를 열 수 없습니다.');
+      } finally {
+        setLoadProgress(null);
       }
     },
-    [tabs],
+    [tabs, settings.viewer.initialScale, settings.viewer.pageLayout, settings.viewer.defaultFitMode],
   );
 
   const openFile = useCallback(async () => {
@@ -229,13 +250,15 @@ export default function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
-        const [info, externalTools, startup] = await Promise.all([
+        const [info, externalTools, startup, loadedSettings] = await Promise.all([
           getAppInfo(),
           checkExternalTools(),
           getStartupContext(),
+          getSettings().catch(() => DEFAULT_SETTINGS),
         ]);
         setAppInfo(info);
         setTools(externalTools);
+        setSettings(loadedSettings);
 
         const firstPdf = startup.files.find((file) => file.toLowerCase().endsWith('.pdf'));
         if (firstPdf) {
@@ -380,7 +403,12 @@ export default function App() {
         return (
           <div className="sidebar-inner">
             <h2>PDF 도구</h2>
-            <ToolsPanel currentFile={activeDocTab?.file ?? null} tools={tools} onStatus={setStatus} />
+            <ToolsPanel
+              currentFile={activeDocTab?.file ?? null}
+              tools={tools}
+              onStatus={setStatus}
+              onToolsChange={setTools}
+            />
           </div>
         );
       case 'advanced':
@@ -391,6 +419,21 @@ export default function App() {
               document={activeDocument}
               file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
               onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="sidebar-inner">
+            <h2>설정</h2>
+            <SettingsPanel
+              onStatus={(message) => {
+                setStatus(message);
+                if (message === '설정을 저장했습니다.' || message === '설정을 기본값으로 되돌렸습니다.') {
+                  void getSettings().then(setSettings).catch(() => {});
+                  void checkExternalTools().then(setTools).catch(() => {});
+                }
+              }}
             />
           </div>
         );
@@ -437,9 +480,11 @@ export default function App() {
             updateViewer((v) => ({ ...v, scale: Math.min(4, v.scale + 0.1) }))
           }
           onRotate={() =>
-            updateViewer((v) => ({ ...v, rotation: (v.rotation + 90) % 360 }))
+            updateViewer((v) => ({ ...v, rotation: (v.rotation + settings.viewer.rotationStep) % 360 }))
           }
           onCheckUpdates={handleCheckUpdates}
+          onLayoutChange={(layout) => updateViewer((v) => ({ ...v, layout }))}
+          onFitChange={(fitMode) => updateViewer((v) => ({ ...v, fitMode }))}
         />
       }
       statusbar={<StatusBar appInfo={appInfo} message={status} />}
@@ -449,6 +494,16 @@ export default function App() {
         pageNumber={activeDocTab?.viewer.currentPage ?? 1}
         scale={activeDocTab?.viewer.scale ?? 1.2}
         rotation={activeDocTab?.viewer.rotation ?? 0}
+        layout={activeDocTab?.viewer.layout ?? 'single'}
+        fitMode={activeDocTab?.viewer.fitMode ?? 'custom'}
+        renderQuality={settings.viewer.renderQuality}
+        loadProgress={loadProgress}
+        onPageChange={(page) =>
+          updateViewer((v) => (v.currentPage === page ? v : { ...v, currentPage: page }))
+        }
+        onFittedScale={(s) =>
+          updateViewer((v) => (Math.abs(v.scale - s) < 0.001 ? v : { ...v, scale: s }))
+        }
       />
     </AppShell>
   );
