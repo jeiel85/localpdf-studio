@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LocalPDF Studio | 로컬 우선 PDF 데스크톱 앱</title>
+    <meta
+      name="description"
+      content="LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF 보기, 정리, 병합, 분할, OCR을 로컬에서 처리하는 Windows 우선 데스크톱 앱입니다."
+    />
+    <meta name="theme-color" content="#07111f" />
+    <meta property="og:title" content="LocalPDF Studio" />
+    <meta
+      property="og:description"
+      content="PDF를 PC 안에서 열고 정리하고 변환하는 로컬 우선 Windows 데스크톱 앱."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="img/landing.png" />
+    <link rel="icon" href="img/app-icon.png" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        --ink: #07111f;
+        --panel: #0d1a2b;
+        --panel-2: #12243a;
+        --text: #f7fbff;
+        --muted: #b8c6d8;
+        --cyan: #26d8f2;
+        --blue: #3178ff;
+        --amber: #ffb23f;
+        --paper: #f5f8fb;
+        --paper-text: #182335;
+        --line: rgba(255, 255, 255, 0.16);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ink);
+        color: var(--text);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .hero {
+        min-height: 92vh;
+        display: flex;
+        flex-direction: column;
+        background:
+          linear-gradient(90deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.48) 48%, rgba(7, 17, 31, 0.1)),
+          url("img/landing.png") center / cover no-repeat;
+      }
+
+      .nav {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 24px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      .hero-inner {
+        width: min(1160px, calc(100% - 40px));
+        margin: auto auto 0;
+        padding: 64px 0 84px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        color: #d9f9ff;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 34px;
+        height: 2px;
+        background: var(--cyan);
+      }
+
+      h1 {
+        max-width: 720px;
+        margin: 0;
+        font-size: clamp(46px, 7vw, 92px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 610px;
+        margin: 26px 0 0;
+        color: #d9e6f6;
+        font-size: clamp(18px, 2vw, 22px);
+        line-height: 1.65;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .button {
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        padding: 0 18px;
+        font-weight: 800;
+        border: 1px solid transparent;
+      }
+
+      .button.primary {
+        background: var(--cyan);
+        color: #03101a;
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.24);
+      }
+
+      .proof {
+        width: min(1160px, calc(100% - 40px));
+        margin: -42px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .proof-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 20px;
+        background: rgba(13, 26, 43, 0.9);
+        backdrop-filter: blur(18px);
+      }
+
+      .proof-item strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text);
+      }
+
+      .proof-item span {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      section {
+        padding: 92px 0;
+      }
+
+      .section-light {
+        background: var(--paper);
+        color: var(--paper-text);
+      }
+
+      .section-dark {
+        background: linear-gradient(180deg, #091523, #101d2f);
+      }
+
+      .wrap {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .section-heading {
+        max-width: 680px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(32px, 4vw, 54px);
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .section-heading p {
+        margin: 18px 0 0;
+        color: #536274;
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .section-dark .section-heading p {
+        color: var(--muted);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 38px;
+      }
+
+      .feature {
+        min-height: 170px;
+        border-radius: 8px;
+        padding: 24px;
+        border: 1px solid #dde5ef;
+        background: #ffffff;
+      }
+
+      .feature b {
+        display: block;
+        margin-bottom: 10px;
+        color: #0f243d;
+        font-size: 18px;
+      }
+
+      .feature p {
+        margin: 0;
+        color: #5e6d7e;
+        line-height: 1.65;
+      }
+
+      .roadmap {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 42px;
+        align-items: start;
+      }
+
+      .steps {
+        display: grid;
+        gap: 12px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 18px;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .step code {
+        color: var(--amber);
+        font: 800 14px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      .step strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .step span {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .cta {
+        background: #ffffff;
+        color: var(--paper-text);
+        border-top: 1px solid #e5edf6;
+      }
+
+      .cta-inner {
+        display: grid;
+        grid-template-columns: 92px 1fr auto;
+        gap: 24px;
+        align-items: center;
+      }
+
+      .cta img {
+        width: 92px;
+        height: 92px;
+        border-radius: 20px;
+        box-shadow: 0 18px 38px rgba(14, 31, 52, 0.22);
+      }
+
+      .cta p {
+        margin: 10px 0 0;
+        color: #58697b;
+        line-height: 1.65;
+      }
+
+      footer {
+        padding: 28px 0;
+        background: var(--ink);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          min-height: 86vh;
+          background:
+            linear-gradient(180deg, rgba(7, 17, 31, 0.9), rgba(7, 17, 31, 0.72)),
+            url("img/landing.png") center / cover no-repeat;
+        }
+
+        .nav {
+          align-items: flex-start;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .proof,
+        .feature-grid,
+        .roadmap,
+        .cta-inner {
+          grid-template-columns: 1fr;
+        }
+
+        .proof {
+          margin-top: 0;
+        }
+
+        .cta-inner {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav" aria-label="주요 링크">
+        <a class="brand" href="./">
+          <img src="img/app-icon.png" alt="" />
+          <span>LocalPDF Studio</span>
+        </a>
+        <div class="nav-links">
+          <a href="#features">기능</a>
+          <a href="#roadmap">로드맵</a>
+          <a href="https://github.com/jeiel85/localpdf-studio">GitHub</a>
+        </div>
+      </nav>
+
+      <div class="hero-inner">
+        <span class="eyebrow">Windows first, local first</span>
+        <h1>LocalPDF Studio</h1>
+        <p class="lead">
+          PDF를 PC 안에서 열고 정리하고 변환합니다. 계정, 광고, 클라우드 업로드 없이
+          민감한 문서 작업을 데스크톱에서 차분하게 처리하는 앱입니다.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/jeiel85/localpdf-studio">GitHub에서 보기</a>
+          <a class="button secondary" href="https://github.com/jeiel85/localpdf-studio#빠른-시작">개발 실행</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="proof" aria-label="제품 원칙">
+      <div class="proof-item">
+        <strong>100% 로컬 중심</strong>
+        <span>PDF 내용은 기본적으로 사용자 장치 밖으로 나가지 않습니다.</span>
+      </div>
+      <div class="proof-item">
+        <strong>가볍고 빠른 데스크톱</strong>
+        <span>Tauri, React, Rust로 Windows 앱의 응답성과 배포 크기를 관리합니다.</span>
+      </div>
+      <div class="proof-item">
+        <strong>실무 PDF 워크플로</strong>
+        <span>보기, 검색, 병합, 분할, OCR, 내보내기를 단계적으로 완성합니다.</span>
+      </div>
+    </div>
+
+    <section id="features" class="section-light">
+      <div class="wrap">
+        <div class="section-heading">
+          <h2>문서를 밖으로 보내지 않는 PDF 작업대</h2>
+          <p>
+            LocalPDF Studio는 로컬 파일 처리, 명확한 배포 경로, Windows 사용자 경험을
+            한 프로젝트 안에서 함께 설계합니다.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature">
+            <b>PDF 보기와 탐색</b>
+            <p>PDF.js 기반 렌더링, 페이지 이동, 확대/축소, 회전, 사이드바 레이아웃을 제공합니다.</p>
+          </article>
+          <article class="feature">
+            <b>정리와 변환 준비</b>
+            <p>qpdf wrapper를 중심으로 병합, 분할, 추출, 암호화 작업 계층을 확장합니다.</p>
+          </article>
+          <article class="feature">
+            <b>OCR 확장 경로</b>
+            <p>Tesseract 탐지와 언어팩 확인 구조를 바탕으로 이미지 PDF 텍스트 추출을 준비합니다.</p>
+          </article>
+          <article class="feature">
+            <b>Windows 통합</b>
+            <p>우클릭 메뉴, NSIS, MSI, Portable ZIP까지 Windows 배포 흐름을 고려합니다.</p>
+          </article>
+          <article class="feature">
+            <b>업데이트 설계</b>
+            <p>Tauri updater와 GitHub Release 산출물을 연결하는 릴리즈 구조를 마련합니다.</p>
+          </article>
+          <article class="feature">
+            <b>개발자 친화 문서</b>
+            <p>기능 명세, 아키텍처, 보안, 릴리즈 문서를 함께 관리해 다음 작업을 빠르게 이어갑니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="section-dark">
+      <div class="wrap roadmap">
+        <div class="section-heading">
+          <h2>제품화까지 이어지는 로드맵</h2>
+          <p>
+            지금은 초기 골격 단계이며, 검증 가능한 단위로 PDF 뷰어 완성도와 작업 엔진을
+            넓혀갑니다.
+          </p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <code>P0</code>
+            <div>
+              <strong>저장소 안정화</strong>
+              <span>의존성 설치, 타입 검사, 앱 빌드, 기본 PDF 렌더링을 검증합니다.</span>
+            </div>
+          </div>
+          <div class="step">
+            <code>P1</code>
+            <div>
+              <strong>뷰어 경험 완성</strong>
+              <span>썸네일, 목차, 검색, 최근 문서, 단축키를 추가합니다.</span>
+            </div>
+          </div>
+          <div class="step">
+            <code>P2</code>
+            <div>
+              <strong>PDF 작업 엔진</strong>
+              <span>병합, 분할, 추출, 회전 저장, 암호화, 작업 큐를 구현합니다.</span>
+            </div>
+          </div>
+          <div class="step">
+            <code>P3/P4</code>
+            <div>
+              <strong>OCR과 배포</strong>
+              <span>OCR, 변환, 설치 파일, 업데이트 서명, 릴리즈 자동화를 마무리합니다.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="wrap cta-inner">
+        <img src="img/app-icon.png" alt="" />
+        <div>
+          <h2>로컬 PDF 도구를 직접 빌드하세요</h2>
+          <p>저장소를 클론한 뒤 Node.js LTS, Rust stable, WebView2 환경에서 바로 개발을 시작할 수 있습니다.</p>
+        </div>
+        <a class="button primary" href="https://github.com/jeiel85/localpdf-studio">Repository</a>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <span>LocalPDF Studio</span>
+        <span>Apache-2.0</span>
+      </div>
+    </footer>
+  </body>
+</html>

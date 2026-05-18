@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-18 - GitHub Pages 랜딩
+
+- 결정: GitHub Pages는 `docs/` 폴더의 정적 HTML을 사용한다.
+- 이유: 기존 설계 문서 위치와 GitHub Pages의 branch/docs 배포 방식이 잘 맞고, 별도 빌드 파이프라인 없이 공개 페이지를 유지할 수 있다.
+- 대안: React 앱 빌드 결과를 Pages에 배포하거나 별도 `gh-pages` 브랜치를 운영한다.
+- 결과: `docs/index.html`과 `docs/img` 이미지 자산을 Pages 진입점으로 사용한다.
+
 ## 2026-05-18 - 초기 기술 스택
 
 - 결정: Tauri 2 + React + TypeScript + Rust를 기본 스택으로 사용한다.
