@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { UpdateNotification, type UpdateStatus } from './components/UpdateNotification';
 import { AdvancedPanel } from './components/AdvancedPanel';
 import { AppShell } from './components/AppShell';
 import { MergePanel } from './components/MergePanel';
@@ -54,6 +54,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<SidebarTab>('document');
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ kind: 'idle' });
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -302,6 +303,27 @@ export default function App() {
     void bootstrap();
   }, [loadPath]);
 
+  const autoUpdateChecked = useRef(false);
+  useEffect(() => {
+    if (autoUpdateChecked.current) return;
+    if (!settings.update.checkOnStartup) return;
+    autoUpdateChecked.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const update = await check();
+        if (cancelled || !update) return;
+        setUpdateStatus({ kind: 'available', update });
+        setStatus(`업데이트 가능: ${update.version}`);
+      } catch {
+        // silent fail on auto-check; manual check will surface errors
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.update.checkOnStartup]);
+
   async function handleOperation(operation: string) {
     if (!activeDocTab) return;
     try {
@@ -318,13 +340,15 @@ export default function App() {
       const update = await check();
       if (!update) {
         setStatus('사용 가능한 업데이트가 없습니다.');
+        setUpdateStatus({ kind: 'idle' });
         return;
       }
-      setStatus(`업데이트 ${update.version} 다운로드 및 설치 중...`);
-      await update.downloadAndInstall();
-      await relaunch();
+      setStatus(`업데이트 가능: ${update.version}`);
+      setUpdateStatus({ kind: 'available', update });
     } catch (error) {
-      setStatus((error as Error).message ?? '업데이트 확인 중 오류가 발생했습니다.');
+      const message = (error as Error).message ?? '업데이트 확인 중 오류가 발생했습니다.';
+      setStatus(message);
+      setUpdateStatus({ kind: 'error', message });
     }
   }
 
@@ -516,6 +540,12 @@ export default function App() {
         loadProgress={loadProgress}
         onPageChange={handlePageChange}
         onFittedScale={handleFittedScale}
+      />
+      <UpdateNotification
+        status={updateStatus}
+        onStatusChange={setUpdateStatus}
+        onDismiss={() => setUpdateStatus({ kind: 'idle' })}
+        onStatus={setStatus}
       />
     </AppShell>
   );
