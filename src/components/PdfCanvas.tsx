@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { FitMode, PageLayout, RenderQuality } from '../types';
 import { PdfContinuousView } from './PdfContinuousView';
@@ -16,12 +16,14 @@ export type PdfCanvasProps = {
   onFittedScale?: (scale: number) => void;
 };
 
-export function PdfCanvas(props: PdfCanvasProps) {
+function PdfCanvasInner(props: PdfCanvasProps) {
   if (props.layout === 'continuous') {
     return <PdfContinuousView {...props} />;
   }
   return <PdfCanvasSingle {...props} />;
 }
+
+export const PdfCanvas = memo(PdfCanvasInner);
 
 function PdfCanvasSingle({
   document,
@@ -159,5 +161,7 @@ export function computeFitScale(params: {
 export function renderQualityToScale(quality: RenderQuality): number {
   if (quality === 'high') return Math.max(window.devicePixelRatio || 1, 2);
   if (quality === 'low') return 1;
-  return window.devicePixelRatio || 1;
+  // 'auto' caps at 1.5 to balance sharpness and performance
+  const dpr = window.devicePixelRatio || 1;
+  return Math.min(dpr, 1.5);
 }

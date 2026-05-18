@@ -181,6 +181,18 @@ export default function App() {
     [activeTabId],
   );
 
+  const handlePageChange = useCallback(
+    (page: number) =>
+      updateViewer((v) => (v.currentPage === page ? v : { ...v, currentPage: page })),
+    [updateViewer],
+  );
+
+  const handleFittedScale = useCallback(
+    (s: number) =>
+      updateViewer((v) => (Math.abs(v.scale - s) < 0.001 ? v : { ...v, scale: s })),
+    [updateViewer],
+  );
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const isInput =
@@ -498,12 +510,8 @@ export default function App() {
         fitMode={activeDocTab?.viewer.fitMode ?? 'custom'}
         renderQuality={settings.viewer.renderQuality}
         loadProgress={loadProgress}
-        onPageChange={(page) =>
-          updateViewer((v) => (v.currentPage === page ? v : { ...v, currentPage: page }))
-        }
-        onFittedScale={(s) =>
-          updateViewer((v) => (Math.abs(v.scale - s) < 0.001 ? v : { ...v, scale: s }))
-        }
+        onPageChange={handlePageChange}
+        onFittedScale={handleFittedScale}
       />
     </AppShell>
   );

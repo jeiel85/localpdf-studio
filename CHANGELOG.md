@@ -1,5 +1,22 @@
 # CHANGELOG.md
 
+## v0.2.1 - 2026-05-18
+
+### Fixed
+
+- 설정 화면의 "찾아보기" 버튼이 좁은 그리드 셀에서 한글이 한 글자씩 세로로 잘려 보이던 문제. 모든 설정 버튼에 `white-space: nowrap` 적용 및 `grid-template-columns: minmax(0, 1fr) auto auto`로 input이 우선 축소되도록 변경
+
+### Performance
+
+- 연속 스크롤 뷰의 초기 표시 지연을 크게 단축:
+  - 기존: PDF 열면 모든 페이지에 대해 `getPage()` 직렬 호출 (239페이지 = 239번 await) 완료까지 placeholder도 안 보이고 첫 렌더가 멈춤
+  - 변경: 1페이지 dim만 즉시 읽어 전체에 적용 → placeholder 그리드 즉시 표시. 각 페이지의 실제 dim은 IntersectionObserver로 스크롤 진입 시 lazy 계산
+- 렌더 출력 배율(`renderQualityToScale`) "auto" 모드에 상한 1.5x 도입. 일부 환경의 `devicePixelRatio` 2.0이 캔버스를 4배 크기로 그려 GPU/메모리 부하가 컸음. 선명도는 거의 동등하나 페인트 시간이 크게 감소
+- `App.tsx`의 `onPageChange` / `onFittedScale` 콜백을 `useCallback`으로 안정화하여 매 렌더 시 자식의 referential equality 깨짐 방지
+- `PdfCanvas`를 `React.memo`로 감싸 props 변경 없을 때 재렌더 차단 (상태바/사이드바 업데이트로 인한 App 재렌더가 캔버스까지 전파되던 문제 해소)
+
+---
+
 ## v0.2.0 - 2026-05-18
 
 ### Added

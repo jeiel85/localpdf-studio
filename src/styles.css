@@ -129,7 +129,7 @@ button.primary { border-color: #5b8cff; background: #24427a; }
 
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .panel-header h2 { margin: 0; }
-.btn-small { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+.btn-small { padding: 4px 10px; font-size: 12px; border-radius: 8px; white-space: nowrap; }
 
 .tool-card { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid #1f2a44; }
 .tool-card:first-of-type { border-top: none; padding-top: 6px; }
@@ -139,7 +139,7 @@ button.primary { border-color: #5b8cff; background: #24427a; }
 .tool-install { padding: 8px 10px; background: rgba(242, 198, 106, 0.08); border: 1px solid rgba(242, 198, 106, 0.25); border-radius: 10px; display: grid; gap: 6px; }
 .tool-hint { margin: 0; color: #cdd8f4; font-size: 12px; line-height: 1.45; }
 .tool-install-actions { display: grid; gap: 6px; }
-.tool-install-actions button { width: fit-content; padding: 6px 12px; font-size: 12px; }
+.tool-install-actions button { width: fit-content; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
 .tool-url { font-size: 11px; padding: 4px 6px; background: rgba(0,0,0,0.25); border-radius: 6px; color: #9aa9c7; user-select: all; word-break: break-all; }
 
 /* Settings panel */
@@ -160,10 +160,10 @@ button.primary { border-color: #5b8cff; background: #24427a; }
   font-size: 13px;
 }
 .settings-row input[type="range"] { accent-color: #5b8cff; }
-.settings-input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; }
-.settings-input-row button { padding: 6px 10px; font-size: 12px; }
+.settings-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }
+.settings-input-row button { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.settings-actions button { font-size: 12px; }
+.settings-actions button { font-size: 12px; white-space: nowrap; }
 .settings-status { font-size: 11px; color: #5de39b; min-width: 60px; text-align: right; }
 .form-hint { color: #9aa9c7; font-size: 11px; line-height: 1.45; margin: 2px 0 0; }
 
