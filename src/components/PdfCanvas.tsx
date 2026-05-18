@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { pdfRenderQueue } from '../lib/renderQueue';
 import type { FitMode, PageLayout, RenderQuality } from '../types';
 import { PdfContinuousView } from './PdfContinuousView';
 
@@ -43,20 +44,19 @@ function PdfCanvasSingle({
   const [message, setMessage] = useState('PDF를 열어주세요.');
 
   useEffect(() => {
-    let cancelled = false;
+    if (!document) {
+      setMessage('PDF를 열어주세요.');
+      return;
+    }
 
-    async function renderPage() {
-      if (!document || !canvasRef.current || !containerRef.current) {
-        setMessage('PDF를 열어주세요.');
-        return;
-      }
+    setMessage('렌더링 중...');
+    renderTaskRef.current?.cancel();
 
-      setMessage('렌더링 중...');
-      renderTaskRef.current?.cancel();
-
+    const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
+      if (shouldCancel() || !canvasRef.current || !containerRef.current) return null;
       try {
         const page = await document.getPage(pageNumber);
-        if (cancelled) return;
+        if (shouldCancel() || !canvasRef.current || !containerRef.current) return null;
 
         const baseViewport = page.getViewport({ scale: 1, rotation });
         const container = containerRef.current;
@@ -87,18 +87,17 @@ function PdfCanvasSingle({
         const task = page.render({ canvas, canvasContext: context, viewport });
         renderTaskRef.current = task;
         await task.promise;
-        if (!cancelled) setMessage('');
+        if (!shouldCancel()) setMessage('');
       } catch (error) {
         const err = error as { name?: string; message?: string };
-        if (err.name === 'RenderingCancelledException') return;
+        if (err.name === 'RenderingCancelledException') return null;
         setMessage(err.message ?? 'PDF 페이지 렌더링 중 오류가 발생했습니다.');
       }
-    }
-
-    void renderPage();
+      return null;
+    });
 
     return () => {
-      cancelled = true;
+      handle.cancel();
       renderTaskRef.current?.cancel();
     };
   }, [document, pageNumber, scale, rotation, fitMode, renderQuality]);

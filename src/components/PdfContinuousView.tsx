@@ -1,9 +1,13 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { computeFitScale, LoadingOverlay, renderQualityToScale, type PdfCanvasProps } from './PdfCanvas';
+import { pdfRenderQueue } from '../lib/renderQueue';
 import type { RenderQuality } from '../types';
 
 type PageDim = { width: number; height: number };
+
+const SCROLL_SETTLE_MS = 120;
+const RENDER_ROOT_MARGIN = '250px 0px';
 
 export function PdfContinuousView({
   document,
@@ -20,6 +24,7 @@ export function PdfContinuousView({
   const [firstDim, setFirstDim] = useState<PageDim | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [activeScale, setActiveScale] = useState(1);
+  const [isScrolling, setIsScrolling] = useState(false);
   const pageCount = document?.numPages ?? 0;
   const onPageChangeRef = useRef(onPageChange);
   onPageChangeRef.current = onPageChange;
@@ -38,7 +43,24 @@ export function PdfContinuousView({
     return () => ro.disconnect();
   }, [document]);
 
-  // Only load FIRST page dimension up front — others are placeholders until they scroll into view
+  // Track scrolling state — pause renders while user is actively scrolling
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let timer: number | null = null;
+    const onScroll = () => {
+      setIsScrolling(true);
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIsScrolling(false), SCROLL_SETTLE_MS);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [document]);
+
+  // Only load FIRST page dimension up front — others use that as placeholder
   useEffect(() => {
     let cancelled = false;
     if (!document) {
@@ -60,7 +82,6 @@ export function PdfContinuousView({
     };
   }, [document, rotation]);
 
-  // Compute effective scale from first page dimensions + container size
   useEffect(() => {
     if (!firstDim || containerSize.width === 0) return;
     const effective = computeFitScale({
@@ -75,7 +96,7 @@ export function PdfContinuousView({
     onFittedScaleRef.current?.(effective);
   }, [firstDim, fitMode, scale, containerSize]);
 
-  // Scroll to a page when pageNumber changes externally (toolbar/thumbnails)
+  // Scroll to a page when pageNumber changes externally
   const lastScrolledPage = useRef<number>(-1);
   useEffect(() => {
     if (lastScrolledPage.current === pageNumber) return;
@@ -88,7 +109,7 @@ export function PdfContinuousView({
     }
   }, [pageNumber, pageCount]);
 
-  // Track current page based on what's most visible
+  // Track current page based on visibility
   useEffect(() => {
     const el = containerRef.current;
     if (!el || pageCount === 0) return;
@@ -155,22 +176,14 @@ export function PdfContinuousView({
             defaultHeight={placeholderSize.height}
             renderQuality={renderQuality}
             container={containerRef.current}
+            isScrolling={isScrolling}
           />
         ))}
     </div>
   );
 }
 
-function ContinuousPage({
-  pageIndex,
-  document,
-  rotation,
-  scale,
-  defaultWidth,
-  defaultHeight,
-  renderQuality,
-  container,
-}: {
+type ContinuousPageProps = {
   pageIndex: number;
   document: PDFDocumentProxy;
   rotation: number;
@@ -179,76 +192,96 @@ function ContinuousPage({
   defaultHeight: number;
   renderQuality: RenderQuality;
   container: HTMLDivElement | null;
-}) {
+  isScrolling: boolean;
+};
+
+const ContinuousPage = memo(function ContinuousPage({
+  pageIndex,
+  document,
+  rotation,
+  scale,
+  defaultWidth,
+  defaultHeight,
+  renderQuality,
+  container,
+  isScrolling,
+}: ContinuousPageProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const queueHandleRef = useRef<{ cancel: () => void } | null>(null);
   const [actualSize, setActualSize] = useState<{ width: number; height: number } | null>(null);
-  const [shouldRender, setShouldRender] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [rendered, setRendered] = useState(false);
 
-  // Watch for viewport intersection to trigger lazy render
+  // Track viewport visibility
   useEffect(() => {
     if (!wrapRef.current || !container) return;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) setShouldRender(true);
+          setVisible(e.isIntersecting);
         }
       },
-      { root: container, rootMargin: '600px 0px' },
+      { root: container, rootMargin: RENDER_ROOT_MARGIN },
     );
     observer.observe(wrapRef.current);
     return () => observer.disconnect();
   }, [container]);
 
-  // Reset rendered state when scale/rotation changes so the canvas redraws at the new size
+  // Reset rendered state when scale/rotation changes
   useEffect(() => {
     setRendered(false);
   }, [scale, rotation]);
 
-  // Render the page when it enters the viewport
+  // Schedule render through the queue when visible and scroll has settled
   useEffect(() => {
-    if (!shouldRender || rendered || !canvasRef.current) return;
-    let cancelled = false;
+    if (!visible || rendered || isScrolling || !canvasRef.current) return;
 
-    (async () => {
+    queueHandleRef.current?.cancel();
+    renderTaskRef.current?.cancel();
+
+    const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
+      if (shouldCancel()) return null;
+      const page = await document.getPage(pageIndex);
+      if (shouldCancel() || !canvasRef.current) return null;
+      const viewport = page.getViewport({ scale, rotation });
+      const wf = Math.floor(viewport.width);
+      const hf = Math.floor(viewport.height);
+      setActualSize((prev) =>
+        prev && prev.width === wf && prev.height === hf ? prev : { width: wf, height: hf },
+      );
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+
+      const outputScale = renderQualityToScale(renderQuality);
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${wf}px`;
+      canvas.style.height = `${hf}px`;
+      context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+
+      const task = page.render({ canvas, canvasContext: context, viewport });
+      renderTaskRef.current = task;
       try {
-        const page = await document.getPage(pageIndex);
-        if (cancelled || !canvasRef.current) return;
-        const viewport = page.getViewport({ scale, rotation });
-        if (!actualSize || actualSize.width !== Math.floor(viewport.width) || actualSize.height !== Math.floor(viewport.height)) {
-          setActualSize({ width: Math.floor(viewport.width), height: Math.floor(viewport.height) });
-        }
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
-        const outputScale = renderQualityToScale(renderQuality);
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
-        context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
-
-        renderTaskRef.current?.cancel();
-        const task = page.render({ canvas, canvasContext: context, viewport });
-        renderTaskRef.current = task;
         await task.promise;
-        if (!cancelled) setRendered(true);
+        if (!shouldCancel()) setRendered(true);
       } catch (e) {
         const err = e as { name?: string };
         if (err.name !== 'RenderingCancelledException') {
-          // placeholder remains visible
+          // ignore — placeholder remains
         }
       }
-    })();
+      return null;
+    });
+    queueHandleRef.current = handle;
 
     return () => {
-      cancelled = true;
+      handle.cancel();
       renderTaskRef.current?.cancel();
     };
-  }, [shouldRender, rendered, document, pageIndex, scale, rotation, renderQuality, actualSize]);
+  }, [visible, rendered, isScrolling, document, pageIndex, scale, rotation, renderQuality]);
 
   const w = actualSize?.width ?? defaultWidth;
   const h = actualSize?.height ?? defaultHeight;
@@ -264,4 +297,4 @@ function ContinuousPage({
       {!rendered && <span className="continuous-page-number">페이지 {pageIndex}</span>}
     </div>
   );
-}
+});

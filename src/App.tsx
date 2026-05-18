@@ -89,12 +89,16 @@ export default function App() {
             disableStream: false,
             cMapUrl: undefined,
             cMapPacked: true,
+            useSystemFonts: true,
           });
           loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
         } else {
           const bytes = base64ToUint8Array(payload.base64Data);
-          const loadingTask = pdfjsLib.getDocument({ data: bytes });
+          const loadingTask = pdfjsLib.getDocument({
+            data: bytes,
+            useSystemFonts: true,
+          });
           loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
         }
