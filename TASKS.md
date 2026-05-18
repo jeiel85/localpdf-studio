@@ -51,3 +51,11 @@
 - [x] MSI 산출물 확인 (tauri.conf.json targets: nsis + msi)
 - [x] Portable ZIP 생성 자동화 (create-portable-zip.ps1 + CI 통합)
 - [x] GitHub Release 산출물 업로드 확인 (release.yml: tauri-action + action-gh-release)
+
+## v0.3.0 - Phase 1: 뷰어 핵심 보강
+
+- [x] A5 사이드바 접기/열기 (Ctrl+B, localStorage 영속화)
+- [x] A4 단축키 도움말 다이얼로그 (F1, 툴바 ? 버튼)
+- [x] A2 파일 드래그앤드롭 (Tauri webview onDragDropEvent)
+- [x] A3 탭/뷰 상태 영속화 (tab_state.json, 세션 복원 설정)
+- [x] A1 텍스트 선택/복사 (pdf.js TextLayer 오버레이, 단일/연속 레이아웃)

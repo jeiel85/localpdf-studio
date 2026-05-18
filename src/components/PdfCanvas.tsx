@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { pdfjsLib } from '../lib/pdfjs';
 import type { FitMode, PageLayout, RenderQuality } from '../types';
 import { PdfContinuousView } from './PdfContinuousView';
 
@@ -38,6 +39,7 @@ function PdfCanvasSingle({
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
   const fittedScaleRef = useRef(onFittedScale);
   fittedScaleRef.current = onFittedScale;
@@ -51,6 +53,11 @@ function PdfCanvasSingle({
 
     setMessage('렌더링 중...');
     renderTaskRef.current?.cancel();
+
+    // Clear previous text layer
+    if (textLayerRef.current) {
+      textLayerRef.current.innerHTML = '';
+    }
 
     const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
       if (shouldCancel() || !canvasRef.current || !containerRef.current) return null;
@@ -87,6 +94,25 @@ function PdfCanvasSingle({
         const task = page.render({ canvas, canvasContext: context, viewport });
         renderTaskRef.current = task;
         await task.promise;
+        if (shouldCancel()) return null;
+
+        // Render text layer
+        if (textLayerRef.current) {
+          try {
+            const textContent = await page.getTextContent();
+            if (!shouldCancel() && textLayerRef.current) {
+              const textLayer = new pdfjsLib.TextLayer({
+                textContentSource: textContent,
+                container: textLayerRef.current,
+                viewport,
+              });
+              await textLayer.render();
+            }
+          } catch {
+            // Text layer rendering failure is not critical
+          }
+        }
+
         if (!shouldCancel()) setMessage('');
       } catch (error) {
         const err = error as { name?: string; message?: string };
@@ -106,7 +132,10 @@ function PdfCanvasSingle({
     <div className="canvas-wrap" ref={containerRef}>
       {loadProgress && <LoadingOverlay progress={loadProgress} />}
       {!loadProgress && message && <div className="canvas-message">{message}</div>}
-      <canvas ref={canvasRef} className="pdf-canvas" />
+      <div className="canvas-page-layer">
+        <canvas ref={canvasRef} className="pdf-canvas" />
+        <div ref={textLayerRef} className="textLayer" />
+      </div>
     </div>
   );
 }

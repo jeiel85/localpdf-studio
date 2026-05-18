@@ -82,6 +82,24 @@ pub struct RecentFileEntry {
     opened_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedTab {
+    pub path: String,
+    pub current_page: u32,
+    pub scale: f64,
+    pub rotation: u32,
+    pub layout: String,
+    pub fit_mode: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TabState {
+    pub tabs: Vec<PersistedTab>,
+    pub active_index: Option<usize>,
+}
+
 #[tauri::command]
 pub fn app_info() -> AppInfo {
     AppInfo {
@@ -635,6 +653,30 @@ pub fn save_text_file(path: String, content: String) -> Result<String, String> {
     std::fs::write(&path, &content)
         .map_err(|e| format!("파일 저장 실패: {e}"))?;
     Ok(path)
+}
+
+#[tauri::command]
+pub fn get_tab_state() -> Result<TabState, String> {
+    let app_dir = get_app_data_dir()?;
+    let tab_state_path = app_dir.join("tab_state.json");
+    if !tab_state_path.exists() {
+        return Ok(TabState::default());
+    }
+    let content = fs::read_to_string(&tab_state_path)
+        .map_err(|e| format!("탭 상태를 읽을 수 없습니다: {e}"))?;
+    serde_json::from_str(&content).map_err(|e| format!("탭 상태 파싱 실패: {e}"))
+}
+
+#[tauri::command]
+pub fn save_tab_state(state: TabState) -> Result<(), String> {
+    let app_dir = get_app_data_dir()?;
+    fs::create_dir_all(&app_dir)
+        .map_err(|e| format!("앱 데이터 디렉터리를 생성할 수 없습니다: {e}"))?;
+    let tab_state_path = app_dir.join("tab_state.json");
+    let json = serde_json::to_string_pretty(&state)
+        .map_err(|e| format!("탭 상태 직렬화 실패: {e}"))?;
+    fs::write(&tab_state_path, json)
+        .map_err(|e| format!("탭 상태 저장 실패: {e}"))
 }
 
 fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {

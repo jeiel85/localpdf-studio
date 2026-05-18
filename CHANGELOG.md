@@ -1,5 +1,22 @@
 # CHANGELOG.md
 
+## v0.3.0 - 2026-05-18
+
+### Added
+
+- **사이드바 접기/열기**: `Ctrl+B` 단축키 또는 좌측 가장자리 화살표 버튼으로 사이드바 접기/열기 지원. 접기 상태는 localStorage에 자동 저장
+- **키보드 단축키 도움말 다이얼로그**: `F1` 키 또는 툴바 우측 `?` 버튼으로 전체 단축키 목록 표시
+- **파일 드래그앤드롭**: 탐색기에서 PDF 파일을 앱 창으로 드래그앤드롭하여 열기 (Tauri webview drag-drop 이벤트)
+- **탭/뷰 상태 영속화**: 앱 종료 시 열려 있던 PDF, 페이지 번호, 배율, 회전, 레이아웃을 `tab_state.json`에 저장. `세션 복원` 설정 활성화 시 재시작 후 자동 복원
+- **텍스트 선택/복사**: PDF.js TextLayer 오버레이를 캔버스 위에 렌더링하여 텍스트 드래그 선택 및 복사(Ctrl+C) 지원 (단일/연속 레이아웃 모두)
+- **세션 복원 설정**: `settings.session.restoreTabs` 설정 추가 (기본값 true). 설정 패널에서 토글 가능
+
+### Changed
+
+- `AppShell` 컴포넌트에 `sidebarCollapsed` / `onToggleSidebar` props 추가
+- `Toolbar` 컴포넌트에 `onHelp` prop 및 `?` 도움말 버튼 추가
+- `AppSettings`에 `session` 필드 추가 (Rust + TypeScript)
+
 ## v0.2.5 - 2026-05-18
 
 ### Added

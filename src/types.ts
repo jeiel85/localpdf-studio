@@ -107,6 +107,10 @@ export type UiSettings = {
   showShortcutHelp: boolean;
 };
 
+export type SessionSettings = {
+  restoreTabs: boolean;
+};
+
 export type AppSettings = {
   viewer: ViewerSettings;
   externalTools: ExternalToolSettings;
@@ -116,6 +120,7 @@ export type AppSettings = {
   performance: PerformanceSettings;
   update: UpdateSettings;
   ui: UiSettings;
+  session: SessionSettings;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -135,10 +140,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
   performance: { streamingThresholdMb: 250 },
   update: { checkOnStartup: true },
   ui: { theme: 'dark', showShortcutHelp: false },
+  session: { restoreTabs: true },
 };
 
 export type DocTab = {
   id: string;
   file: PdfFilePayload;
   viewer: ViewerState;
+};
+
+export type PersistedTab = {
+  path: string;
+  currentPage: number;
+  scale: number;
+  rotation: number;
+  layout: string;
+  fitMode: string;
+};
+
+export type TabState = {
+  tabs: PersistedTab[];
+  activeIndex: number | null;
 };

@@ -2,6 +2,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { computeFitScale, LoadingOverlay, renderQualityToScale, type PdfCanvasProps } from './PdfCanvas';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { pdfjsLib } from '../lib/pdfjs';
 import type { RenderQuality } from '../types';
 
 type PageDim = { width: number; height: number };
@@ -208,6 +209,7 @@ const ContinuousPage = memo(function ContinuousPage({
 }: ContinuousPageProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
   const queueHandleRef = useRef<{ cancel: () => void } | null>(null);
   const [actualSize, setActualSize] = useState<{ width: number; height: number } | null>(null);
@@ -241,6 +243,10 @@ const ContinuousPage = memo(function ContinuousPage({
     queueHandleRef.current?.cancel();
     renderTaskRef.current?.cancel();
 
+    if (textLayerRef.current) {
+      textLayerRef.current.innerHTML = '';
+    }
+
     const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
       if (shouldCancel()) return null;
       const page = await document.getPage(pageIndex);
@@ -266,6 +272,25 @@ const ContinuousPage = memo(function ContinuousPage({
       renderTaskRef.current = task;
       try {
         await task.promise;
+        if (shouldCancel()) return null;
+
+        // Render text layer
+        if (textLayerRef.current) {
+          try {
+            const textContent = await page.getTextContent();
+            if (!shouldCancel() && textLayerRef.current) {
+              const textLayer = new pdfjsLib.TextLayer({
+                textContentSource: textContent,
+                container: textLayerRef.current,
+                viewport,
+              });
+              await textLayer.render();
+            }
+          } catch {
+            // Text layer rendering failure is not critical
+          }
+        }
+
         if (!shouldCancel()) setRendered(true);
       } catch (e) {
         const err = e as { name?: string };
@@ -293,7 +318,10 @@ const ContinuousPage = memo(function ContinuousPage({
       className="continuous-page"
       style={{ width: w, height: h }}
     >
-      <canvas ref={canvasRef} className="pdf-canvas" />
+      <div className="canvas-page-layer">
+        <canvas ref={canvasRef} className="pdf-canvas" />
+        <div ref={textLayerRef} className="textLayer" />
+      </div>
       {!rendered && <span className="continuous-page-number">페이지 {pageIndex}</span>}
     </div>
   );

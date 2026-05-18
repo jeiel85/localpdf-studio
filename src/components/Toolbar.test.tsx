@@ -30,6 +30,7 @@ function renderToolbar(overrides: Partial<Parameters<typeof Toolbar>[0]> = {}) {
     onCheckUpdates: vi.fn(),
     onLayoutChange: vi.fn(),
     onFitChange: vi.fn(),
+    onHelp: vi.fn(),
     ...overrides,
   };
   render(<Toolbar {...props} />);

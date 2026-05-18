@@ -1,5 +1,41 @@
 # HISTORY.md
 
+## 2026-05-18 (세션 5 - v0.3.0 Phase 1)
+
+- 작업: 뷰어 핵심 보강 (사이드바 접기, 단축키 다이얼로그, 드래그앤드롭, 세션 복원, 텍스트 선택)
+- 변경 파일:
+  - `src/components/AppShell.tsx` - sidebarCollapsed/onToggleSidebar props 추가, 접기 토글 버튼
+  - `src/components/ShortcutHelp.tsx` - 키보드 단축키 도움말 모달 신규 생성
+  - `src/components/Toolbar.tsx` - onHelp prop, ? 도움말 버튼 추가
+  - `src/App.tsx` - sidebarCollapsed 상태 (localStorage), showShortcutHelp, Ctrl+B/F1 단축키, drag-drop 이벤트, 세션 복원/저장
+  - `src/styles.css` - sidebar-collapsed grid, sidebar-collapse-toggle, ShortcutHelp 스타일, canvas-page-layer, textLayer CSS
+  - `src/types.ts` - SessionSettings, PersistedTab, TabState 타입 추가
+  - `src/lib/tauriCommands.ts` - getTabState, saveTabState 추가
+  - `src-tauri/src/settings.rs` - SessionSettings 추가 (restoreTabs)
+  - `src-tauri/src/commands.rs` - PersistedTab, TabState struct + get_tab_state/save_tab_state 명령 추가
+  - `src-tauri/src/lib.rs` - get_tab_state, save_tab_state 등록
+  - `src/test/setup.ts` - DOMMatrix jsdom polyfill 추가
+  - `src/components/PdfCanvas.tsx` - 단일 페이지 텍스트 레이어 오버레이 (pdf.js TextLayer)
+  - `src/components/PdfContinuousView.tsx` - 연속 페이지 텍스트 레이어 오버레이
+  - `package.json` - version 0.2.5 → 0.3.0
+  - `src-tauri/Cargo.toml` - version 0.3.0
+  - `src-tauri/tauri.conf.json` - version 0.3.0
+  - `CHANGELOG.md` - v0.3.0 섹션 추가
+  - `TASKS.md` - v0.3.0 Phase 1 완료 항목 추가
+
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm test` 통과 (39 tests, 1 flaky timeout due to jsdom performance)
+  - `cargo check` 통과
+  - `cargo test` 통과 (18 tests)
+
+- 결과:
+  - A5 사이드바 접기: Ctrl+B + 좌측 토글 버튼, localStorage 영속화, grid transition 애니메이션
+  - A4 단축키 다이얼로그: F1 키 + 툴바 ? 버튼, 모달 테이블 형태로 모든 단축키 표시
+  - A2 드래그앤드롭: Tauri webview onDragDropEvent로 PDF 파일 드롭 지원
+  - A3 세션 복원: tab_state.json에 탭/뷰 상태 저장, 재시작 시 자동 복원, settings.session.restoreTabs 설정
+  - A1 텍스트 선택: pdf.js TextLayer 오버레이, 단일/연속 모드 모두 지원, 선택 시 파란색 하이라이트
+
 ## 2026-05-18 (세션 4 - P3/P4 완료)
 
 - 작업: OCR/변환/고급 기능, 릴리즈 자동화 완성

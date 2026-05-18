@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppInfo, AppSettings, ExternalToolStatus, PdfFilePayload, RecentFileEntry, StartupContext } from '../types';
+import type { AppInfo, AppSettings, ExternalToolStatus, PdfFilePayload, RecentFileEntry, StartupContext, TabState } from '../types';
 
 export async function getAppInfo(): Promise<AppInfo> {
   return invoke<AppInfo>('app_info');
@@ -75,4 +75,12 @@ export async function clearRecentFiles(): Promise<void> {
 
 export async function getAppDataPath(): Promise<string> {
   return invoke<string>('get_app_data_path');
+}
+
+export async function getTabState(): Promise<TabState> {
+  return invoke<TabState>('get_tab_state');
+}
+
+export async function saveTabState(state: TabState): Promise<void> {
+  return invoke<void>('save_tab_state', { state });
 }

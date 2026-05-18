@@ -31,6 +31,11 @@ button.primary { border-color: #5b8cff; background: #24427a; }
   grid-template-columns: 320px 1fr;
   height: 100%;
   background: radial-gradient(circle at top, #18213c 0%, #0b1020 42%, #060914 100%);
+  transition: grid-template-columns 0.22s ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 0 1fr;
 }
 
 .sidebar {
@@ -38,8 +43,46 @@ button.primary { border-color: #5b8cff; background: #24427a; }
   border-right: 1px solid #26324c;
   background: rgba(9, 14, 28, 0.9);
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  overflow: hidden;
+}
+
+.sidebar-collapse-toggle {
+  display: none;
+}
+
+.app-shell.sidebar-collapsed .sidebar-collapse-toggle {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 24px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid #32405d;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: rgba(11, 16, 32, 0.92);
+  color: #cdd8f4;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+.sidebar-collapse-toggle:hover {
+  background: rgba(21, 29, 49, 0.95);
+  color: #edf2ff;
+  border-color: #5b8cff;
 }
 
 .sidebar-wrapper {
@@ -180,7 +223,33 @@ button.primary { border-color: #5b8cff; background: #24427a; }
 .canvas-wrap { display: grid; justify-items: center; gap: 14px; min-height: 100%; position: relative; }
 .canvas-wrap.continuous { gap: 18px; }
 .canvas-message { padding: 14px 18px; border: 1px solid #334261; border-radius: 14px; color: #cdd8f4; background: rgba(17, 24, 39, 0.92); }
-.pdf-canvas { border-radius: 4px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48); background: white; }
+.canvas-page-layer { position: relative; display: inline-block; }
+.pdf-canvas { border-radius: 4px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48); background: white; display: block; }
+
+.textLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  line-height: 1;
+  z-index: 1;
+}
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.textLayer ::selection {
+  background: rgba(91, 140, 255, 0.4);
+}
+.textLayer ::-moz-selection {
+  background: rgba(91, 140, 255, 0.4);
+}
 
 .continuous-page {
   background: white;
@@ -691,6 +760,91 @@ button.primary { border-color: #5b8cff; background: #24427a; }
   color: #5b8cff;
   font-weight: 650;
   padding: 2px 6px;
+}
+
+/* Shortcut Help */
+.shortcut-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  animation: shortcut-help-fadein 0.15s ease-out;
+}
+@keyframes shortcut-help-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.shortcut-help-modal {
+  background: rgba(11, 16, 32, 0.98);
+  border: 1px solid #334261;
+  border-radius: 16px;
+  padding: 24px 28px;
+  min-width: 420px;
+  max-width: 480px;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.6);
+  animation: shortcut-help-slide 0.18s ease-out;
+}
+@keyframes shortcut-help-slide {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.shortcut-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.shortcut-help-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #edf2ff;
+}
+.shortcut-help-close {
+  border: none;
+  background: transparent;
+  color: #9aa9c7;
+  font-size: 22px;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 1;
+}
+.shortcut-help-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #edf2ff;
+}
+.shortcut-help-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.shortcut-help-table th,
+.shortcut-help-table td {
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+.shortcut-help-table th {
+  color: #9aa9c7;
+  font-weight: 600;
+  border-bottom: 1px solid #26324c;
+  padding-bottom: 10px;
+}
+.shortcut-help-table td {
+  color: #cdd8f4;
+  border-bottom: 1px solid rgba(38, 50, 76, 0.5);
+}
+.shortcut-help-table kbd {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background: rgba(91, 140, 255, 0.12);
+  border: 1px solid rgba(91, 140, 255, 0.3);
+  border-radius: 6px;
+  color: #5b8cff;
+  white-space: nowrap;
 }
 
 .open-tabs-list {

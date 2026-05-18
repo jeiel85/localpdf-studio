@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { check } from '@tauri-apps/plugin-updater';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { UpdateNotification, type UpdateStatus } from './components/UpdateNotification';
 import { AdvancedPanel } from './components/AdvancedPanel';
@@ -10,6 +11,7 @@ import { OutlinePanel } from './components/OutlinePanel';
 import { PdfCanvas } from './components/PdfCanvas';
 import { RecentFilesPanel } from './components/RecentFilesPanel';
 import { SearchPanel } from './components/SearchPanel';
+import { ShortcutHelp } from './components/ShortcutHelp';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { TabBar } from './components/TabBar';
@@ -25,8 +27,10 @@ import {
   getAppInfo,
   getSettings,
   getStartupContext,
+  getTabState,
   loadPdfBase64,
   runPdfOperation,
+  saveTabState,
 } from './lib/tauriCommands';
 import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState } from './types';
 
@@ -55,9 +59,12 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ kind: 'idle' });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeDocTab = tabs.find((t) => t.id === activeTabId) ?? null;
   const activeDocument = activeTabId ? documentsRef.current.get(activeTabId) ?? null : null;
@@ -199,12 +206,22 @@ export default function App() {
   );
 
   useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const isInput =
         e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
       if (isInput) return;
 
-      if (e.ctrlKey && e.key === 'o') {
+      if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+      } else if (e.key === 'F1') {
+        e.preventDefault();
+        setShowShortcutHelp((prev) => !prev);
+      } else if (e.ctrlKey && e.key === 'o') {
         e.preventDefault();
         openFile();
       } else if (e.ctrlKey && e.key === 'f') {
@@ -294,6 +311,34 @@ export default function App() {
 
           if (action === 'merge') setActiveTab('merge');
           else if (['metadata', 'split', 'compress', 'ocr'].includes(action)) setActiveTab('tools');
+        } else if (loadedSettings.session.restoreTabs) {
+          try {
+            const tabState = await getTabState();
+            if (tabState.tabs.length > 0) {
+              setStatus('이전 세션 복원 중...');
+              for (const persisted of tabState.tabs) {
+                try {
+                  await loadPath(persisted.path);
+                } catch {
+                  // 파일이 삭제되었거나 접근 불가하면 조용히 건너뜁니다
+                }
+              }
+              if (tabState.activeIndex != null && tabState.tabs[tabState.activeIndex]) {
+                // restore active tab after all tabs are loaded
+                const activePath = tabState.tabs[tabState.activeIndex].path;
+                setTimeout(() => {
+                  setTabs((prev) => {
+                    const found = prev.find((t) => t.file.path === activePath);
+                    if (found) setActiveTabId(found.id);
+                    return prev;
+                  });
+                }, 500);
+              }
+              setStatus('이전 세션을 복원했습니다.');
+            }
+          } catch {
+            // tab state load failure is non-fatal
+          }
         }
       } catch (error) {
         setStatus((error as Error).message ?? '앱 초기화 중 오류가 발생했습니다.');
@@ -323,6 +368,43 @@ export default function App() {
       cancelled = true;
     };
   }, [settings.update.checkOnStartup]);
+
+  useEffect(() => {
+    if (!settings.session.restoreTabs || tabs.length === 0) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const activeIndex = tabs.findIndex((t) => t.id === activeTabId);
+      const tabState = {
+        tabs: tabs.map((t) => ({
+          path: t.file.path,
+          currentPage: t.viewer.currentPage,
+          scale: t.viewer.scale,
+          rotation: t.viewer.rotation,
+          layout: t.viewer.layout,
+          fitMode: t.viewer.fitMode,
+        })),
+        activeIndex: activeIndex >= 0 ? activeIndex : null,
+      };
+      void saveTabState(tabState).catch(() => {});
+    }, 500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [tabs, activeTabId, settings.session.restoreTabs]);
+
+  useEffect(() => {
+    const unlisten = getCurrentWebview().onDragDropEvent((event) => {
+      if (event.payload.type === 'drop') {
+        const pdfPath = event.payload.paths.find((p) => p.toLowerCase().endsWith('.pdf'));
+        if (pdfPath) {
+          void loadPath(pdfPath);
+        }
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [loadPath]);
 
   async function handleOperation(operation: string) {
     if (!activeDocTab) return;
@@ -498,6 +580,8 @@ export default function App() {
           {renderSidebarContent()}
         </Sidebar>
       }
+      sidebarCollapsed={sidebarCollapsed}
+      onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
       toolbar={
         <Toolbar
           hasDocument={hasDocument}
@@ -523,6 +607,7 @@ export default function App() {
             updateViewer((v) => ({ ...v, rotation: (v.rotation + settings.viewer.rotationStep) % 360 }))
           }
           onCheckUpdates={handleCheckUpdates}
+          onHelp={() => setShowShortcutHelp(true)}
           onLayoutChange={(layout) => updateViewer((v) => ({ ...v, layout }))}
           onFitChange={(fitMode) => updateViewer((v) => ({ ...v, fitMode }))}
         />
@@ -547,6 +632,7 @@ export default function App() {
         onDismiss={() => setUpdateStatus({ kind: 'idle' })}
         onStatus={setStatus}
       />
+      {showShortcutHelp && <ShortcutHelp onClose={() => setShowShortcutHelp(false)} />}
     </AppShell>
   );
 }

@@ -119,6 +119,18 @@ impl Default for UiSettings {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SessionSettings {
+    pub restore_tabs: bool,
+}
+
+impl Default for SessionSettings {
+    fn default() -> Self {
+        Self { restore_tabs: true }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase", default)]
 pub struct AppSettings {
@@ -130,6 +142,7 @@ pub struct AppSettings {
     pub performance: PerformanceSettings,
     pub update: UpdateSettings,
     pub ui: UiSettings,
+    pub session: SessionSettings,
 }
 
 pub struct SettingsState(pub Mutex<AppSettings>);

@@ -63,6 +63,8 @@ pub fn run() {
             commands::reset_settings,
             commands::clear_recent_files,
             commands::get_app_data_path,
+            commands::get_tab_state,
+            commands::save_tab_state,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run LocalPDF Studio");

@@ -13,6 +13,7 @@ export function Toolbar({
   onCheckUpdates,
   onLayoutChange,
   onFitChange,
+  onHelp,
 }: {
   hasDocument: boolean;
   viewer: ViewerState;
@@ -26,6 +27,7 @@ export function Toolbar({
   onCheckUpdates: () => void;
   onLayoutChange: (layout: PageLayout) => void;
   onFitChange: (mode: FitMode) => void;
+  onHelp: () => void;
 }) {
   return (
     <div className="toolbar-inner">
@@ -94,6 +96,7 @@ export function Toolbar({
       </div>
       <div className="spacer" />
       <button type="button" onClick={onCheckUpdates}>업데이트 확인</button>
+      <button type="button" onClick={onHelp} title="단축키 도움말 (F1)">?</button>
     </div>
   );
 }
