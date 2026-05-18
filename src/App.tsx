@@ -1,17 +1,32 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { AdvancedPanel } from './components/AdvancedPanel';
 import { AppShell } from './components/AppShell';
+import { MergePanel } from './components/MergePanel';
+import { OutlinePanel } from './components/OutlinePanel';
 import { PdfCanvas } from './components/PdfCanvas';
+import { RecentFilesPanel } from './components/RecentFilesPanel';
+import { SearchPanel } from './components/SearchPanel';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
+import { TabBar } from './components/TabBar';
+import { ThumbnailPanel } from './components/ThumbnailPanel';
+import { ToolsPanel } from './components/ToolsPanel';
 import { Toolbar } from './components/Toolbar';
 import { base64ToUint8Array } from './lib/base64';
 import { pdfjsLib } from './lib/pdfjs';
-import { checkExternalTools, getAppInfo, getStartupContext, loadPdfBase64, runPdfOperation } from './lib/tauriCommands';
-import type { AppInfo, ExternalToolStatus, PdfFilePayload, ViewerState } from './types';
+import {
+  addRecentFile,
+  checkExternalTools,
+  getAppInfo,
+  getStartupContext,
+  loadPdfBase64,
+  runPdfOperation,
+} from './lib/tauriCommands';
+import type { AppInfo, DocTab, ExternalToolStatus, PdfFilePayload, SidebarTab, ViewerState } from './types';
 
 const DEFAULT_VIEWER: ViewerState = {
   currentPage: 1,
@@ -20,25 +35,78 @@ const DEFAULT_VIEWER: ViewerState = {
   rotation: 0,
 };
 
+let tabCounter = 0;
+function nextTabId(): string {
+  tabCounter += 1;
+  return `tab-${tabCounter}`;
+}
+
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [tools, setTools] = useState<ExternalToolStatus[]>([]);
-  const [pdfFile, setPdfFile] = useState<PdfFilePayload | null>(null);
-  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [viewer, setViewer] = useState<ViewerState>(DEFAULT_VIEWER);
+  const [tabs, setTabs] = useState<DocTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [status, setStatus] = useState('준비됨');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('document');
 
-  const loadPath = useCallback(async (path: string) => {
-    setStatus('PDF 파일을 읽는 중...');
-    const payload = await loadPdfBase64(path);
-    const bytes = base64ToUint8Array(payload.base64Data);
-    const loadingTask = pdfjsLib.getDocument({ data: bytes });
-    const pdf = await loadingTask.promise;
-    setPdfFile(payload);
-    setPdfDocument(pdf);
-    setViewer({ ...DEFAULT_VIEWER, pageCount: pdf.numPages });
-    setStatus(`${payload.fileName} 열림`);
-  }, []);
+  const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
+  const lastOpenPathRef = useRef<string | null>(null);
+
+  const activeDocTab = tabs.find((t) => t.id === activeTabId) ?? null;
+  const activeDocument = activeTabId ? documentsRef.current.get(activeTabId) ?? null : null;
+
+  const loadPath = useCallback(
+    async (path: string) => {
+      const existing = tabs.find((t) => t.file.path === path);
+      if (existing) {
+        setActiveTabId(existing.id);
+        setStatus(`${existing.file.fileName} (이미 열려 있음)`);
+        return;
+      }
+
+      const tabId = nextTabId();
+      setStatus('PDF 파일을 읽는 중...');
+
+      try {
+        const payload = await loadPdfBase64(path);
+        let pdf: PDFDocumentProxy;
+
+        if (payload.url) {
+          const loadingTask = pdfjsLib.getDocument({
+            url: payload.url,
+            disableAutoFetch: false,
+            disableStream: false,
+            cMapUrl: undefined,
+            cMapPacked: true,
+          });
+          pdf = await loadingTask.promise;
+        } else {
+          const bytes = base64ToUint8Array(payload.base64Data);
+          const loadingTask = pdfjsLib.getDocument({ data: bytes });
+          pdf = await loadingTask.promise;
+        }
+
+        const newTab: DocTab = {
+          id: tabId,
+          file: payload,
+          viewer: { ...DEFAULT_VIEWER, pageCount: pdf.numPages },
+        };
+
+        documentsRef.current.set(tabId, pdf);
+        setTabs((prev) => [...prev, newTab]);
+        setActiveTabId(tabId);
+        lastOpenPathRef.current = path;
+
+        const mode = payload.url ? '스트리밍' : '';
+        setStatus(`${payload.fileName} 열림${mode ? ` (${mode})` : ''}`);
+
+        void addRecentFile(payload.path, payload.fileName).catch(() => {});
+      } catch (error) {
+        setStatus((error as Error).message ?? 'PDF를 열 수 없습니다.');
+      }
+    },
+    [tabs],
+  );
 
   const openFile = useCallback(async () => {
     const selected = await open({
@@ -56,6 +124,108 @@ export default function App() {
     }
   }, [loadPath]);
 
+  const closeTab = useCallback(
+    (tabId: string) => {
+      const doc = documentsRef.current.get(tabId);
+      if (doc) {
+        try {
+          doc.destroy();
+        } catch {
+          // ignore
+        }
+        documentsRef.current.delete(tabId);
+      }
+
+      setTabs((prev) => {
+        const remaining = prev.filter((t) => t.id !== tabId);
+        if (activeTabId === tabId) {
+          const idx = prev.findIndex((t) => t.id === tabId);
+          const next = remaining[Math.min(idx, remaining.length - 1)] ?? null;
+          setActiveTabId(next?.id ?? null);
+        }
+        return remaining;
+      });
+    },
+    [activeTabId],
+  );
+
+  const updateViewer = useCallback(
+    (updater: (prev: ViewerState) => ViewerState) => {
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === activeTabId ? { ...t, viewer: updater(t.viewer) } : t,
+        ),
+      );
+    },
+    [activeTabId],
+  );
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const isInput =
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      if (isInput) return;
+
+      if (e.ctrlKey && e.key === 'o') {
+        e.preventDefault();
+        openFile();
+      } else if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        setActiveTab('search');
+      } else if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        setActiveTab('thumbnails');
+      } else if (e.ctrlKey && e.key === '1') {
+        e.preventDefault();
+        setActiveTab('document');
+      } else if (e.ctrlKey && e.key === '2') {
+        e.preventDefault();
+        setActiveTab('thumbnails');
+      } else if (e.ctrlKey && e.key === '3') {
+        e.preventDefault();
+        setActiveTab('outline');
+      } else if (e.ctrlKey && e.key === '4') {
+        e.preventDefault();
+        setActiveTab('search');
+      } else if (e.ctrlKey && e.key === '5') {
+        e.preventDefault();
+        setActiveTab('merge');
+      } else if (e.ctrlKey && e.key === '6') {
+        e.preventDefault();
+        setActiveTab('tools');
+      } else if (e.ctrlKey && e.key === '7') {
+        e.preventDefault();
+        setActiveTab('advanced');
+      } else if (e.key === 'ArrowLeft' && e.altKey) {
+        e.preventDefault();
+        updateViewer((v) => ({ ...v, currentPage: Math.max(1, v.currentPage - 1) }));
+      } else if (e.key === 'ArrowRight' && e.altKey) {
+        e.preventDefault();
+        updateViewer((v) => ({
+          ...v,
+          currentPage: Math.min(v.pageCount, v.currentPage + 1),
+        }));
+      } else if (e.ctrlKey && e.key === 'w') {
+        e.preventDefault();
+        if (activeTabId) closeTab(activeTabId);
+      } else if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          const idx = tabs.findIndex((t) => t.id === activeTabId);
+          const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+          if (prev) setActiveTabId(prev.id);
+        } else {
+          const idx = tabs.findIndex((t) => t.id === activeTabId);
+          const next = tabs[(idx + 1) % tabs.length];
+          if (next) setActiveTabId(next.id);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openFile, closeTab, activeTabId, tabs, updateViewer]);
+
   useEffect(() => {
     async function bootstrap() {
       try {
@@ -69,8 +239,21 @@ export default function App() {
 
         const firstPdf = startup.files.find((file) => file.toLowerCase().endsWith('.pdf'));
         if (firstPdf) {
-          setStatus(`우클릭 메뉴 요청 처리: ${startup.action ?? 'open'}`);
+          const action = startup.action ?? 'open';
+          const actionLabel: Record<string, string> = {
+            open: '열기',
+            merge: '병합',
+            split: '분할',
+            compress: '압축',
+            ocr: 'OCR',
+            metadata: '메타데이터',
+          };
+          setStatus(`우클릭 메뉴 요청: ${actionLabel[action] ?? action}`);
+
           await loadPath(firstPdf);
+
+          if (action === 'merge') setActiveTab('merge');
+          else if (['metadata', 'split', 'compress', 'ocr'].includes(action)) setActiveTab('tools');
         }
       } catch (error) {
         setStatus((error as Error).message ?? '앱 초기화 중 오류가 발생했습니다.');
@@ -81,9 +264,9 @@ export default function App() {
   }, [loadPath]);
 
   async function handleOperation(operation: string) {
-    if (!pdfFile) return;
+    if (!activeDocTab) return;
     try {
-      const result = await runPdfOperation(operation, [pdfFile.path]);
+      const result = await runPdfOperation(operation, [activeDocTab.file.path]);
       setStatus(result);
     } catch (error) {
       setStatus((error as Error).message ?? `${operation} 작업을 실행할 수 없습니다.`);
@@ -106,30 +289,179 @@ export default function App() {
     }
   }
 
+  function renderSidebarContent() {
+    switch (activeTab) {
+      case 'document':
+        return (
+          <div className="sidebar-inner">
+            <section className="panel">
+              <h2>문서 정보</h2>
+              {activeDocTab ? (
+                <div className="doc-card">
+                  <strong>{activeDocTab.file.fileName}</strong>
+                  <span>{formatBytes(activeDocTab.file.sizeBytes)}</span>
+                  <small title={activeDocTab.file.path}>{activeDocTab.file.path}</small>
+                  {activeDocTab.file.url && <small className="stream-badge">스트리밍 모드</small>}
+                </div>
+              ) : (
+                <p className="empty-text">PDF를 열면 문서 정보가 표시됩니다.</p>
+              )}
+            </section>
+            <section className="panel">
+              <h2>열린 문서 ({tabs.length})</h2>
+              {tabs.length === 0 ? (
+                <p className="empty-text">열린 문서가 없습니다.</p>
+              ) : (
+                <div className="open-tabs-list">
+                  {tabs.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`open-tab-item ${t.id === activeTabId ? 'active' : ''}`}
+                      onClick={() => setActiveTabId(t.id)}
+                      onDoubleClick={() => closeTab(t.id)}
+                    >
+                      {t.file.fileName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+            <section className="panel">
+              <h2>최근 문서</h2>
+              <RecentFilesPanel
+                onOpen={(p) => loadPath(p)}
+                currentPath={activeDocTab?.file.path ?? null}
+              />
+            </section>
+          </div>
+        );
+      case 'thumbnails':
+        return (
+          <div className="sidebar-inner">
+            <h2>페이지 썸네일</h2>
+            <ThumbnailPanel
+              document={activeDocument}
+              pageCount={activeDocTab?.viewer.pageCount ?? 0}
+              currentPage={activeDocTab?.viewer.currentPage ?? 1}
+              onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+            />
+          </div>
+        );
+      case 'outline':
+        return (
+          <div className="sidebar-inner">
+            <h2>목차</h2>
+            <OutlinePanel
+              document={activeDocument}
+              onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+            />
+          </div>
+        );
+      case 'search':
+        return (
+          <div className="sidebar-inner">
+            <h2>텍스트 검색</h2>
+            <SearchPanel
+              document={activeDocument}
+              pageCount={activeDocTab?.viewer.pageCount ?? 0}
+              onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+            />
+          </div>
+        );
+      case 'merge':
+        return (
+          <div className="sidebar-inner">
+            <h2>PDF 병합</h2>
+            <MergePanel currentFile={activeDocTab?.file ?? null} onStatus={setStatus} />
+          </div>
+        );
+      case 'tools':
+        return (
+          <div className="sidebar-inner">
+            <h2>PDF 도구</h2>
+            <ToolsPanel currentFile={activeDocTab?.file ?? null} tools={tools} onStatus={setStatus} />
+          </div>
+        );
+      case 'advanced':
+        return (
+          <div className="sidebar-inner">
+            <h2>고급 기능</h2>
+            <AdvancedPanel
+              document={activeDocument}
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+    }
+  }
+
+  const hasDocument = Boolean(activeDocument);
+
   return (
     <AppShell
-      sidebar={<Sidebar document={pdfFile} tools={tools} onOperation={handleOperation} />}
+      tabBar={
+        <TabBar
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onSelect={setActiveTabId}
+          onClose={closeTab}
+          onOpen={openFile}
+        />
+      }
+      sidebar={
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab}>
+          {renderSidebarContent()}
+        </Sidebar>
+      }
       toolbar={
         <Toolbar
-          hasDocument={Boolean(pdfDocument)}
-          viewer={viewer}
+          hasDocument={hasDocument}
+          viewer={activeDocTab?.viewer ?? DEFAULT_VIEWER}
+          tabCount={tabs.length}
           onOpen={openFile}
-          onPrev={() => setViewer((value) => ({ ...value, currentPage: Math.max(1, value.currentPage - 1) }))}
-          onNext={() => setViewer((value) => ({ ...value, currentPage: Math.min(value.pageCount, value.currentPage + 1) }))}
-          onZoomOut={() => setViewer((value) => ({ ...value, scale: Math.max(0.25, value.scale - 0.1) }))}
-          onZoomIn={() => setViewer((value) => ({ ...value, scale: Math.min(4, value.scale + 0.1) }))}
-          onRotate={() => setViewer((value) => ({ ...value, rotation: (value.rotation + 90) % 360 }))}
+          onPrev={() =>
+            updateViewer((v) => ({ ...v, currentPage: Math.max(1, v.currentPage - 1) }))
+          }
+          onNext={() =>
+            updateViewer((v) => ({
+              ...v,
+              currentPage: Math.min(v.pageCount, v.currentPage + 1),
+            }))
+          }
+          onZoomOut={() =>
+            updateViewer((v) => ({ ...v, scale: Math.max(0.25, v.scale - 0.1) }))
+          }
+          onZoomIn={() =>
+            updateViewer((v) => ({ ...v, scale: Math.min(4, v.scale + 0.1) }))
+          }
+          onRotate={() =>
+            updateViewer((v) => ({ ...v, rotation: (v.rotation + 90) % 360 }))
+          }
           onCheckUpdates={handleCheckUpdates}
         />
       }
       statusbar={<StatusBar appInfo={appInfo} message={status} />}
     >
       <PdfCanvas
-        document={pdfDocument}
-        pageNumber={viewer.currentPage}
-        scale={viewer.scale}
-        rotation={viewer.rotation}
+        document={activeDocument}
+        pageNumber={activeDocTab?.viewer.currentPage ?? 1}
+        scale={activeDocTab?.viewer.scale ?? 1.2}
+        rotation={activeDocTab?.viewer.rotation ?? 0}
       />
     </AppShell>
   );
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) return `${value} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let size = value / 1024;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }

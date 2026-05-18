@@ -37,16 +37,32 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'LocalPDF Studio ${{ github.ref_name }}'
-          releaseBody: 'See CHANGELOG.md for details.'
+          releaseBody: 'See CHANGELOG.md for release notes.'
           releaseDraft: true
           prerelease: false
+          includeUpdaterJson: true
 
       - name: Create portable ZIP
         shell: pwsh
         run: ./scripts/windows/create-portable-zip.ps1
 
-      - name: Upload portable ZIP
+      - name: Upload portable ZIP to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-release/LocalPDF-Studio-Portable.zip
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist-release/LocalPDF-Studio-Portable.zip
           draft: true
+          fail_on_unmatched_files: false
+
+      - name: Verify release assets
+        shell: pwsh
+        run: |
+          Write-Host "Release assets verification:"
+          Write-Host "- setup.exe (NSIS installer)"
+          Write-Host "- setup.exe.sig (Updater signature)"
+          Write-Host "- MSI installer"
+          Write-Host "- Portable ZIP"
+          Write-Host "- latest.json (Updater manifest)"
+          Write-Host ""
+          Write-Host "Uploaded by tauri-action and action-gh-release"

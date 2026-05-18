@@ -3,6 +3,7 @@ export type PdfFilePayload = {
   fileName: string;
   sizeBytes: number;
   base64Data: string;
+  url?: string;
 };
 
 export type StartupContext = {
@@ -30,4 +31,31 @@ export type ViewerState = {
   pageCount: number;
   scale: number;
   rotation: number;
+};
+
+export type OutlineItem = {
+  title: string;
+  dest?: string;
+  pageNumber?: number;
+  children: OutlineItem[];
+};
+
+export type SearchResult = {
+  pageNumber: number;
+  text: string;
+  matchIndex: number;
+};
+
+export type RecentFileEntry = {
+  path: string;
+  fileName: string;
+  openedAt: string;
+};
+
+export type SidebarTab = 'document' | 'thumbnails' | 'outline' | 'search' | 'merge' | 'tools' | 'advanced';
+
+export type DocTab = {
+  id: string;
+  file: PdfFilePayload;
+  viewer: ViewerState;
 };

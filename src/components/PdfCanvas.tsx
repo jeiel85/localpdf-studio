@@ -46,7 +46,7 @@ export function PdfCanvas({
         context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        const task = page.render({ canvasContext: context, viewport });
+        const task = page.render({ canvas, canvasContext: context, viewport });
         renderTaskRef.current = task;
         await task.promise;
         if (!cancelled) setMessage('');

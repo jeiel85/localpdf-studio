@@ -3,6 +3,7 @@ import type { ViewerState } from '../types';
 export function Toolbar({
   hasDocument,
   viewer,
+  tabCount,
   onOpen,
   onPrev,
   onNext,
@@ -13,6 +14,7 @@ export function Toolbar({
 }: {
   hasDocument: boolean;
   viewer: ViewerState;
+  tabCount: number;
   onOpen: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -24,6 +26,9 @@ export function Toolbar({
   return (
     <div className="toolbar-inner">
       <button className="primary" type="button" onClick={onOpen}>PDF 열기</button>
+      {tabCount > 0 && (
+        <span className="tab-count-badge">{tabCount}개 문서</span>
+      )}
       <div className="divider" />
       <button type="button" disabled={!hasDocument || viewer.currentPage <= 1} onClick={onPrev}>이전</button>
       <span className="page-indicator">{viewer.currentPage} / {Math.max(viewer.pageCount, 1)}</span>
