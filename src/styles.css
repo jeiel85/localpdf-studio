@@ -1,0 +1,84 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #edf2ff;
+  background: #0b1020;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+button {
+  border: 1px solid #32405d;
+  background: #151d31;
+  color: #edf2ff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { background: #1d2946; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { border-color: #5b8cff; background: #24427a; }
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100%;
+  background: radial-gradient(circle at top, #18213c 0%, #0b1020 42%, #060914 100%);
+}
+
+.sidebar {
+  min-width: 0;
+  border-right: 1px solid #26324c;
+  background: rgba(9, 14, 28, 0.9);
+  overflow-y: auto;
+}
+
+.sidebar-inner { padding: 20px; }
+.sidebar h1 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+.sidebar h2 { margin: 0 0 12px; font-size: 14px; color: #cdd8f4; }
+.muted, .empty-text { color: #9aa9c7; }
+
+.panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #273450;
+  border-radius: 18px;
+  background: rgba(19, 27, 46, 0.72);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+}
+
+.doc-card {
+  display: grid;
+  gap: 6px;
+  color: #edf2ff;
+}
+
+.doc-card span, .doc-card small, .tool-row small { color: #9aa9c7; overflow-wrap: anywhere; }
+
+.tool-row { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: start; }
+.dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; display: inline-block; }
+.dot.ok { background: #5de39b; }
+.dot.warn { background: #f2c66a; }
+
+.main-pane { display: grid; grid-template-rows: 56px 1fr 32px; min-width: 0; height: 100%; }
+.toolbar, .statusbar { border-bottom: 1px solid #26324c; background: rgba(11, 16, 32, 0.75); backdrop-filter: blur(14px); }
+.statusbar { border-top: 1px solid #26324c; border-bottom: none; }
+.toolbar-inner, .statusbar-inner { display: flex; align-items: center; height: 100%; gap: 8px; padding: 0 14px; }
+.statusbar-inner { justify-content: space-between; color: #9aa9c7; font-size: 12px; }
+.divider { width: 1px; height: 26px; background: #2d3a55; margin: 0 4px; }
+.spacer { flex: 1; }
+.page-indicator { min-width: 72px; text-align: center; color: #cdd8f4; font-weight: 700; }
+
+.viewer-stage { overflow: auto; padding: 30px; }
+.canvas-wrap { display: grid; justify-items: center; gap: 14px; min-height: 100%; }
+.canvas-message { padding: 14px 18px; border: 1px solid #334261; border-radius: 14px; color: #cdd8f4; background: rgba(17, 24, 39, 0.92); }
+.pdf-canvas { border-radius: 4px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48); background: white; }
