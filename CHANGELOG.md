@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## v0.2.4 - 2026-05-18
+
+### CI / Release
+
+- Tauri 자동 업데이터 서명 키 쌍 생성 및 GitHub Secrets 등록 완료. v0.2.4부터 `.sig` 파일과 `latest.json` 정상 발행 → 자동 업데이트 동작
+- `tauri.conf.json` `createUpdaterArtifacts: true`로 복귀, `pubkey`에 공개키 반영
+- `release.yml`에 `TAURI_SIGNING_PRIVATE_KEY` 환경변수 다시 추가, `includeUpdaterJson: true`로 변경
+- `ci.yml` 트리거 브랜치 `main` → `master`로 수정 (push마다 typecheck/build/cargo check 자동 실행)
+- 이전 실패 태그 v0.2.0/v0.2.1/v0.2.2 정리 (로컬 + 원격)
+
+---
+
 ## v0.2.3 - 2026-05-18
 
 ### CI / Build
