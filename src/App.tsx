@@ -22,6 +22,7 @@ import { ToolsPanel } from './components/ToolsPanel';
 import { Toolbar } from './components/Toolbar';
 import { base64ToUint8Array } from './lib/base64';
 import { pdfjsLib } from './lib/pdfjs';
+import { printPdf } from './lib/printPdf';
 import {
   addRecentFile,
   checkExternalTools,
@@ -66,6 +67,10 @@ export default function App() {
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showShortcutHelpRef = useRef(showShortcutHelp);
+  showShortcutHelpRef.current = showShortcutHelp;
+  const updateStatusRef = useRef(updateStatus);
+  updateStatusRef.current = updateStatus;
 
   const activeDocTab = tabs.find((t) => t.id === activeTabId) ?? null;
   const activeDocument = activeTabId ? documentsRef.current.get(activeTabId) ?? null : null;
@@ -211,7 +216,38 @@ export default function App() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    const theme = settings.ui.theme;
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: light)');
+      document.documentElement.setAttribute('data-theme', mq.matches ? 'light' : 'dark');
+      const handler = (e: MediaQueryListEvent) => {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
+      };
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }, [settings.ui.theme]);
+
+  useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (showShortcutHelpRef.current) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          setShowShortcutHelp(false);
+          return;
+        }
+        const st = updateStatusRef.current;
+        if (st.kind !== 'idle' && st.kind !== 'downloading') {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          setUpdateStatus({ kind: 'idle' });
+          return;
+        }
+      }
+
       const isInput =
         e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
       if (isInput) return;
@@ -264,6 +300,12 @@ export default function App() {
       } else if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         if (activeTabId) closeTab(activeTabId);
+      } else if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        if (activeTabId) {
+          setStatus('인쇄 준비 중...');
+          void printActivePdf().finally(() => setStatus('준비됨'));
+        }
       } else if (e.ctrlKey && e.key === 'Tab') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -432,6 +474,20 @@ export default function App() {
       const message = (error as Error).message ?? '업데이트 확인 중 오류가 발생했습니다.';
       setStatus(message);
       setUpdateStatus({ kind: 'error', message });
+    }
+  }
+
+  async function printActivePdf() {
+    const doc = activeTabId ? documentsRef.current.get(activeTabId) : null;
+    if (!doc) return;
+    const page = activeDocTab?.viewer.currentPage ?? 1;
+    try {
+      await printPdf(doc, page, (loaded, total) => {
+        setStatus(`인쇄 준비 중... ${loaded} / ${total} 페이지`);
+      });
+      setStatus('인쇄 대화상자가 열렸습니다.');
+    } catch (error) {
+      setStatus((error as Error).message ?? '인쇄할 수 없습니다.');
     }
   }
 
