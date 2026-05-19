@@ -59,3 +59,19 @@
 - [x] A2 파일 드래그앤드롭 (Tauri webview onDragDropEvent)
 - [x] A3 탭/뷰 상태 영속화 (tab_state.json, 세션 복원 설정)
 - [x] A1 텍스트 선택/복사 (pdf.js TextLayer 오버레이, 단일/연속 레이아웃)
+
+## v0.4.0 - 보안 강화
+
+- [x] validate_pdf_path canonicalize 경로 순회 방지
+- [x] save_text_file 보호된 확장자 차단
+- [x] decrypt_pdf 비밀번호 --password-file 사용
+- [x] pdf-local 프로토콜 PDF 확장자 검증 + canonicalize
+- [x] validate_pdf_files 2GB 파일 크기 상한
+- [x] 랜딩 페이지/README 최신 기능으로 갱신
+
+## v0.5.0 - 외부 도구 자동 설치
+
+- [x] qpdf 자동 설치 (zip 다운로드 → 압축 해제 → 설정 갱신)
+- [x] Tesseract 자동 설치 (설치 파일 다운로드 → UAC 승격 → 무설치 실행 → 경로 탐지)
+- [x] 관리자 승격 흐름 (Start-Process -Verb RunAs, 승격 거부 안내)
+- [x] ToolsPanel 자동 설치 UI (자동 설치/관리자 권한 설치 버튼 + 수동 다운로드)

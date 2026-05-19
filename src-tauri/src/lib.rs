@@ -1,4 +1,5 @@
 mod commands;
+mod installer_service;
 mod job_queue;
 mod ocr_service;
 mod protocol;
@@ -11,6 +12,18 @@ use job_queue::new_job_manager;
 use settings::{load_from_dir, SettingsState};
 use startup::{parse_startup_context, StartupContextState};
 use std::sync::Mutex;
+
+/// Windows에서 자식 프로세스의 콘솔 창을 숨기기 위한 Command 생성 헬퍼.
+/// CREATE_NO_WINDOW (0x08000000) 플래그를 설정한다.
+pub fn hidden_cmd(program: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+    cmd
+}
 
 pub fn run() {
     let initial_settings = std::env::var("APPDATA")
@@ -65,6 +78,9 @@ pub fn run() {
             commands::get_app_data_path,
             commands::get_tab_state,
             commands::save_tab_state,
+            commands::install_qpdf_auto,
+            commands::install_tesseract_auto,
+            commands::check_elevation,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run LocalPDF Studio");

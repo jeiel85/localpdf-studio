@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { checkExternalTools } from '../lib/tauriCommands';
+import { checkExternalTools, installQpdfAuto, installTesseractAuto, checkElevation } from '../lib/tauriCommands';
 import type { ExternalToolStatus, PdfFilePayload } from '../types';
 
 const TOOL_INSTALL_GUIDE: Record<string, { url: string; hint: string }> = {
@@ -32,6 +32,8 @@ export function ToolsPanel({
   const [activeAction, setActiveAction] = useState<ToolAction | null>(null);
   const [running, setRunning] = useState(false);
   const [rechecking, setRechecking] = useState(false);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   async function recheckTools() {
     setRechecking(true);
@@ -55,6 +57,43 @@ export function ToolsPanel({
       await openUrl(url);
     } catch (err) {
       onStatus(`링크 열기 실패: ${(err as Error).message ?? err}`);
+    }
+  }
+
+  async function handleAutoInstall(toolName: string) {
+    setInstalling(toolName);
+    setInstallError(null);
+
+    try {
+      if (toolName === 'qpdf') {
+        onStatus('qpdf 다운로드 및 설치 중...');
+        const path = await installQpdfAuto();
+        onStatus(`qpdf 설치 완료: ${path}`);
+      } else if (toolName === 'tesseract') {
+        const elevated = await checkElevation();
+        if (!elevated) {
+          const confirmed = await confirm(
+            'Tesseract 설치에는 관리자 권한이 필요합니다.\n' +
+            'Windows UAC(사용자 계정 컨트롤) 프롬프트가 표시되면 "예"를 클릭하세요.\n\n' +
+            '계속하시겠습니까?'
+          );
+          if (!confirmed) {
+            setInstalling(null);
+            return;
+          }
+        }
+        onStatus('Tesseract 다운로드 및 설치 중... (관리자 권한 필요)');
+        const path = await installTesseractAuto();
+        onStatus(`Tesseract 설치 완료: ${path}`);
+      }
+
+      await recheckTools();
+    } catch (err) {
+      const msg = (err as Error).message ?? String(err);
+      setInstallError(msg);
+      onStatus(`${toolName} 설치 실패: ${msg}`);
+    } finally {
+      setInstalling(null);
     }
   }
 
@@ -153,13 +192,38 @@ export function ToolsPanel({
                 </div>
                 {!tool.available && guide && (
                   <div className="tool-install">
-                    <p className="tool-hint">{guide.hint}</p>
+                    {installError && installing === null && (
+                      <p className="tool-install-error">{installError}</p>
+                    )}
                     <div className="tool-install-actions">
-                      <button type="button" onClick={() => handleOpenUrl(guide.url)}>
-                        다운로드 페이지 열기
+                      {tool.name === 'qpdf' ? (
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={installing !== null}
+                          onClick={() => handleAutoInstall('qpdf')}
+                        >
+                          {installing === 'qpdf' ? '다운로드 및 설치 중...' : '자동 설치'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={installing !== null}
+                          onClick={() => handleAutoInstall('tesseract')}
+                        >
+                          {installing === 'tesseract' ? '다운로드 및 설치 중...' : '관리자 권한으로 자동 설치'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={installing !== null}
+                        onClick={() => handleOpenUrl(guide.url)}
+                      >
+                        수동 다운로드
                       </button>
-                      <code className="tool-url" title="클릭해서 선택 후 복사">{guide.url}</code>
                     </div>
+                    <p className="tool-hint">{guide.hint}</p>
                   </div>
                 )}
               </div>

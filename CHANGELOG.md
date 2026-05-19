@@ -1,5 +1,56 @@
 # CHANGELOG.md
 
+## v0.5.0 - 2026-05-19
+
+### Added
+
+- **외부 도구 자동 설치**: qpdf와 Tesseract를 앱 내에서 자동 다운로드 및 설치 지원
+  - **qpdf 자동 설치**: GitHub에서 zip 다운로드 → `%APPDATA%/LocalPDF Studio/tools/qpdf/`에 압축 해제 → 설정 자동 갱신. 관리자 권한 불필요
+  - **Tesseract 자동 설치**: GitHub에서 설치 파일 다운로드 → 관리자 승격(UAC) 후 무설치(`/S`) 실행 → 설치 경로 자동 탐지 → 설정 자동 갱신
+  - **관리자 승격 흐름**: Tesseract 설치 시 UAC 프롬프트 안내 → `powershell Start-Process -Verb RunAs -Wait`로 승격 → 승격 거부 시 명확한 오류 안내
+  - **새 Tauri 명령**: `install_qpdf_auto`, `install_tesseract_auto`, `check_elevation`
+
+### Changed
+
+- `ToolsPanel.tsx`: 미설치 도구 표시를 "다운로드 페이지 열기" 링크에서 "자동 설치" / "관리자 권한으로 자동 설치" 버튼 + "수동 다운로드" 버튼으로 변경
+- `styles.css`: `.tool-install-actions` flex 레이아웃, `.primary` 버튼 스타일, `.tool-install-error` 에러 메시지 스타일 추가
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm run build`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `cargo check`: 통과
+- `cargo test`: 22/22 통과 (installer_service 4개 신규 테스트 포함)
+
+---
+
+## v0.4.0 - 2026-05-19
+
+### Security
+
+- **`validate_pdf_path` 경로 검증 강화**: `canonicalize()`로 경로 순회/심볼릭 링크 공격 방지
+- **`save_text_file` 보호된 확장자 차단**: `.exe`, `.dll`, `.sys`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.com` 확장자로 저장 불가
+- **`decrypt_pdf` 비밀번호 노출 방지**: CLI 인자 대신 `--password-file`로 임시 파일 전달
+- **`pdf-local` 프로토콜 핸들러 강화**: PDF 확장자 검증 및 canonicalize 적용, 경로 순회 방지
+- **`validate_pdf_files` 파일 크기 상한 추가**: 최대 2GB 제한으로 DoS 방지
+
+### Changed
+
+- `docs/index.html` 랜딩 페이지: 완료된 기능 목록으로 갱신 (12개 기능 카드, 로드맵 완료 ✓ 표시, CTA 문구)
+- `README.md`: 현재 구현 범위 섹션을 완성된 기능 상세 목록으로 대체, 기술 스택 테이블 갱신
+- 보안 감사 수행: 0 Critical, 0 High, 5 Medium 이슈 전체 수정
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm run build`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `cargo check`: 통과
+- `cargo test`: 18/18 통과
+
+---
+
 ## v0.3.0 - 2026-05-18
 
 ### Added

@@ -42,15 +42,16 @@ describe('ToolsPanel', () => {
     const tools = makeTools(); // both unavailable
     render(<ToolsPanel currentFile={null} tools={tools} onStatus={() => {}} />);
     expect(screen.getAllByText('설치되지 않음 — 아래 안내로 설치 후 다시 확인을 누르세요.').length).toBeGreaterThan(0);
-    expect(screen.getByText('https://github.com/qpdf/qpdf/releases')).toBeInTheDocument();
-    expect(screen.getByText('https://github.com/UB-Mannheim/tesseract/wiki')).toBeInTheDocument();
+    expect(screen.getByText('자동 설치')).toBeInTheDocument();
+    expect(screen.getByText('관리자 권한으로 자동 설치')).toBeInTheDocument();
+    expect(screen.getAllByText('수동 다운로드').length).toBe(2);
   });
 
-  it('calls openUrl when "다운로드 페이지 열기" is clicked', async () => {
+  it('calls openUrl when "수동 다운로드" is clicked', async () => {
     const user = userEvent.setup();
     const tools = makeTools();
     render(<ToolsPanel currentFile={null} tools={tools} onStatus={() => {}} />);
-    const buttons = screen.getAllByText('다운로드 페이지 열기');
+    const buttons = screen.getAllByText('수동 다운로드');
     await user.click(buttons[0]);
     expect(openUrl).toHaveBeenCalledWith('https://github.com/qpdf/qpdf/releases');
   });

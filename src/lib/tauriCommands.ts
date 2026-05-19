@@ -84,3 +84,15 @@ export async function getTabState(): Promise<TabState> {
 export async function saveTabState(state: TabState): Promise<void> {
   return invoke<void>('save_tab_state', { state });
 }
+
+export async function installQpdfAuto(): Promise<string> {
+  return invoke<string>('install_qpdf_auto');
+}
+
+export async function installTesseractAuto(): Promise<string> {
+  return invoke<string>('install_tesseract_auto');
+}
+
+export async function checkElevation(): Promise<boolean> {
+  return invoke<boolean>('check_elevation');
+}

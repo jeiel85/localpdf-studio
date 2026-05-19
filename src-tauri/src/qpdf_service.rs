@@ -87,6 +87,8 @@ pub fn find_qpdf_with(override_path: Option<&str>) -> Result<QpdfTool, QpdfError
     Ok(QpdfTool { path, version })
 }
 
+const MAX_FILE_SIZE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+
 pub fn validate_pdf_files(paths: &[PathBuf]) -> Result<(), QpdfError> {
     if paths.is_empty() {
         return Err(QpdfError::InvalidInput("파일 목록이 비어 있습니다.".to_string()));
@@ -122,6 +124,14 @@ pub fn validate_pdf_files(paths: &[PathBuf]) -> Result<(), QpdfError> {
             return Err(QpdfError::InvalidInput(format!(
                 "빈 파일입니다: {}",
                 path.to_string_lossy()
+            )));
+        }
+
+        if metadata.len() > MAX_FILE_SIZE_BYTES {
+            return Err(QpdfError::InvalidInput(format!(
+                "파일 크기가 너무 큽니다 (최대 2GB): {} ({}MB)",
+                path.to_string_lossy(),
+                metadata.len() / (1024 * 1024)
             )));
         }
     }
@@ -327,15 +337,19 @@ pub fn decrypt_pdf(
         ));
     }
 
+    let pw_file = write_temp_password_file(password)?;
+
     let mut cmd = Command::new(&qpdf_tool.path);
     cmd.arg("--decrypt")
-        .arg(format!("--password={password}"))
+        .arg(format!("--password-file={}", pw_file.display()))
         .arg(input_file)
         .arg(output_path);
 
     let output = cmd.output().map_err(|e| {
         QpdfError::ExecutionFailed(format!("qpdf 복호화 실행 중 오류: {e}"))
     })?;
+
+    let _ = std::fs::remove_file(&pw_file);
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -345,6 +359,15 @@ pub fn decrypt_pdf(
     }
 
     Ok(output_path.to_path_buf())
+}
+
+fn write_temp_password_file(password: &str) -> Result<PathBuf, QpdfError> {
+    let mut path = std::env::temp_dir();
+    path.push(format!("lpdf_pw_{}", std::process::id()));
+    std::fs::write(&path, password).map_err(|e| {
+        QpdfError::IoError(format!("임시 파일 생성 실패: {e}"))
+    })?;
+    Ok(path)
 }
 
 pub fn extract_pages(

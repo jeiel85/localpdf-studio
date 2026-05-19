@@ -1,5 +1,64 @@
 # HISTORY.md
 
+## 2026-05-19 (v0.5.0 - 외부 도구 자동 설치)
+
+- 작업: qpdf/Tesseract 자동 설치 기능 구현, 관리자 승격 흐름
+- 변경 파일:
+  - `src-tauri/src/installer_service.rs` - 신규 모듈: download_file(curl), extract_zip(powershell), install_qpdf, download_tesseract_installer, run_tesseract_elevated, detect_tesseract_path, is_elevated
+  - `src-tauri/src/commands.rs` - install_qpdf_auto, install_tesseract_auto, check_elevation 명령 추가, installer_service import
+  - `src-tauri/src/lib.rs` - installer_service 모듈 등록, 새 명령 3개 등록
+  - `src/lib/tauriCommands.ts` - installQpdfAuto, installTesseractAuto, checkElevation 함수 추가
+  - `src/components/ToolsPanel.tsx` - 자동 설치 버튼, 설치 진행 상태, 에러 표시, UAC 확인 흐름
+  - `src/components/ToolsPanel.test.tsx` - 갱신된 UI에 맞게 테스트 수정
+  - `src/styles.css` - tool-install-actions flex, primary 버튼, error 스타일
+  - `package.json` - version 0.4.0 → 0.5.0
+  - `src-tauri/Cargo.toml` - version 0.5.0
+  - `src-tauri/tauri.conf.json` - version 0.5.0
+  - `CHANGELOG.md` - v0.5.0 섹션 추가
+
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm run build` 통과
+  - `npm test` 통과 (39 tests)
+  - `cargo check` 통과
+  - `cargo test` 통과 (22 tests, installer_service 4개 신규)
+
+- 결과:
+  - qpdf: GitHub zip 다운로드 → tools/qpdf/ 압축 해제 → 설정 자동 갱신 (관리자 불필요)
+  - tesseract: 설치 파일 다운로드 → UAC 승격 → /S 무설치 실행 → 경로 탐지 → 설정 갱신
+  - 관리자 승격: PowerShell Start-Process -Verb RunAs -Wait, 승격 거부 시 명확한 안내
+  - 새 Rust 의존성 없음: curl.exe + PowerShell만 활용
+
+## 2026-05-19 (v0.4.0 - 보안 강화 및 문서 갱신)
+
+- 작업: 보안 감사 취약점 수정, 랜딩 페이지/README 갱신, 버전 v0.4.0
+- 변경 파일:
+  - `src-tauri/src/commands.rs` - validate_pdf_path canonicalize 적용, save_text_file 보호 확장자 차단
+  - `src-tauri/src/qpdf_service.rs` - decrypt_pdf --password-file 사용, validate_pdf_files 2GB 상한 추가
+  - `src-tauri/src/protocol.rs` - pdf-local 프로토콜 PDF 확장자 검증 및 canonicalize
+  - `docs/index.html` - 기능 그리드 12개 완성 카드, 로드맵 ✓ 표시, 메타 설명 갱신
+  - `README.md` - 현재 구현 범위 상세 목록, 기술 스택, 핵심 방향 갱신
+  - `package.json` - version 0.3.0 → 0.4.0
+  - `src-tauri/Cargo.toml` - version 0.4.0
+  - `src-tauri/tauri.conf.json` - version 0.4.0
+  - `CHANGELOG.md` - v0.4.0 섹션 추가
+
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm run build` 통과
+  - `npm test` 통과 (39 tests)
+  - `cargo check` 통과
+  - `cargo test` 통과 (18 tests)
+
+- 결과:
+  - validate_pdf_path: canonicalize로 경로 순회/심볼릭 링크 방지
+  - save_text_file: exe/dll/sys/bat/cmd/ps1/vbs/com 확장자 차단
+  - decrypt_pdf: --password-file로 CLI 인자 비밀번호 노출 방지
+  - pdf-local 프로토콜: 확장자 검증 + canonicalize
+  - validate_pdf_files: 2GB 파일 크기 상한
+  - 보안 감사: 0 Critical, 0 High, 5 Medium 전체 수정 완료
+  - 랜딩 페이지/README 개발 완료 내용 반영
+
 ## 2026-05-18 (세션 5 - v0.3.0 Phase 1)
 
 - 작업: 뷰어 핵심 보강 (사이드바 접기, 단축키 다이얼로그, 드래그앤드롭, 세션 복원, 텍스트 선택)

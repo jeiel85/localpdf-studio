@@ -181,8 +181,11 @@ button.primary { border-color: #5b8cff; background: #24427a; }
 .tool-missing { color: #f2c66a; }
 .tool-install { padding: 8px 10px; background: rgba(242, 198, 106, 0.08); border: 1px solid rgba(242, 198, 106, 0.25); border-radius: 10px; display: grid; gap: 6px; }
 .tool-hint { margin: 0; color: #cdd8f4; font-size: 12px; line-height: 1.45; }
-.tool-install-actions { display: grid; gap: 6px; }
-.tool-install-actions button { width: fit-content; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+.tool-install-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.tool-install-actions button { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+.tool-install-actions button.primary { background: var(--cyan); color: #03101a; font-weight: 700; border: none; border-radius: 6px; }
+.tool-install-actions button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.tool-install-error { margin: 0; color: #ff6b6b; font-size: 12px; line-height: 1.45; padding: 6px 8px; background: rgba(255,107,107,0.1); border-radius: 6px; }
 .tool-url { font-size: 11px; padding: 4px 6px; background: rgba(0,0,0,0.25); border-radius: 6px; color: #9aa9c7; user-select: all; word-break: break-all; }
 
 /* Settings panel */

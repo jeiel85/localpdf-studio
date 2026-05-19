@@ -1,3 +1,4 @@
+use crate::installer_service;
 use crate::job_queue::{JobManagerState, JobStatus};
 use crate::ocr_service;
 use crate::qpdf_service;
@@ -650,8 +651,28 @@ pub fn apply_stamp(
 
 #[tauri::command]
 pub fn save_text_file(path: String, content: String) -> Result<String, String> {
-    std::fs::write(&path, &content)
-        .map_err(|e| format!("파일 저장 실패: {e}"))?;
+    let file_path = PathBuf::from(&path);
+
+    let ext = file_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if matches!(
+        ext.as_str(),
+        "exe" | "dll" | "sys" | "bat" | "cmd" | "ps1" | "vbs" | "com"
+    ) {
+        return Err("보호된 파일 형식에는 저장할 수 없습니다.".to_string());
+    }
+
+    if let Some(parent) = file_path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("디렉터리를 생성할 수 없습니다: {e}"))?;
+        }
+    }
+
+    fs::write(&path, &content).map_err(|e| format!("파일 저장 실패: {e}"))?;
     Ok(path)
 }
 
@@ -679,9 +700,58 @@ pub fn save_tab_state(state: TabState) -> Result<(), String> {
         .map_err(|e| format!("탭 상태 저장 실패: {e}"))
 }
 
+#[tauri::command]
+pub fn install_qpdf_auto(settings: State<'_, SettingsState>) -> Result<String, String> {
+    let path = installer_service::install_qpdf().map_err(|e| e.to_string())?;
+
+    let mut snap = settings_snapshot(&settings);
+    snap.external_tools.qpdf_path = Some(path.clone());
+    let app_dir = get_app_data_dir()?;
+    settings::save_to_dir(&app_dir, &snap)?;
+    let mut guard = settings
+        .0
+        .lock()
+        .map_err(|_| "설정 잠금 오류".to_string())?;
+    *guard = snap;
+
+    Ok(path)
+}
+
+#[tauri::command]
+pub fn install_tesseract_auto(settings: State<'_, SettingsState>) -> Result<String, String> {
+    let installer_path = installer_service::download_tesseract_installer()
+        .map_err(|e| e.to_string())?;
+
+    installer_service::run_tesseract_elevated(&installer_path)
+        .map_err(|e| e.to_string())?;
+
+    let detected = installer_service::detect_tesseract_path()
+        .ok_or_else(|| "Tesseract가 설치되었지만 실행 파일을 찾을 수 없습니다. Program Files를 확인하세요.".to_string())?;
+
+    let mut snap = settings_snapshot(&settings);
+    snap.external_tools.tesseract_path = Some(detected.clone());
+    let app_dir = get_app_data_dir()?;
+    settings::save_to_dir(&app_dir, &snap)?;
+    let mut guard = settings
+        .0
+        .lock()
+        .map_err(|_| "설정 잠금 오류".to_string())?;
+    *guard = snap;
+
+    Ok(detected)
+}
+
+#[tauri::command]
+pub fn check_elevation() -> bool {
+    installer_service::is_elevated()
+}
+
 fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {
     let pdf_path = PathBuf::from(path);
-    let extension = pdf_path
+    let canonical = pdf_path
+        .canonicalize()
+        .map_err(|e| format!("파일 경로가 올바르지 않습니다: {e}"))?;
+    let extension = canonical
         .extension()
         .and_then(|value| value.to_str())
         .unwrap_or_default()
@@ -691,7 +761,7 @@ fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {
         return Err("PDF 파일만 열 수 있습니다.".to_string());
     }
 
-    Ok(pdf_path)
+    Ok(canonical)
 }
 
 fn tool_status(

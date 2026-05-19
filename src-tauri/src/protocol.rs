@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     io::{Read, Seek, SeekFrom},
+    path::Path,
 };
 
 const PDF_MIME: &str = "application/pdf";
@@ -13,8 +14,24 @@ pub fn pdf_local_protocol(request: http::Request<Vec<u8>>) -> http::Response<Vec
         .or_else(|| uri.strip_prefix("pdf-local://"))
         .unwrap_or("");
 
-    let file_path = match percent_decode(path) {
+    let decoded = match percent_decode(path) {
         Ok(decoded) => decoded,
+        Err(e) => return error_response(400, &format!("잘못된 파일 경로입니다: {e}")),
+    };
+
+    let raw_path = Path::new(&decoded);
+
+    let ext = raw_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if ext != "pdf" {
+        return error_response(403, "PDF 파일만 접근 가능합니다.");
+    }
+
+    let file_path = match raw_path.canonicalize() {
+        Ok(canonical) => canonical.to_string_lossy().to_string(),
         Err(e) => return error_response(400, &format!("잘못된 파일 경로입니다: {e}")),
     };
 
