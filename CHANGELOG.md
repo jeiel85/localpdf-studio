@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## v0.6.0 - (작업 중)
+
+### Added
+
+- **PDF 페이지 편집**: 썸네일 드래그앤드롭으로 페이지 재정렬, 삭제, 다른 PDF에서 페이지 삽입
+  - `reorder_pages` command: qpdf `--pages` 옵션으로 페이지 순서 변경
+  - `delete_pages` command: 선택한 페이지 제거
+  - `insert_pages` command: 다른 PDF에서 페이지 삽입
+  - `PageEditorPanel` 컴포넌트: 썸네일 그리드 기반 편집 UI
+
+---
+
 ## v0.5.0 - 2026-05-19
 
 ### Added

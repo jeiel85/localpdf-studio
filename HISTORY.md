@@ -1,5 +1,14 @@
 # HISTORY.md
 
+## 2026-05-19 (v0.6.0 시작 - PDF 페이지 편집)
+
+- 작업: PDF 페이지 편집 기능 구현 (재정렬, 삭제, 삽입)
+- 계획:
+  - qpdf `--pages` 옵션 기반 reorder_pages, delete_pages, insert_pages Rust command
+  - PageEditorPanel: 썸네일 그리드 + 드래그앤드롭 재정렬 UI
+  - 페이지 편집 모드에서 기존 사이드바 썸네일 재활용
+  - qpdf_service.rs에 페이지 편집 함수 추가 및 단위 테스트
+
 ## 2026-05-19 (v0.5.0 - 외부 도구 자동 설치)
 
 - 작업: qpdf/Tesseract 자동 설치 기능 구현, 관리자 승격 흐름

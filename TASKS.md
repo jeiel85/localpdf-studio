@@ -75,3 +75,12 @@
 - [x] Tesseract 자동 설치 (설치 파일 다운로드 → UAC 승격 → 무설치 실행 → 경로 탐지)
 - [x] 관리자 승격 흐름 (Start-Process -Verb RunAs, 승격 거부 안내)
 - [x] ToolsPanel 자동 설치 UI (자동 설치/관리자 권한 설치 버튼 + 수동 다운로드)
+
+## v0.6.0 - PDF 페이지 편집
+
+- [ ] 페이지 재정렬 (썸네일 드래그앤드롭, `reorder_pages` command)
+- [ ] 페이지 삭제 (선택 페이지 제거, `delete_pages` command)
+- [ ] 페이지 삽입 (다른 PDF에서 페이지 가져오기, `insert_pages` command)
+- [ ] PageEditorPanel 컴포넌트 (썸네일 기반 편집 UI)
+- [ ] 사이드바 편집 모드 연동
+- [ ] 단위 테스트 (qpdf_service 페이지 편집 함수)
