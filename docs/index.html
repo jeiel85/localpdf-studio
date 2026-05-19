@@ -6,17 +6,21 @@
     <title>LocalPDF Studio | 로컬 우선 PDF 데스크톱 앱</title>
     <meta
       name="description"
-      content="LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF 보기, 검색, 병합, 분할, OCR, 변환, 암호화를 로컬에서 처리하는 Windows 우선 데스크톱 앱입니다."
+      content="LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF를 보고 편집하고 변환하는 로컬 우선 데스크톱 앱입니다. Windows / macOS / Linux 지원."
     />
     <meta name="theme-color" content="#07111f" />
     <meta property="og:title" content="LocalPDF Studio" />
     <meta
       property="og:description"
-      content="PDF를 PC 안에서 열고 정리하고 변환하는 로컬 우선 Windows 데스크톱 앱."
+      content="PDF를 PC 안에서 처리하는 cross-platform 로컬 우선 데스크톱 앱."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="img/landing.png" />
     <link rel="icon" href="img/app-icon.png" />
+    <link rel="alternate" hreflang="en" href="en.html" />
+    <link rel="alternate" hreflang="ja" href="ja.html" />
+    <link rel="alternate" hreflang="ko" href="index.html" />
+    <link rel="alternate" hreflang="x-default" href="index.html" />
     <style>
       :root {
         color-scheme: dark light;
@@ -28,521 +32,548 @@
         --cyan: #26d8f2;
         --blue: #3178ff;
         --amber: #ffb23f;
+        --green: #82bea0;
         --paper: #f5f8fb;
         --paper-text: #182335;
         --line: rgba(255, 255, 255, 0.16);
         font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
+          Pretendard, "Apple SD Gothic Neo", Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        background: var(--ink);
-        color: var(--text);
-      }
-
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--ink); color: var(--text); }
+      a { color: inherit; text-decoration: none; }
+      .wrap { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
 
       .hero {
-        min-height: 92vh;
+        min-height: 88vh;
         display: flex;
         flex-direction: column;
         background:
-          linear-gradient(90deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.48) 48%, rgba(7, 17, 31, 0.1)),
+          linear-gradient(90deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.5) 48%, rgba(7, 17, 31, 0.1)),
           url("img/landing.png") center / cover no-repeat;
       }
-
       .nav {
-        width: min(1160px, calc(100% - 40px));
-        margin: 0 auto;
         padding: 24px 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 20px;
       }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-weight: 800;
-        letter-spacing: 0;
-      }
-
-      .brand img {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
-      }
-
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      .nav-links a:hover {
-        color: var(--text);
-      }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 17px; }
+      .brand img { width: 32px; height: 32px; }
+      .nav-links { display: flex; gap: 18px; align-items: center; font-size: 14px; }
+      .nav-links a { color: var(--muted); }
+      .nav-links a:hover { color: var(--text); }
+      .lang-sep { opacity: 0.4; }
 
       .hero-inner {
-        width: min(1160px, calc(100% - 40px));
-        margin: auto auto 0;
-        padding: 64px 0 84px;
+        padding: 60px 0 40px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
-
       .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-        color: #d9f9ff;
-        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--cyan);
+        font-size: 12px;
         font-weight: 700;
       }
-
-      .eyebrow::before {
-        content: "";
-        width: 34px;
-        height: 2px;
-        background: var(--cyan);
-      }
-
       h1 {
-        max-width: 720px;
-        margin: 0;
-        font-size: clamp(46px, 7vw, 92px);
-        line-height: 0.95;
-        letter-spacing: 0;
+        font-size: clamp(40px, 6vw, 72px);
+        margin: 12px 0 18px;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
       }
+      .lead { font-size: 18px; color: var(--muted); max-width: 660px; line-height: 1.65; }
 
-      .lead {
-        max-width: 610px;
-        margin: 26px 0 0;
-        color: #d9e6f6;
-        font-size: clamp(18px, 2vw, 22px);
-        line-height: 1.65;
-      }
-
-      .actions {
+      .platform-badges {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 34px;
+        gap: 10px;
+        margin-top: 24px;
       }
-
-      .button {
-        min-height: 48px;
+      .platform-badge {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        padding: 0 18px;
-        font-weight: 800;
+        gap: 8px;
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .platform-badge img { width: 16px; height: 16px; }
+
+      .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+      .button {
+        padding: 14px 24px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
         border: 1px solid transparent;
+        transition: 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
       }
-
-      .button.primary {
-        background: var(--cyan);
-        color: #03101a;
-      }
-
-      .button.secondary {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.24);
-      }
+      .button.primary { background: var(--blue); color: white; }
+      .button.primary:hover { background: #2862e0; transform: translateY(-1px); }
+      .button.secondary { border-color: var(--line); color: var(--text); }
+      .button.secondary:hover { background: rgba(255, 255, 255, 0.05); }
 
       .proof {
         width: min(1160px, calc(100% - 40px));
-        margin: -42px auto 0;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 14px;
-        position: relative;
-        z-index: 2;
-      }
-
-      .proof-item {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 20px;
-        background: rgba(13, 26, 43, 0.9);
-        backdrop-filter: blur(18px);
-      }
-
-      .proof-item strong {
-        display: block;
-        margin-bottom: 8px;
-        color: var(--text);
-      }
-
-      .proof-item span {
-        color: var(--muted);
-        line-height: 1.5;
-      }
-
-      section {
-        padding: 92px 0;
-      }
-
-      .section-light {
-        background: var(--paper);
-        color: var(--paper-text);
-      }
-
-      .section-dark {
-        background: linear-gradient(180deg, #091523, #101d2f);
-      }
-
-      .wrap {
-        width: min(1160px, calc(100% - 40px));
-        margin: 0 auto;
-      }
-
-      .section-heading {
-        max-width: 680px;
-      }
-
-      h2 {
-        margin: 0;
-        font-size: clamp(32px, 4vw, 54px);
-        line-height: 1.08;
-        letter-spacing: 0;
-      }
-
-      .section-heading p {
-        margin: 18px 0 0;
-        color: #536274;
-        font-size: 18px;
-        line-height: 1.7;
-      }
-
-      .section-dark .section-heading p {
-        color: var(--muted);
-      }
-
-      .feature-grid {
+        margin: -40px auto 0;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 16px;
-        margin-top: 38px;
+        position: relative;
+        z-index: 2;
       }
-
-      .feature {
-        min-height: 170px;
-        border-radius: 8px;
-        padding: 24px;
-        border: 1px solid #dde5ef;
-        background: #ffffff;
-      }
-
-      .feature b {
-        display: block;
-        margin-bottom: 10px;
-        color: #0f243d;
-        font-size: 18px;
-      }
-
-      .feature p {
-        margin: 0;
-        color: #5e6d7e;
-        line-height: 1.65;
-      }
-
-      .roadmap {
-        display: grid;
-        grid-template-columns: 0.8fr 1.2fr;
-        gap: 42px;
-        align-items: start;
-      }
-
-      .steps {
-        display: grid;
-        gap: 12px;
-      }
-
-      .step {
-        display: grid;
-        grid-template-columns: 88px 1fr;
-        gap: 18px;
-        padding: 20px;
-        border-radius: 8px;
+      .proof-item {
+        background: var(--panel);
         border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 24px;
       }
+      .proof-item strong { display: block; color: var(--cyan); font-size: 14px; margin-bottom: 6px; }
+      .proof-item span { color: var(--muted); font-size: 14px; line-height: 1.6; }
 
-      .step code {
-        color: var(--amber);
-        font: 800 14px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
-      }
+      .section { padding: 96px 0; border-top: 1px solid var(--line); }
+      .section-light { background: var(--paper); color: var(--paper-text); border-top: none; }
+      .section-light .muted { color: rgba(24, 35, 53, 0.7); }
+      .section-light .card { background: white; border-color: rgba(24, 35, 53, 0.1); }
+      .section-light .card b { color: var(--blue); }
+      .section-light .card p { color: rgba(24, 35, 53, 0.75); }
 
-      .step strong {
-        display: block;
-        margin-bottom: 6px;
-      }
+      h2 { font-size: clamp(28px, 4vw, 40px); margin: 0 0 14px; letter-spacing: -0.01em; }
+      .section-intro { font-size: 16px; line-height: 1.7; max-width: 720px; }
 
-      .step span {
-        color: var(--muted);
-        line-height: 1.55;
-      }
-
-      .cta {
-        background: #ffffff;
-        color: var(--paper-text);
-        border-top: 1px solid #e5edf6;
-      }
-
-      .cta-inner {
+      .grid {
         display: grid;
-        grid-template-columns: 92px 1fr auto;
-        gap: 24px;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        margin-top: 36px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 24px;
+      }
+      .card .ico { font-size: 24px; display: block; margin-bottom: 10px; }
+      .card b { display: block; margin-bottom: 8px; color: var(--cyan); font-size: 15px; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+
+      /* 다운로드 섹션 */
+      .download-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        margin-top: 36px;
+      }
+      .download-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .download-card .os {
+        display: flex;
         align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 800;
       }
-
-      .cta img {
-        width: 92px;
-        height: 92px;
-        border-radius: 20px;
-        box-shadow: 0 18px 38px rgba(14, 31, 52, 0.22);
+      .download-card .os img { width: 28px; height: 28px; }
+      .download-card .badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        margin-left: auto;
       }
-
-      .cta p {
-        margin: 10px 0 0;
-        color: #58697b;
-        line-height: 1.65;
+      .download-card .badge.warn { background: rgba(255, 178, 63, 0.18); color: var(--amber); }
+      .download-card .formats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
+      .download-card .formats code {
+        background: var(--panel-2);
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--text);
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      .download-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+      .download-card .btn {
+        margin-top: auto;
+        background: var(--blue);
+        color: white;
+        padding: 11px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        text-align: center;
+      }
+      .download-card .btn:hover { background: #2862e0; }
 
-      footer {
-        padding: 28px 0;
-        background: var(--ink);
-        color: var(--muted);
+      /* 패키지 매니저 그리드 */
+      .pkg-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        margin-top: 32px;
+      }
+      .pkg-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .pkg-card .pkg-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
         font-size: 14px;
       }
-
-      footer .wrap {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
+      .pkg-card .pkg-head img { width: 22px; height: 22px; }
+      .pkg-card code {
+        background: var(--panel-2);
+        padding: 8px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.4;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        color: var(--cyan);
+        word-break: break-all;
       }
+      .pkg-card .status {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .pkg-card .status.live { color: var(--green); }
+      .pkg-card .status.pending { color: var(--amber); }
 
-      @media (max-width: 860px) {
-        .hero {
-          min-height: 86vh;
-          background:
-            linear-gradient(180deg, rgba(7, 17, 31, 0.9), rgba(7, 17, 31, 0.72)),
-            url("img/landing.png") center / cover no-repeat;
-        }
+      .gatekeeper-note {
+        margin-top: 24px;
+        padding: 16px 20px;
+        background: rgba(255, 178, 63, 0.08);
+        border-left: 3px solid var(--amber);
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      .gatekeeper-note strong { color: var(--amber); }
 
-        .nav {
-          align-items: flex-start;
-        }
+      .footer {
+        padding: 40px 0;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+        border-top: 1px solid var(--line);
+      }
+      .footer a { color: var(--cyan); }
 
-        .nav-links {
-          display: none;
-        }
-
-        .proof,
-        .feature-grid,
-        .roadmap,
-        .cta-inner {
-          grid-template-columns: 1fr;
-        }
-
-        .proof {
-          margin-top: 0;
-        }
-
-        .cta-inner {
-          text-align: left;
-        }
+      @media (max-width: 720px) {
+        .nav-links { display: none; }
+        .proof { grid-template-columns: 1fr; margin-top: 0; }
+        .proof-item { background: transparent; border: none; padding: 12px 0; }
+        .section { padding: 64px 0; }
       }
     </style>
   </head>
   <body>
     <header class="hero">
-      <nav class="nav" aria-label="주요 링크">
+      <nav class="nav wrap" aria-label="주요 링크">
         <a class="brand" href="./">
           <img src="img/app-icon.png" alt="" />
           <span>LocalPDF Studio</span>
         </a>
         <div class="nav-links">
           <a href="#features">기능</a>
-          <a href="#roadmap">로드맵</a>
+          <a href="#download">다운로드</a>
           <a href="https://github.com/jeiel85/localpdf-studio">GitHub</a>
-          <span style="opacity:0.4">|</span>
+          <span class="lang-sep">|</span>
           <a href="index.html" style="font-weight:700">KO</a>
           <a href="en.html">EN</a>
           <a href="ja.html">JA</a>
         </div>
       </nav>
 
-      <div class="hero-inner">
-        <span class="eyebrow">Windows first, local first</span>
+      <div class="hero-inner wrap">
+        <span class="eyebrow">Cross-platform · Local-first</span>
         <h1>LocalPDF Studio</h1>
         <p class="lead">
-          PDF를 PC 안에서 열고 정리하고 변환합니다. 계정, 광고, 클라우드 업로드 없이
-          민감한 문서 작업을 데스크톱에서 차분하게 처리하는 앱입니다.
+          광고도, 계정도, 클라우드 업로드도 없습니다.
+          PDF 작업은 사용자의 PC 안에서만 일어납니다.
+          뷰어 · 병합 · 분할 · OCR · 폼 채우기 · 메타데이터 편집 · 분할 비교까지
+          한 앱에 모두 담은 데스크톱 PDF 스튜디오입니다.
         </p>
+
+        <div class="platform-badges" aria-label="지원 플랫폼">
+          <span class="platform-badge"><img src="https://cdn.simpleicons.org/windows11/0078D4" alt="" /> Windows 10+</span>
+          <span class="platform-badge"><img src="https://cdn.simpleicons.org/apple/ffffff" alt="" /> macOS 10.15+ (M1+Intel)</span>
+          <span class="platform-badge"><img src="https://cdn.simpleicons.org/linux/FCC624" alt="" /> Linux (AppImage · deb · rpm)</span>
+        </div>
+
         <div class="actions">
-          <a class="button primary" href="https://github.com/jeiel85/localpdf-studio">GitHub에서 보기</a>
-          <a class="button secondary" href="https://github.com/jeiel85/localpdf-studio#빠른-시작">개발 실행</a>
+          <a class="button primary" href="https://github.com/jeiel85/localpdf-studio/releases/latest">
+            <img src="https://cdn.simpleicons.org/github/ffffff" alt="" width="16" height="16" />
+            최신 버전 다운로드
+          </a>
+          <a class="button secondary" href="https://github.com/jeiel85/localpdf-studio">
+            GitHub 저장소
+          </a>
         </div>
       </div>
     </header>
 
     <div class="proof" aria-label="제품 원칙">
       <div class="proof-item">
-        <strong>100% 로컬 중심</strong>
-        <span>PDF 내용은 사용자 장치 밖으로 나가지 않으며, 모든 편집/변환 작업을 로컬에서 처리합니다.</span>
+        <strong>100% 로컬 처리</strong>
+        <span>PDF 내용은 사용자 장치 밖으로 나가지 않습니다. 모든 편집·변환이 PC 안에서 실행됩니다.</span>
       </div>
       <div class="proof-item">
-        <strong>가볍고 빠른 데스크톱</strong>
-        <span>Tauri 2, React 19, TypeScript, Rust로 ~15MB 설치 크기와 빠른 응답성을 유지합니다.</span>
+        <strong>가볍고 빠름</strong>
+        <span>Tauri 2 + React 19 + Rust. ~15MB 설치 크기, 메인 JS 117KB. 즉시 응답하는 데스크톱 경험.</span>
       </div>
       <div class="proof-item">
-        <strong>실무 PDF 워크플로</strong>
-        <span>보기, 검색, 병합, 분할, OCR, 변환, 암호화, 워터마크까지 모두 내장되어 있습니다.</span>
+        <strong>완성된 PDF 워크플로</strong>
+        <span>뷰어부터 OCR · 폼 채우기 · 분할 비교 · 워터마크까지 한 앱에 통합되어 있습니다.</span>
       </div>
     </div>
 
     <section id="features" class="section-light">
       <div class="wrap">
-        <div class="section-heading">
-          <h2>문서를 밖으로 보내지 않는 PDF 작업대</h2>
-          <p>
-            LocalPDF Studio는 로컬 파일 처리, 명확한 배포 경로, Windows 사용자 경험을
-            한 프로젝트 안에서 완성했습니다.
-          </p>
-        </div>
+        <h2>문서를 밖으로 보내지 않는 PDF 작업대</h2>
+        <p class="section-intro muted">
+          뷰어 · 편집 · OCR · 변환 · 비교 · 폼 · 책갈피.
+          전형적인 데스크톱 PDF 도구에 기대하는 거의 모든 기능이 v0.10.0에 들어 있습니다.
+        </p>
 
-        <div class="feature-grid">
-          <article class="feature">
+        <div class="grid">
+          <article class="card">
+            <span class="ico">📖</span>
             <b>고성능 PDF 뷰어</b>
-            <p>PDF.js 기반 렌더링, 연속 스크롤, 페이지 맞춤, 확대/축소, 회전, 텍스트 선택/복사, 렌더 큐 최적화를 제공합니다.</p>
+            <p>PDF.js 기반 렌더링, 연속 스크롤, 페이지 맞춤 3종, 확대/축소, 회전, 텍스트 선택/복사. 렌더 큐로 메인 스레드 보호.</p>
           </article>
-          <article class="feature">
+          <article class="card">
+            <span class="ico">🌊</span>
             <b>대용량 PDF 스트리밍</b>
-            <p>250MB 이상 PDF는 커스텀 프로토콜과 Range 요청으로 청크 단위 스트리밍 로드하여 메모리와 속도를 최적화합니다.</p>
+            <p>250MB+ PDF는 커스텀 프로토콜 + HTTP Range로 청크 단위 로드. base64 인플레이션 회피, 메모리 최적화.</p>
           </article>
-          <article class="feature">
-            <b>다중 문서 탭 &amp; 세션 복원</b>
-            <p>여러 PDF를 탭으로 동시 열기, 드래그 앤 드롭, 앱 재시작 시 열려 있던 문서와 뷰 상태를 자동으로 복원합니다.</p>
+          <article class="card">
+            <span class="ico">📑</span>
+            <b>다중 문서 탭 + 세션 복원</b>
+            <p>여러 PDF를 탭으로 동시 열고, 재시작 시 페이지·배율·회전·레이아웃까지 복원합니다.</p>
           </article>
-          <article class="feature">
-            <b>PDF 병합 &amp; 분할</b>
-            <p>qpdf 엔진으로 여러 PDF를 하나로 병합하거나 페이지 단위로 분할합니다. 드래그로 순서 변경 가능합니다.</p>
+          <article class="card">
+            <span class="ico">🔀</span>
+            <b>병합 · 분할 · 추출 · 회전</b>
+            <p>qpdf 엔진. 드래그로 순서 변경, 페이지 범위 지정, 256-bit AES 암호화, 압축, 페이지별 인라인 회전.</p>
           </article>
-          <article class="feature">
-            <b>페이지 추출 &amp; 회전 저장</b>
-            <p>지정한 페이지 범위를 새 PDF로 추출하고, 페이지별 90°/180°/270° 회전을 영구 저장합니다.</p>
+          <article class="card">
+            <span class="ico">🔍</span>
+            <b>OCR + 검색 가능 PDF</b>
+            <p>Tesseract 자동 설치 (SHA-256 검증). 스캔 PDF를 텍스트 레이어 합성된 검색 가능 PDF로 변환합니다.</p>
           </article>
-          <article class="feature">
-            <b>암호화 &amp; 복호화</b>
-            <p>256-bit AES로 PDF에 사용자/소유자 암호를 설정하거나, 암호를 입력하여 보호된 PDF의 잠금을 해제합니다.</p>
+          <article class="card">
+            <span class="ico">✏️</span>
+            <b>페이지 편집기</b>
+            <p>드래그로 재정렬, 삭제, 다른 PDF에서 페이지 삽입, 인라인 회전. 약 1.2초마다 편집 상태 자동 백업.</p>
           </article>
-          <article class="feature">
-            <b>OCR 텍스트 추출</b>
-            <p>Tesseract OCR 엔진으로 이미지 PDF에서 텍스트를 추출합니다. 언어 선택, DPI 설정을 지원합니다.</p>
+          <article class="card">
+            <span class="ico">🏷️</span>
+            <b>메타데이터 · 폼 · 책갈피</b>
+            <p>Title/Author/Subject/Keywords 편집. AcroForm 필드 채우기. PDF별 로컬 책갈피 (원본 미수정).</p>
           </article>
-          <article class="feature">
-            <b>형식 변환</b>
-            <p>PDF→이미지(PNG/JPEG/WebP), PDF→TXT, 이미지→PDF 변환을 지원합니다. 워터마크/스탬프 적용도 가능합니다.</p>
+          <article class="card">
+            <span class="ico">🔀</span>
+            <b>분할 뷰 비교</b>
+            <p>두 PDF를 좌/우 동시 표시. 페이지별 텍스트 차이를 분석해 다른 페이지로 빠르게 이동합니다.</p>
           </article>
-          <article class="feature">
-            <b>문서 비교 &amp; 메타데이터</b>
-            <p>두 PDF의 텍스트를 추출하여 라인 단위 차이를 비교하고, PDF 메타데이터를 JSON으로 확인할 수 있습니다.</p>
+          <article class="card">
+            <span class="ico">🎨</span>
+            <b>워터마크 · 하이라이트</b>
+            <p>다른 PDF를 overlay/underlay로 워터마크. 페이지 단위 색상 띠로 빠른 시각적 강조.</p>
           </article>
-          <article class="feature">
-            <b>Windows 통합 배포</b>
-            <p>우클릭 메뉴 등록, NSIS/MSI/Portable ZIP 설치, Tauri updater 자동 업데이트를 지원합니다.</p>
+          <article class="card">
+            <span class="ico">🌐</span>
+            <b>다국어 (한·영·일)</b>
+            <p>브라우저 언어 자동 감지. 설정에서 즉시 전환. 한국어 / 영어 / 일본어 UI.</p>
           </article>
-          <article class="feature">
-            <b>키보드 단축키 &amp; 설정</b>
-            <p>Ctrl+O/F/B, Alt+←→, Ctrl+Tab/W 등 주요 기능을 단축키로 조작하고, 17가지 앱 설정을 UI로 제어합니다.</p>
+          <article class="card">
+            <span class="ico">🔒</span>
+            <b>보안 강화</b>
+            <p>CSP 활성화, 경로 검증 일원화, 자동 설치 SHA-256 검증, JSON atomic write, PDF.js JS 차단.</p>
           </article>
-          <article class="feature">
-            <b>문서 탐색 도구</b>
-            <p>페이지 썸네일, 목차/아웃라인, 전문 검색, 최근 문서 목록으로 빠르게 원하는 위치를 찾을 수 있습니다.</p>
+          <article class="card">
+            <span class="ico">⌨️</span>
+            <b>키보드 단축키 25+</b>
+            <p>Ctrl+O/F/B/G/L/P, +/-/0, Home/End, Alt+←→, F1 도움말. 설정 패널 20+ 옵션.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="roadmap" class="section-dark">
-      <div class="wrap roadmap">
-        <div class="section-heading">
-          <h2>완성된 기능 로드맵</h2>
-          <p>
-            v0.3.0 기준으로 PDF 뷰어, 작업 엔진, OCR, 변환, 배포 자동화까지 모든 계획된 기능이 구현되었습니다.
-          </p>
-        </div>
-        <div class="steps">
-          <div class="step">
-            <code>P0 ✓</code>
-            <div>
-              <strong>저장소 안정화</strong>
-              <span>의존성 설치, 타입 검사, 앱 빌드, 기본 PDF 렌더링 검증 완료.</span>
-            </div>
-          </div>
-          <div class="step">
-            <code>P1 ✓</code>
-            <div>
-              <strong>뷰어 경험 완성</strong>
-              <span>썸네일, 목차, 검색, 최근 문서, 다중 탭, 키보드 단축키 모두 구현.</span>
-            </div>
-          </div>
-          <div class="step">
-            <code>P2 ✓</code>
-            <div>
-              <strong>PDF 작업 엔진</strong>
-              <span>병합, 분할, 추출, 회전, 암호화, 압축, 메타데이터, 작업 큐 구현.</span>
-            </div>
-          </div>
-          <div class="step">
-            <code>P3/P4 ✓</code>
-            <div>
-              <strong>OCR과 배포</strong>
-              <span>OCR, 변환, 워터마크, 비교, 설치 파일, 자동 업데이트 완료.</span>
-            </div>
-          </div>
-          <div class="step">
-            <code>v0.3.0 ✓</code>
-            <div>
-              <strong>뷰어 핵심 보강</strong>
-              <span>사이드바 접기, 단축키 도움말, 드래그앤드롭, 세션 복원, 텍스트 선택/복사.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div class="wrap cta-inner">
-        <img src="img/app-icon.png" alt="" />
-        <div>
-          <h2>로컬 PDF 도구, 지금 시작하세요</h2>
-          <p>저장소를 클론하고 Node.js LTS, Rust stable, WebView2 환경에서 바로 개발 또는 빌드할 수 있습니다.</p>
-        </div>
-        <a class="button primary" href="https://github.com/jeiel85/localpdf-studio">Repository</a>
-      </div>
-    </section>
-
-    <footer>
+    <section id="download" class="section">
       <div class="wrap">
-        <span>LocalPDF Studio</span>
-        <span>Apache-2.0</span>
+        <h2>다운로드</h2>
+        <p class="section-intro" style="color: var(--muted);">
+          OS에 맞는 산출물을 선택하세요. 모든 빌드는
+          <a href="https://github.com/jeiel85/localpdf-studio/releases/latest" style="color: var(--cyan);">GitHub Release</a>에서 직접 받을 수 있고,
+          Windows는 자동 업데이트가 활성화되어 있습니다.
+        </p>
+
+        <div class="download-grid">
+          <div class="download-card">
+            <div class="os">
+              <img src="https://cdn.simpleicons.org/windows11/0078D4" alt="" />
+              <span>Windows 10+</span>
+            </div>
+            <div class="formats">
+              <code>NSIS .exe</code>
+              <code>MSI</code>
+              <code>Portable .zip</code>
+            </div>
+            <p>NSIS 인스톨러는 자동 업데이트와 우클릭 메뉴를 지원합니다.</p>
+            <a class="btn" href="https://github.com/jeiel85/localpdf-studio/releases/latest">Windows 다운로드</a>
+          </div>
+
+          <div class="download-card">
+            <div class="os">
+              <img src="https://cdn.simpleicons.org/apple/ffffff" alt="" />
+              <span>macOS 10.15+</span>
+              <span class="badge warn">무서명</span>
+            </div>
+            <div class="formats">
+              <code>Universal DMG</code>
+              <code>.app</code>
+            </div>
+            <p>Apple Silicon + Intel 단일 DMG. 첫 실행 시 Gatekeeper 우회 필요 (아래 안내).</p>
+            <a class="btn" href="https://github.com/jeiel85/localpdf-studio/releases/latest">macOS 다운로드</a>
+          </div>
+
+          <div class="download-card">
+            <div class="os">
+              <img src="https://cdn.simpleicons.org/linux/FCC624" alt="" />
+              <span>Linux</span>
+            </div>
+            <div class="formats">
+              <code>AppImage</code>
+              <code>.deb</code>
+              <code>.rpm</code>
+            </div>
+            <p>대부분 배포판 호환. AppImage는 다운로드 후 chmod +x로 즉시 실행.</p>
+            <a class="btn" href="https://github.com/jeiel85/localpdf-studio/releases/latest">Linux 다운로드</a>
+          </div>
+        </div>
+
+        <div class="gatekeeper-note">
+          <strong>⚠️ macOS Gatekeeper 우회 안내</strong><br />
+          macOS 빌드는 현재 Apple Developer 서명/공증을 받지 않았습니다 ($99/년 비용 부담). 첫 실행 시
+          “확인되지 않은 개발자” 경고가 표시됩니다. 다음 두 가지 방법 중 하나로 우회하세요:
+          <br />① Finder → Applications → 앱 우클릭 → “열기” → 대화상자에서 다시 “열기”
+          <br />② 터미널에서 <code>xattr -dr com.apple.quarantine "/Applications/LocalPDF Studio.app"</code>
+          <br />자세한 절차는
+          <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">INSTALL.md</a>
+          참고.
+        </div>
+      </div>
+    </section>
+
+    <section id="packages" class="section">
+      <div class="wrap">
+        <h2>패키지 매니저로 설치</h2>
+        <p class="section-intro" style="color: var(--muted);">
+          각 매니페스트가 작성되어 있어 등록되는 대로 다음 명령으로 설치/업데이트할 수 있습니다.
+          상세 절차는
+          <a href="https://github.com/jeiel85/localpdf-studio/tree/master/packaging" style="color: var(--cyan);">packaging/</a>
+          폴더의 README를 참고하세요.
+        </p>
+
+        <div class="pkg-grid">
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/windowsterminal/0078D4" alt="" />
+              <span>winget</span>
+            </div>
+            <code>winget install jeiel85.LocalPDFStudio</code>
+            <span class="status pending">● 매니페스트 작성 완료, microsoft/winget-pkgs PR 대기</span>
+          </div>
+
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/chocolatey/80B5E3" alt="" />
+              <span>Chocolatey</span>
+            </div>
+            <code>choco install localpdf-studio</code>
+            <span class="status pending">● 패키지 작성 완료, community 큐 제출 예정</span>
+          </div>
+
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/homebrew/FBB040" alt="" />
+              <span>Homebrew (tap)</span>
+            </div>
+            <code>brew tap jeiel85/tap
+brew install --cask localpdf-studio</code>
+            <span class="status pending">● Cask 작성 완료, personal tap 우선</span>
+          </div>
+
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/snapcraft/82BEA0" alt="" />
+              <span>Snap Store</span>
+            </div>
+            <code>sudo snap install localpdf-studio</code>
+            <span class="status pending">● snapcraft.yaml 준비, 등록 대기</span>
+          </div>
+
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/archlinux/1793D1" alt="" />
+              <span>AUR (Arch / Manjaro)</span>
+            </div>
+            <code>yay -S localpdf-studio-bin</code>
+            <span class="status pending">● PKGBUILD 준비, AUR 등록 대기</span>
+          </div>
+
+          <div class="pkg-card">
+            <div class="pkg-head">
+              <img src="https://cdn.simpleicons.org/github/ffffff" alt="" />
+              <span>GitHub Release</span>
+            </div>
+            <code>gh release download --repo jeiel85/localpdf-studio</code>
+            <span class="status live">● Live · 3-OS 매트릭스 자동 빌드</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="wrap">
+        © 2026 Aiden Park · Apache-2.0 ·
+        <a href="https://github.com/jeiel85/localpdf-studio">Source</a> ·
+        <a href="https://github.com/jeiel85/localpdf-studio/issues">Issues</a> ·
+        <a href="https://github.com/jeiel85/localpdf-studio/blob/master/CHANGELOG.md">Changelog</a> ·
+        <a href="en.html">English</a> ·
+        <a href="ja.html">日本語</a>
       </div>
     </footer>
   </body>

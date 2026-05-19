@@ -2,169 +2,234 @@
 
 ![LocalPDF Studio landing preview](docs/img/landing.png)
 
-LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF를 열고 정리하고 변환하는 데스크톱 PDF 앱입니다. 파일은 사용자의 PC 안에서 처리하는 것을 기본 원칙으로 하며, Tauri 기반의 가벼운 데스크톱 경험과 Rust 기반 로컬 PDF 작업 계층을 함께 가져갑니다.
+<p>
+  <a href="https://github.com/jeiel85/localpdf-studio/releases/latest"><img alt="latest release" src="https://img.shields.io/github/v/release/jeiel85/localpdf-studio?display_name=tag&color=3178ff"></a>
+  <a href="https://github.com/jeiel85/localpdf-studio/releases"><img alt="downloads" src="https://img.shields.io/github/downloads/jeiel85/localpdf-studio/total?color=26d8f2"></a>
+  <a href="https://github.com/jeiel85/localpdf-studio/blob/master/LICENSE"><img alt="license" src="https://img.shields.io/github/license/jeiel85/localpdf-studio?color=ffb23f"></a>
+  <a href="https://github.com/jeiel85/localpdf-studio/actions/workflows/release.yml"><img alt="release CI" src="https://img.shields.io/github/actions/workflow/status/jeiel85/localpdf-studio/release.yml?label=release%20build"></a>
+</p>
 
-**Windows / macOS (Apple Silicon + Intel) / Linux (AppImage / .deb / .rpm)** 모두 지원합니다.
-설치 가이드는 [INSTALL.md](INSTALL.md)를 참고하세요.
+<p>
+  <img alt="Windows 10+" src="https://img.shields.io/badge/Windows-10%2B-0078D4?logo=windows11&logoColor=white">
+  <img alt="macOS 10.15+" src="https://img.shields.io/badge/macOS-10.15%2B-000000?logo=apple&logoColor=white">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-AppImage%20%7C%20deb%20%7C%20rpm-FCC624?logo=linux&logoColor=black">
+</p>
 
-[GitHub Pages 랜딩 페이지](https://jeiel85.github.io/localpdf-studio/)에서 제품 소개 화면을 볼 수 있습니다.
+LocalPDF Studio는 **광고·계정·클라우드 업로드 없이** PDF를 다루는 로컬 우선 데스크톱 앱입니다.
+모든 파일 처리는 사용자의 PC 안에서 일어나며, Tauri 2 + React 19 + Rust로 만들었습니다.
 
-## 다운로드
+**Cross-platform**: Windows · macOS (Apple Silicon + Intel) · Linux. 자세한 설치 방법은 [INSTALL.md](INSTALL.md)를 참고하세요.
 
-[최신 릴리즈](https://github.com/jeiel85/localpdf-studio/releases/latest)에서 OS별 산출물을 받을 수 있습니다.
+🌐 **[GitHub Pages 랜딩 페이지](https://jeiel85.github.io/localpdf-studio/)** · [English](https://jeiel85.github.io/localpdf-studio/en.html) · [日本語](https://jeiel85.github.io/localpdf-studio/ja.html)
 
-| 플랫폼 | 산출물 | 설치 |
+---
+
+## 📥 다운로드
+
+[**최신 릴리즈**](https://github.com/jeiel85/localpdf-studio/releases/latest)에서 OS별 산출물을 받을 수 있습니다.
+
+| 플랫폼 | 산출물 | 설치 방법 |
 |---|---|---|
-| Windows | NSIS .exe / MSI / Portable ZIP | 더블 클릭 또는 `winget install jeiel85.LocalPDFStudio` |
-| macOS Universal (M1/Intel) | `.dmg` ⚠️ 무서명 | DMG 마운트 후 Applications 드래그. 첫 실행 시 우클릭→열기 (자세한 절차 [INSTALL.md](INSTALL.md#macos)) |
-| Linux | AppImage / .deb / .rpm | 배포판별 패키지 또는 AppImage 직접 실행 |
+| <img src="https://cdn.simpleicons.org/windows11/0078D4" width="16" height="16" /> **Windows 10+** | NSIS `.exe` · MSI · Portable ZIP | 더블 클릭 · winget · Chocolatey |
+| <img src="https://cdn.simpleicons.org/apple/000000" width="16" height="16" /> **macOS 10.15+** ⚠️ 무서명 | Universal DMG (M1+Intel) | DMG 마운트 → Applications → 우클릭 열기 |
+| <img src="https://cdn.simpleicons.org/linux/FCC624" width="16" height="16" /> **Linux** | AppImage · `.deb` · `.rpm` | 배포판별 패키지 또는 AppImage 직접 실행 |
 
-> macOS 빌드는 현재 Apple Developer 서명/공증이 없어 첫 실행 시 Gatekeeper 우회가 필요합니다.
-> 1인 개발자 비용 부담($99/년)으로 인해 서명은 사용자 수가 의미있게 늘면 도입할 예정입니다.
+### 패키지 매니저로 설치
 
-## 핵심 방향
+| 매니저 | 명령어 | 상태 |
+|---|---|---|
+| <img src="https://cdn.simpleicons.org/windowsterminal/4D4D4D" width="14" height="14" /> **winget** | `winget install jeiel85.LocalPDFStudio` | 매니페스트 작성 완료, microsoft/winget-pkgs PR 예정 |
+| <img src="https://cdn.simpleicons.org/chocolatey/80B5E3" width="14" height="14" /> **Chocolatey** | `choco install localpdf-studio` | 패키지 작성 완료, community 큐 제출 예정 |
+| <img src="https://cdn.simpleicons.org/snapcraft/82BEA0" width="14" height="14" /> **Snap** | `sudo snap install localpdf-studio` | snapcraft.yaml 준비, 등록 예정 |
+| <img src="https://cdn.simpleicons.org/archlinux/1793D1" width="14" height="14" /> **AUR** | `yay -S localpdf-studio-bin` | PKGBUILD 준비, 등록 예정 |
+| <img src="https://cdn.simpleicons.org/homebrew/FBB040" width="14" height="14" /> **Homebrew** | `brew tap jeiel85/tap && brew install --cask localpdf-studio` | Cask 작성 완료, personal tap 우선 |
 
-- 로컬 우선: PDF 내용은 외부 서버로 전송하지 않습니다.
-- Cross-platform: Windows (NSIS/MSI/Portable + 우클릭 메뉴 + 자동 업데이트), macOS (Universal DMG), Linux (AppImage/.deb/.rpm).
-- 빠른 데스크톱 UI: Tauri 2, React 19, TypeScript, Rust로 앱 크기와 응답성을 관리합니다.
-- 완성된 PDF 작업: 보기, 탐색, 병합, 분할, OCR, 변환, 암호화 기능을 갖추고 있습니다.
-- 다국어: 한국어/영어/일본어 UI (i18n 적용 중).
-- 배포 자동화: GitHub Actions 3-OS 매트릭스, Tauri updater 기반 릴리즈 흐름이 구축되어 있습니다.
+> macOS 빌드는 현재 Apple Developer 서명/공증이 없습니다 ($99/년 비용 부담). 첫 실행 시 Gatekeeper 우회가 필요합니다 — 절차는 [INSTALL.md#macOS](INSTALL.md#macos) 참고. 사용자가 의미 있게 늘면 서명 도입 검토 예정.
 
-## 현재 구현 범위
+---
 
-### PDF 뷰어
-- PDF.js 기반 고성능 렌더링 (단일 페이지 / 연속 스크롤 레이아웃)
-- 페이지 맞춤 모드 3종 (너비/페이지/실제 크기)
-- 확대/축소, 회전, 텍스트 선택 및 복사
-- 대용량 PDF(250MB+) 스트리밍 로드 (`pdf-local://` 커스텀 프로토콜, Range 요청)
-- 렌더 큐 최적화 (스크롤 중 렌더 일시 정지, 뷰포트 가상화)
-- 페이지 썸네일 사이드바, 문서 목차/아웃라인 탐색
-- 전문 텍스트 검색 (디바운스 400ms)
-- 최근 문서 목록 (최대 개수 설정 가능)
-- 다중 문서 탭 (동시 열기, Ctrl+Tab 전환, Ctrl+W 닫기)
-- 키보드 단축키 (Ctrl+O/F/B/1~6, Alt+←→, F1 도움말)
+## ✨ 핵심 방향
 
-### PDF 작업 엔진 (qpdf 기반)
-- PDF 병합 (드래그로 순서 변경, 입력 검증, 덮어쓰기 방지)
-- PDF 분할 (페이지 단위 개별 파일)
-- 페이지 추출 (범위 지정: 1-5, 1,3,5-7)
-- 페이지 회전 저장 (90°/180°/270°)
-- 암호 설정/해제 (256-bit AES, 사용자/소유자 암호 분리)
-- PDF 압축 (linearize + object stream 최적화)
-- 메타데이터 읽기 (JSON 출력)
-- 작업 큐 상태 관리 인프라
+- **로컬 우선** — PDF 내용은 외부 서버로 전송하지 않습니다.
+- **Cross-platform** — Windows / macOS / Linux 단일 코드베이스 (Tauri 2 + React).
+- **빠른 데스크톱 UI** — ~15MB 설치 크기, 메인 JS 번들 117KB.
+- **완성된 PDF 워크플로** — 뷰어부터 OCR · 폼 채우기 · 분할 비교까지 한 앱에서.
+- **다국어** — 한국어 · 영어 · 일본어 (브라우저 언어 자동 감지).
+- **배포 자동화** — GitHub Actions 3-OS 매트릭스, Tauri updater 서명 자동 업데이트.
 
-### OCR / 변환 / 고급 기능
-- Tesseract OCR (언어 선택, DPI 설정)
-- PDF → 이미지 변환 (PNG/JPEG/WebP)
-- PDF → TXT 변환 (텍스트 추출)
-- 이미지 → PDF 변환 (pdf-lib)
-- 워터마크/스탬프 적용 (qpdf overlay/underlay)
-- 문서 비교 (텍스트 diff, TXT 출력)
+---
 
-### 앱 설정 (17개 옵션)
-- 뷰어: 초기 줌, 배율, 휠 동작, 회전 단위, 렌더 품질, 레이아웃, 맞춤 모드
-- 외부 도구: qpdf/tesseract 경로 수동 지정
-- 출력: 기본 폴더, 작업 완료 후 폴더 열기
-- 개인정보: 최근 파일 기록, 최대 개수, 임시 파일 정리
-- OCR: 기본 언어, 성능: 스트리밍 임계값
-- 업데이트: 시작 시 자동 확인, UI: 사이드바 접기, 세션 복원
+## 🚀 기능 (v0.10.0)
 
-### v0.3.0 뷰어 보강
-- 사이드바 접기/열기 (Ctrl+B, localStorage 영속화)
-- 키보드 단축키 도움말 다이얼로그 (F1)
-- 파일 드래그앤드롭 (Tauri webview 이벤트)
-- 탭/뷰 상태 영속화 (tab_state.json, 세션 복원)
-- 텍스트 선택/복사 (pdf.js TextLayer 오버레이)
+### 📖 PDF 뷰어
+- PDF.js 기반 고성능 렌더링 — 단일 페이지 / 연속 스크롤
+- 페이지 맞춤 3종 (너비 / 페이지 / 실제 크기) + 확대 · 회전 · 텍스트 선택
+- 대용량 PDF (250MB+) 스트리밍 로드 (`pdf-local://` 커스텀 프로토콜 + HTTP Range)
+- 렌더 큐로 메인 스레드 보호, 가시 영역 외 페이지 자동 메모리 해제
+- 페이지 썸네일 / 목차 / 전문 검색 (캔버스 하이라이트) / 최근 문서
+- 다중 문서 탭 + 세션 복원 (페이지/배율/회전/레이아웃 모두 복원)
+- 파일 드래그앤드롭 · Windows 우클릭 메뉴
 
-### 배포
-- NSIS 설치 파일, MSI, Portable ZIP
-- Windows 우클릭 메뉴 통합 (열기/병합/분할/압축/OCR/메타데이터)
-- Tauri updater 자동 업데이트 (서명 검증)
-- GitHub Actions CI/CD (typecheck + build + cargo check)
-- GitHub Release 산출물 자동 업로드
+### 🛠️ PDF 작업 엔진 (qpdf 기반)
+- 병합 / 분할 (페이지 단위 개별 파일)
+- 페이지 추출 (범위 지정: `1-5, 7, 10-12`)
+- 페이지 회전 — 전체/범위 또는 페이지 편집기에서 인라인 회전
+- 페이지 재정렬 / 삭제 / 다른 PDF 삽입 (드래그앤드롭 편집기)
+- 암호 설정/해제 (256-bit AES, `--password-file`로 CLI 노출 방지)
+- 압축 / PDF 정규화 (linearize + object stream)
+- 메타데이터 읽기 + **편집** (Title/Author/Subject/Keywords)
 
-## 기술 스택
+### 🔍 OCR / 변환 / 고급 기능
+- **Tesseract OCR** — 언어 선택, DPI 설정, 텍스트 추출
+- **검색 가능 PDF 생성** — 스캔 PDF를 텍스트 레이어 합성된 PDF로 변환
+- **이미지 OCR** — PNG / JPG / WEBP / BMP / TIFF에서 텍스트 추출
+- PDF → 이미지 (PNG / JPEG / WebP), PDF → TXT, 이미지 → PDF
+- 워터마크 / 스탬프 (qpdf overlay/underlay)
+- 페이지별 하이라이트 (색상 띠)
+- **분할 뷰 비교** — 두 PDF 좌/우 동시 표시 + 페이지별 텍스트 차이 분석
+- **PDF 폼 채우기** — AcroForm 텍스트/체크/드롭다운/라디오 필드 편집
+- **책갈피** — PDF별 로컬 저장 (원본 미수정)
+
+### ⚙️ 외부 도구 자동 설치
+- qpdf, Tesseract를 앱에서 자동 다운로드/설치
+- **SHA-256 무결성 검증** 통과해야만 실행 (네트워크 변조 차단)
+- Tesseract 설치는 UAC 권한 승격 안내
+
+### 🎨 UI / UX
+- 다크 / 라이트 / 시스템 테마 자동 연동
+- 한국어 / 영어 / 일본어 (`react useLocale` 훅으로 즉시 전환)
+- 키보드 단축키 25+ (`Ctrl+O/F/B/G/L/P/+/-/0`, `Home/End`, `Alt+←→`, `F1`)
+- 설정 패널 20+ 옵션 (자동 저장)
+- 인쇄 다이얼로그 (전체/현재/지정 페이지)
+
+### 🔒 보안
+- **CSP 활성화** — `default-src 'self'`, `object-src 'none'`
+- 모든 PDF 명령 진입 경로 검증 (시스템 디렉터리 출력 차단)
+- PDF.js `isEvalSupported: false` — 악성 PDF 임베디드 JS 차단
+- JSON 파일 atomic write (recent_files / tab_state / settings)
+- `pdf-local://` 프로토콜 CORS 화이트리스트
+- 자동 설치 SHA-256 검증, 임시 비밀번호 파일 UUID v4 + `0o600`
+
+### 📦 배포
+- NSIS / MSI(ko-KR/en-US) / Portable ZIP — Windows
+- Universal DMG / .app — macOS (Apple Silicon + Intel)
+- AppImage / .deb / .rpm — Linux
+- **Tauri updater** 서명 검증 자동 업데이트
+- GitHub Actions 3-OS 매트릭스 빌드
+
+---
+
+## 🧰 기술 스택
+
+<p>
+  <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black">
+  <img alt="TypeScript 5" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
+  <img alt="Rust stable" src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white">
+  <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white">
+  <img alt="PDF.js 5" src="https://img.shields.io/badge/pdf.js-5-D81B60">
+  <img alt="pdf-lib" src="https://img.shields.io/badge/pdf--lib-1.17-F7DF1E?logo=javascript&logoColor=black">
+</p>
 
 ```text
-Desktop Shell: Tauri 2
-Frontend:    React 19 + TypeScript + Vite 7
-Backend:     Rust (edition 2021)
-PDF Viewer:  PDF.js (pdfjs-dist v5)
-PDF Engine:  qpdf CLI wrapper
-OCR:         Tesseract CLI wrapper
-Image/PDF:   pdf-lib (JS), Canvas API
-Installer:   Tauri NSIS / MSI
-Updater:     Tauri updater plugin (minisign)
-Test:        Vitest, Rust #[test]
-CI/CD:       GitHub Actions
-OS:          Windows 10/11 x64
+Desktop Shell : Tauri 2
+Frontend      : React 19 + TypeScript 5 + Vite 7
+Backend       : Rust (edition 2021) — chrono, sha2, uuid, base64, which
+PDF Viewer    : PDF.js (pdfjs-dist v5) + TextLayer
+PDF Engine    : qpdf CLI wrapper (--password-file 안전 모드)
+OCR           : Tesseract CLI wrapper (searchable PDF / 이미지 OCR)
+Image/PDF     : pdf-lib (JS), Canvas API
+Bundler       : Tauri NSIS / MSI / DMG / AppImage / deb / rpm
+Updater       : Tauri updater plugin (minisign)
+Test          : Vitest (39 tests), Rust #[test] (37 tests)
+CI/CD         : GitHub Actions 3-OS matrix
 ```
 
-## 빠른 시작
+---
+
+## 🏃 빠른 시작 (개발)
 
 ### 요구 사항
 
-- Node.js LTS
-- Rust stable
-- Windows 10/11 개발 환경
-- Microsoft Edge WebView2 Runtime
-- MSI 빌드가 필요하면 WiX Toolset v3
+- **Node.js LTS** (22+)
+- **Rust stable**
+- **OS별 추가 의존성**
+  - Windows: Microsoft Edge WebView2 Runtime, (선택) WiX Toolset v3 for MSI
+  - macOS: Xcode Command Line Tools
+  - Linux: `libwebkit2gtk-4.1-dev libgtk-3-0-dev libayatana-appindicator3-dev librsvg2-dev patchelf`
 
-### 설치
+### 설치 & 실행
 
 ```bash
 npm install
-```
-
-### 개발 실행
-
-```bash
-npm run tauri:dev
+npm run tauri:dev      # 개발 모드
 ```
 
 ### 정적 검사 / 빌드
 
 ```bash
-npm run typecheck
-npm run build
-npm run tauri:build
+npm run typecheck      # TypeScript 타입 체크
+npm run test           # Vitest 단위 테스트
+npm run build          # 프론트엔드 빌드
+npm run tauri:build    # 데스크톱 앱 빌드 (현재 OS)
 ```
 
-## Windows 우클릭 메뉴 설치
-
-개발 중에는 PowerShell을 관리자 권한 없이 `HKCU`에 등록합니다.
+### Windows 우클릭 메뉴 (개발 시)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/windows/install-context-menu.ps1 `
   -ExePath "$PWD\src-tauri\target\release\localpdf-studio.exe"
-```
-
-해제:
-
-```powershell
+# 해제
 powershell -ExecutionPolicy Bypass -File scripts/windows/uninstall-context-menu.ps1
 ```
 
-## 저장소 구조
+---
+
+## 📂 저장소 구조
 
 ```text
-src/                         React UI
-src-tauri/                   Rust/Tauri backend
-scripts/windows/             Windows context menu scripts
-docs/                        제품/기술/배포 설계 문서와 Pages 랜딩
-prompts/                     바이브 코딩 프롬프트
-.github/workflows/           CI / release workflow
+src/                         React UI (components, lib, i18n, App, types)
+src-tauri/                   Rust/Tauri backend (commands, qpdf, ocr, watermark, ...)
+scripts/windows/             Windows 우클릭 메뉴 + Portable ZIP 생성 스크립트
+docs/                        제품/기술/배포 설계 문서 + GitHub Pages 랜딩
+packaging/                   패키지 매니저 매니페스트
+  ├── winget/                  Windows winget
+  ├── chocolatey/              Windows Chocolatey
+  ├── homebrew/                macOS Homebrew Cask
+  ├── snap/                    Linux Snap
+  └── aur/                     Linux AUR
+e2e/                         Playwright + Tauri WebDriver (스캐폴드)
+.github/workflows/           CI / release workflow (3-OS matrix)
 ```
 
-## 릴리즈 정책
+---
+
+## 📋 릴리즈 정책
 
 - 버전 형식: SemVer `vX.Y.Z`
-- 산출물: `setup.exe`, `.msi`, portable `.zip`, updater signature, `latest.json`
-- 태그 푸시 기준 릴리즈 자동화
-- 업데이트 파일은 Tauri updater 서명 검증을 전제로 함
+- 산출물:
+  - **Windows**: `setup.exe` + `.sig`, `.msi` (ko/en), portable `.zip`, `latest.json`
+  - **macOS**: Universal `.dmg`, `.app`
+  - **Linux**: `.AppImage`, `.deb`, `.rpm`
+- 태그 푸시(`v*.*.*`) 기준 [GitHub Actions](https://github.com/jeiel85/localpdf-studio/actions) 3-OS 매트릭스 자동 빌드
+- Tauri updater 서명 검증을 전제로 한 자동 업데이트
 
-## 라이선스
+---
 
-기본 앱 코드는 Apache-2.0으로 시작합니다. 외부 바이너리와 라이브러리는 배포 전에 `docs/05_SECURITY_PRIVACY_LICENSE.md` 기준으로 재검토해야 합니다.
+## 📜 라이선스
+
+[Apache-2.0](LICENSE).
+
+외부 바이너리 (qpdf, Tesseract) 및 라이브러리는 [docs/05_SECURITY_PRIVACY_LICENSE.md](docs/05_SECURITY_PRIVACY_LICENSE.md) 기준으로 라이선스 호환성을 검토합니다.
+
+---
+
+<p align="center">
+  <a href="https://github.com/jeiel85/localpdf-studio/releases/latest"><b>최신 다운로드 →</b></a>
+  ·
+  <a href="https://jeiel85.github.io/localpdf-studio/">랜딩</a>
+  ·
+  <a href="https://github.com/jeiel85/localpdf-studio/issues">이슈</a>
+  ·
+  <a href="CHANGELOG.md">변경 이력</a>
+</p>
