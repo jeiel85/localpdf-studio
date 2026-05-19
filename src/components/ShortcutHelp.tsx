@@ -1,6 +1,7 @@
 export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const shortcuts: { key: string; action: string }[] = [
     { key: 'Ctrl+O', action: 'PDF 열기' },
+    { key: 'Ctrl+P', action: '인쇄' },
     { key: 'Ctrl+W', action: '현재 탭 닫기' },
     { key: 'Ctrl+Tab', action: '다음 탭으로 전환' },
     { key: 'Ctrl+Shift+Tab', action: '이전 탭으로 전환' },

@@ -397,8 +397,8 @@ export function SettingsPanel({ onStatus }: { onStatus: (message: string) => voi
             onChange={(e) => patchUi('theme', e.target.value as ThemeMode)}
           >
             <option value="dark">다크</option>
-            <option value="light">라이트 (향후 지원)</option>
-            <option value="system">시스템 (향후 지원)</option>
+            <option value="light">라이트</option>
+            <option value="system">시스템 테마 따라가기</option>
           </select>
         </label>
         <label className="settings-row settings-row-inline">

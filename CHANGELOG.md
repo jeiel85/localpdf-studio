@@ -1,5 +1,30 @@
 # CHANGELOG.md
 
+## v0.7.0 - 2026-05-19
+
+### Added
+
+- **라이트 테마**: CSS 변수 기반 테마 시스템 도입. `:root[data-theme="dark"]` / `:root[data-theme="light"]`로 다크/라이트 전환 지원. 설정 > UI > 테마에서 변경 가능
+- **시스템 테마 연동**: `system` 테마 모드 선택 시 OS의 `prefers-color-scheme` 미디어 쿼리를 실시간 반영
+- **인쇄 기능 (Ctrl+P)**: PDF 문서 전체를 고해상도(2x)로 렌더링하여 인쇄. 진행률 표시. 팝업 창 기반 인쇄 흐름
+- **`@media print` 스타일**: 브라우저 인쇄 시 사이드바/툴바/상태바를 자동으로 숨기고 PDF 페이지만 출력
+
+### Changed
+
+- `styles.css`: 30개 이상의 CSS 커스텀 프로퍼티로 색상 체계 전면 변수화
+- `SettingsPanel.tsx`: 테마 선택 옵션에서 "(향후 지원)" 문구 제거, 라이트/시스템 테마 정식 지원
+- `ShortcutHelp.tsx`: Ctrl+P 단축키 항목 추가
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm run build`: 통과 (CSS 25 kB, JS 1.14 MB)
+- `npm test`: 39/39 통과 (7개 파일)
+- `cargo check`: 통과
+- `cargo test`: 37/37 통과
+
+---
+
 ## v0.6.0 - 2026-05-19
 
 ### Added

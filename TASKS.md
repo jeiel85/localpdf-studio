@@ -76,6 +76,11 @@
 - [x] 관리자 승격 흐름 (Start-Process -Verb RunAs, 승격 거부 안내)
 - [x] ToolsPanel 자동 설치 UI (자동 설치/관리자 권한 설치 버튼 + 수동 다운로드)
 
+## v0.7.0 - UX 완성도
+
+- [x] 라이트 테마 구현 (CSS 변수화, `data-theme` 전환, 시스템 테마 연동)
+- [x] 인쇄 기능 (Ctrl+P, 고해상도 전체 페이지 렌더링, 진행률 표시)
+
 ## v0.6.0 - PDF 페이지 편집
 
 - [x] 페이지 재정렬 (썸네일 드래그앤드롭, `reorder_pages` command)

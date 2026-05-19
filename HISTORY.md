@@ -1,5 +1,29 @@
 # HISTORY.md
 
+## 2026-05-19 (v0.7.0 - UX 완성도)
+
+- 작업: 라이트 테마, 시스템 테마 연동, 인쇄 기능 구현
+- 변경 파일:
+  - `src/styles.css` - CSS 커스텀 프로퍼티 전면 도입 (30+ 변수), `:root[data-theme="dark/light"]` 테마 계층, `@media print` 스타일 추가
+  - `src/App.tsx` - `settings.ui.theme` 연동 `data-theme` 속성 제어, `system` 모드 `prefers-color-scheme` 실시간 반영, Ctrl+P 단축키 및 `printActivePdf` 함수 추가
+  - `src/lib/printPdf.ts` - 신규 모듈: 팝업 창 기반 고해상도(2x) 전체 페이지 렌더링 인쇄
+  - `src/components/SettingsPanel.tsx` - 라이트/시스템 테마 "(향후 지원)" 문구 제거
+  - `src/components/ShortcutHelp.tsx` - Ctrl+P 단축키 항목 추가
+  - `package.json` / `Cargo.toml` / `tauri.conf.json` - 버전 0.7.0
+  - `CHANGELOG.md` - v0.7.0 섹션 추가
+  - `TASKS.md` - v0.7.0 작업 완료 표시
+
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm run build` 통과 (CSS 25 kB, JS 1.14 MB)
+  - `npm test` 통과 (39/39)
+  - `cargo check` 통과
+  - `cargo test` 통과 (37/37)
+
+- 결과:
+  - 다크/라이트/시스템 3종 테마 지원
+  - Ctrl+P로 PDF 전체 페이지 인쇄
+
 ## 2026-05-19 (v0.6.0 - PDF 페이지 편집)
 
 - 작업: PDF 페이지 편집 기능 구현 완료
