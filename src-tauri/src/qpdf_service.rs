@@ -499,6 +499,213 @@ pub fn read_metadata(input_file: &Path, qpdf_tool: &QpdfTool) -> Result<String, 
     Ok(json)
 }
 
+pub fn reorder_pages(
+    input_file: &Path,
+    output_path: &Path,
+    page_order: &[u32],
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    validate_pdf_files(&[input_file.to_path_buf()])?;
+    check_output_overwrite(output_path)?;
+
+    if page_order.is_empty() {
+        return Err(QpdfError::InvalidInput(
+            "페이지 순서 목록이 비어 있습니다.".to_string(),
+        ));
+    }
+
+    let specification = pages_to_qpdf_spec(page_order);
+
+    let mut cmd = Command::new(&qpdf_tool.path);
+    cmd.arg("--empty")
+        .arg("--pages")
+        .arg(input_file)
+        .arg(&specification)
+        .arg("--")
+        .arg(output_path);
+
+    let output = cmd.output().map_err(|e| {
+        QpdfError::ExecutionFailed(format!("qpdf 페이지 재정렬 실행 중 오류: {e}"))
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 페이지 재정렬 실패: {stderr}"
+        )));
+    }
+
+    if !output_path.exists() {
+        return Err(QpdfError::ExecutionFailed(
+            "qpdf가 실행되었으나 출력 파일이 생성되지 않았습니다.".to_string(),
+        ));
+    }
+
+    Ok(output_path.to_path_buf())
+}
+
+pub fn delete_pages(
+    input_file: &Path,
+    output_path: &Path,
+    pages_to_delete: &[u32],
+    total_pages: u32,
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    validate_pdf_files(&[input_file.to_path_buf()])?;
+    check_output_overwrite(output_path)?;
+
+    if pages_to_delete.is_empty() {
+        return Err(QpdfError::InvalidInput(
+            "삭제할 페이지를 선택하세요.".to_string(),
+        ));
+    }
+
+    if total_pages == 0 {
+        return Err(QpdfError::InvalidInput(
+            "전체 페이지 수를 알 수 없습니다.".to_string(),
+        ));
+    }
+
+    let keep_pages = compute_page_complement(pages_to_delete, total_pages);
+    if keep_pages.is_empty() {
+        return Err(QpdfError::InvalidInput(
+            "모든 페이지를 삭제할 수 없습니다. 최소 1페이지는 남겨야 합니다.".to_string(),
+        ));
+    }
+
+    let specification = pages_to_qpdf_spec(&keep_pages);
+
+    let mut cmd = Command::new(&qpdf_tool.path);
+    cmd.arg("--empty")
+        .arg("--pages")
+        .arg(input_file)
+        .arg(&specification)
+        .arg("--")
+        .arg(output_path);
+
+    let output = cmd.output().map_err(|e| {
+        QpdfError::ExecutionFailed(format!("qpdf 페이지 삭제 실행 중 오류: {e}"))
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 페이지 삭제 실패: {stderr}"
+        )));
+    }
+
+    if !output_path.exists() {
+        return Err(QpdfError::ExecutionFailed(
+            "qpdf가 실행되었으나 출력 파일이 생성되지 않았습니다.".to_string(),
+        ));
+    }
+
+    Ok(output_path.to_path_buf())
+}
+
+pub fn insert_pages(
+    base_file: &Path,
+    insert_file: &Path,
+    output_path: &Path,
+    after_page: u32,
+    base_total_pages: u32,
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    validate_pdf_files(&[base_file.to_path_buf(), insert_file.to_path_buf()])?;
+    check_output_overwrite(output_path)?;
+
+    if after_page > base_total_pages {
+        return Err(QpdfError::InvalidInput(format!(
+            "삽입 위치({after_page})가 전체 페이지 수({base_total_pages})보다 큽니다."
+        )));
+    }
+
+    let mut cmd = Command::new(&qpdf_tool.path);
+    cmd.arg("--empty").arg("--pages");
+
+    if after_page == 0 {
+        cmd.arg(insert_file).arg("1-z");
+        cmd.arg(base_file).arg("1-z");
+    } else if after_page >= base_total_pages {
+        cmd.arg(base_file).arg("1-z");
+        cmd.arg(insert_file).arg("1-z");
+    } else {
+        cmd.arg(base_file).arg(format!("1-{after_page}"));
+        cmd.arg(insert_file).arg("1-z");
+        cmd.arg(base_file).arg(format!("{}-z", after_page + 1));
+    }
+
+    cmd.arg("--").arg(output_path);
+
+    let output = cmd.output().map_err(|e| {
+        QpdfError::ExecutionFailed(format!("qpdf 페이지 삽입 실행 중 오류: {e}"))
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 페이지 삽입 실패: {stderr}"
+        )));
+    }
+
+    if !output_path.exists() {
+        return Err(QpdfError::ExecutionFailed(
+            "qpdf가 실행되었으나 출력 파일이 생성되지 않았습니다.".to_string(),
+        ));
+    }
+
+    Ok(output_path.to_path_buf())
+}
+
+fn pages_to_qpdf_spec(pages: &[u32]) -> String {
+    if pages.is_empty() {
+        return String::new();
+    }
+
+    let mut sorted = pages.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+
+    let mut parts: Vec<String> = Vec::new();
+    let mut range_start = sorted[0];
+    let mut range_end = sorted[0];
+
+    for &page in &sorted[1..] {
+        if page == range_end + 1 {
+            range_end = page;
+        } else {
+            parts.push(if range_start == range_end {
+                range_start.to_string()
+            } else {
+                format!("{range_start}-{range_end}")
+            });
+            range_start = page;
+            range_end = page;
+        }
+    }
+    parts.push(if range_start == range_end {
+        range_start.to_string()
+    } else {
+        format!("{range_start}-{range_end}")
+    });
+
+    parts.join(",")
+}
+
+fn compute_page_complement(delete: &[u32], total: u32) -> Vec<u32> {
+    let mut delete_sorted = delete.to_vec();
+    delete_sorted.sort_unstable();
+    delete_sorted.dedup();
+
+    let mut result = Vec::new();
+    for page in 1..=total {
+        if delete_sorted.binary_search(&page).is_err() {
+            result.push(page);
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -593,5 +800,126 @@ mod tests {
         // If qpdf is installed, this returns Ok; otherwise NotFound. Either is fine.
         let _ = find_qpdf_with(Some(""));
         let _ = find_qpdf_with(Some("   "));
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_single_page() {
+        assert_eq!(pages_to_qpdf_spec(&[1]), "1");
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_individual() {
+        assert_eq!(pages_to_qpdf_spec(&[1, 3, 5]), "1,3,5");
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_range() {
+        assert_eq!(pages_to_qpdf_spec(&[1, 2, 3, 4, 5]), "1-5");
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_mixed() {
+        assert_eq!(pages_to_qpdf_spec(&[1, 2, 4, 5, 7]), "1-2,4-5,7");
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_sorts_unsorted_input() {
+        assert_eq!(pages_to_qpdf_spec(&[5, 1, 3, 2, 4]), "1-5");
+    }
+
+    #[test]
+    fn pages_to_qpdf_spec_empty() {
+        assert_eq!(pages_to_qpdf_spec(&[]), "");
+    }
+
+    #[test]
+    fn compute_complement_empty_delete() {
+        assert_eq!(compute_page_complement(&[], 5), vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn compute_complement_delete_middle() {
+        assert_eq!(compute_page_complement(&[3], 5), vec![1, 2, 4, 5]);
+    }
+
+    #[test]
+    fn compute_complement_delete_edges() {
+        assert_eq!(compute_page_complement(&[1, 5], 5), vec![2, 3, 4]);
+    }
+
+    #[test]
+    fn compute_complement_delete_all() {
+        assert!(compute_page_complement(&[1, 2, 3], 3).is_empty());
+    }
+
+    #[test]
+    fn compute_complement_handles_duplicates() {
+        assert_eq!(compute_page_complement(&[2, 2, 3], 5), vec![1, 4, 5]);
+    }
+
+    #[test]
+    fn reorder_pages_empty_order_rejected() {
+        let dir = temp_dir("reorder_empty");
+        let input = dir.join("in.pdf");
+        let output = dir.join("out.pdf");
+        write_pdf_like(&input, b"%PDF-1.4\n%fake\n");
+
+        let tool = QpdfTool {
+            path: PathBuf::from("qpdf"),
+            version: "test".to_string(),
+        };
+        let result = reorder_pages(&input, &output, &[], &tool);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn delete_pages_empty_list_rejected() {
+        let dir = temp_dir("delete_empty");
+        let input = dir.join("in.pdf");
+        let output = dir.join("out.pdf");
+        write_pdf_like(&input, b"%PDF-1.4\n%fake\n");
+
+        let tool = QpdfTool {
+            path: PathBuf::from("qpdf"),
+            version: "test".to_string(),
+        };
+        let result = delete_pages(&input, &output, &[], 10, &tool);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn delete_pages_all_rejected() {
+        let dir = temp_dir("delete_all");
+        let input = dir.join("in.pdf");
+        let output = dir.join("out.pdf");
+        write_pdf_like(&input, b"%PDF-1.4\n%fake\n");
+
+        let tool = QpdfTool {
+            path: PathBuf::from("qpdf"),
+            version: "test".to_string(),
+        };
+        let result = delete_pages(&input, &output, &[1, 2, 3], 3, &tool);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn insert_pages_beyond_total_rejected() {
+        let dir = temp_dir("insert_beyond");
+        let base = dir.join("base.pdf");
+        let insert = dir.join("insert.pdf");
+        let output = dir.join("out.pdf");
+        write_pdf_like(&base, b"%PDF-1.4\n%fake\n");
+        write_pdf_like(&insert, b"%PDF-1.4\n%fake\n");
+
+        let tool = QpdfTool {
+            path: PathBuf::from("qpdf"),
+            version: "test".to_string(),
+        };
+        let result = insert_pages(&base, &insert, &output, 10, 5, &tool);
+        assert!(matches!(result, Err(QpdfError::InvalidInput(_))));
+        fs::remove_dir_all(&dir).ok();
     }
 }

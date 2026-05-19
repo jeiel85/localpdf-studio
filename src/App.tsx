@@ -8,6 +8,7 @@ import { AdvancedPanel } from './components/AdvancedPanel';
 import { AppShell } from './components/AppShell';
 import { MergePanel } from './components/MergePanel';
 import { OutlinePanel } from './components/OutlinePanel';
+import { PageEditorPanel } from './components/PageEditorPanel';
 import { PdfCanvas } from './components/PdfCanvas';
 import { RecentFilesPanel } from './components/RecentFilesPanel';
 import { SearchPanel } from './components/SearchPanel';
@@ -540,6 +541,19 @@ export default function App() {
             <AdvancedPanel
               document={activeDocument}
               file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'editor':
+        return (
+          <div className="sidebar-inner">
+            <h2>페이지 편집</h2>
+            <PageEditorPanel
+              document={activeDocument}
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              pageCount={activeDocTab?.viewer.pageCount ?? 0}
+              onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
               onStatus={setStatus}
             />
           </div>

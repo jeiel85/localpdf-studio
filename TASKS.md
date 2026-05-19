@@ -78,9 +78,9 @@
 
 ## v0.6.0 - PDF 페이지 편집
 
-- [ ] 페이지 재정렬 (썸네일 드래그앤드롭, `reorder_pages` command)
-- [ ] 페이지 삭제 (선택 페이지 제거, `delete_pages` command)
-- [ ] 페이지 삽입 (다른 PDF에서 페이지 가져오기, `insert_pages` command)
-- [ ] PageEditorPanel 컴포넌트 (썸네일 기반 편집 UI)
-- [ ] 사이드바 편집 모드 연동
-- [ ] 단위 테스트 (qpdf_service 페이지 편집 함수)
+- [x] 페이지 재정렬 (썸네일 드래그앤드롭, `reorder_pages` command)
+- [x] 페이지 삭제 (선택 페이지 제거, `delete_pages` command)
+- [x] 페이지 삽입 (다른 PDF에서 페이지 가져오기, `insert_pages` command)
+- [x] PageEditorPanel 컴포넌트 (썸네일 기반 편집 UI)
+- [x] 사이드바 편집 모드 연동
+- [x] 단위 테스트 (qpdf_service 페이지 편집 함수 15개 신규)

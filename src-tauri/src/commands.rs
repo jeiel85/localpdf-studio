@@ -746,6 +746,55 @@ pub fn check_elevation() -> bool {
     installer_service::is_elevated()
 }
 
+#[tauri::command]
+pub fn reorder_pages(
+    input_file: String,
+    output_path: String,
+    page_order: Vec<u32>,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
+    let input = PathBuf::from(&input_file);
+    let output = PathBuf::from(&output_path);
+    qpdf_service::reorder_pages(&input, &output, &page_order, &tool)
+        .map(|p| format!("페이지 재정렬 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_pages(
+    input_file: String,
+    output_path: String,
+    pages_to_delete: Vec<u32>,
+    total_pages: u32,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
+    let input = PathBuf::from(&input_file);
+    let output = PathBuf::from(&output_path);
+    qpdf_service::delete_pages(&input, &output, &pages_to_delete, total_pages, &tool)
+        .map(|p| format!("페이지 삭제 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn insert_pages(
+    base_file: String,
+    insert_file: String,
+    output_path: String,
+    after_page: u32,
+    base_total_pages: u32,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
+    let base = PathBuf::from(&base_file);
+    let insert = PathBuf::from(&insert_file);
+    let output = PathBuf::from(&output_path);
+    qpdf_service::insert_pages(&base, &insert, &output, after_page, base_total_pages, &tool)
+        .map(|p| format!("페이지 삽입 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
 fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {
     let pdf_path = PathBuf::from(path);
     let canonical = pdf_path

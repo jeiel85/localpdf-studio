@@ -1,14 +1,24 @@
 # CHANGELOG.md
 
-## v0.6.0 - (작업 중)
+## v0.6.0 - 2026-05-19
 
 ### Added
 
 - **PDF 페이지 편집**: 썸네일 드래그앤드롭으로 페이지 재정렬, 삭제, 다른 PDF에서 페이지 삽입
   - `reorder_pages` command: qpdf `--pages` 옵션으로 페이지 순서 변경
-  - `delete_pages` command: 선택한 페이지 제거
-  - `insert_pages` command: 다른 PDF에서 페이지 삽입
-  - `PageEditorPanel` 컴포넌트: 썸네일 그리드 기반 편집 UI
+  - `delete_pages` command: 선택한 페이지 제거 (전체 페이지 수에서 complement 계산)
+  - `insert_pages` command: 다른 PDF에서 페이지 삽입 (지정 위치 앞/뒤/중간)
+  - `PageEditorPanel` 컴포넌트: 썸네일 그리드 기반 편집 UI, 드래그앤드롭 재정렬, 선택 삭제, PDF 삽입, 순서 초기화
+  - `pages_to_qpdf_spec` / `compute_page_complement` 헬퍼 함수 (페이지 목록 → qpdf 범위 사양 변환)
+- 사이드바에 "편집" 탭 추가
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm run build`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `cargo check`: 통과
+- `cargo test`: 37/37 통과 (qpdf_service 신규 15개 테스트 포함)
 
 ---
 

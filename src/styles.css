@@ -961,3 +961,131 @@ button.primary { border-color: #5b8cff; background: #24427a; }
 .form-input select {
   width: 100%;
 }
+
+/* --- Page Editor Panel --- */
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.editor-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid #32405d;
+  background: #151d31;
+  color: #edf2ff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.editor-btn:hover:not(:disabled) {
+  background: #1d2946;
+}
+
+.editor-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.editor-btn.primary {
+  border-color: #5b8cff;
+  background: #24427a;
+}
+
+.editor-btn.primary:hover:not(:disabled) {
+  background: #2a4d8c;
+}
+
+.editor-btn.danger {
+  border-color: #e0556a;
+  background: #3d1f28;
+}
+
+.editor-btn.danger:hover:not(:disabled) {
+  background: #4d2732;
+}
+
+.editor-btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: #7a8eb8;
+}
+
+.editor-btn.ghost:hover:not(:disabled) {
+  background: #1a2338;
+  color: #edf2ff;
+}
+
+.editor-hint {
+  color: #6a7a9e;
+  font-size: 11px;
+  margin: 0 0 10px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.editor-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border: 2px solid #273450;
+  border-radius: 8px;
+  background: #0d1324;
+  cursor: grab;
+  overflow: hidden;
+}
+
+.editor-page.selected {
+  border-color: #5b8cff;
+  background: #141e3a;
+}
+
+.editor-page.dragging {
+  opacity: 0.4;
+}
+
+.editor-page:active {
+  cursor: grabbing;
+}
+
+.editor-page img {
+  width: 100%;
+  display: block;
+  background: #fff;
+}
+
+.editor-page-num {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #151d31;
+  border: 1px solid #32405d;
+  border-radius: 0 6px 0 6px;
+  color: #9aa9c7;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  z-index: 2;
+}
+
+.editor-page.selected .editor-page-num {
+  background: #24427a;
+  border-color: #5b8cff;
+  color: #edf2ff;
+}
+
+.editor-page-placeholder {
+  width: 100%;
+  aspect-ratio: 0.707;
+  background: #141e30;
+}

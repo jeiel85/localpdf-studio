@@ -1,13 +1,35 @@
 # HISTORY.md
 
-## 2026-05-19 (v0.6.0 시작 - PDF 페이지 편집)
+## 2026-05-19 (v0.6.0 - PDF 페이지 편집)
 
-- 작업: PDF 페이지 편집 기능 구현 (재정렬, 삭제, 삽입)
-- 계획:
-  - qpdf `--pages` 옵션 기반 reorder_pages, delete_pages, insert_pages Rust command
-  - PageEditorPanel: 썸네일 그리드 + 드래그앤드롭 재정렬 UI
-  - 페이지 편집 모드에서 기존 사이드바 썸네일 재활용
-  - qpdf_service.rs에 페이지 편집 함수 추가 및 단위 테스트
+- 작업: PDF 페이지 편집 기능 구현 완료
+- 변경 파일:
+  - `src-tauri/src/qpdf_service.rs` - reorder_pages, delete_pages, insert_pages, pages_to_qpdf_spec, compute_page_complement 함수 및 단위 테스트 15개 추가
+  - `src-tauri/src/commands.rs` - reorder_pages, delete_pages, insert_pages Tauri command 추가
+  - `src-tauri/src/lib.rs` - 신규 command 3개 등록
+  - `src/lib/tauriCommands.ts` - reorderPages, deletePages, insertPages TypeScript 래퍼 추가
+  - `src/components/PageEditorPanel.tsx` - 신규 컴포넌트: 썸네일 그리드, 드래그앤드롭 재정렬, 페이지 선택(Ctrl+클릭 다중 선택), 선택 삭제, PDF 삽입, 순서 초기화
+  - `src/components/Sidebar.tsx` - "편집" 탭 추가
+  - `src/types.ts` - SidebarTab에 'editor' 추가
+  - `src/App.tsx` - PageEditorPanel import 및 renderSidebarContent case 추가
+  - `src/styles.css` - .editor-toolbar, .editor-btn, .editor-grid, .editor-page 등 스타일 추가
+  - `package.json` / `Cargo.toml` / `tauri.conf.json` - 버전 0.6.0
+  - `CHANGELOG.md` - v0.6.0 섹션 추가
+  - `TASKS.md` - v0.6.0 작업 완료 표시
+
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm run build` 통과
+  - `npm test` 통과 (39/39)
+  - `cargo check` 통과
+  - `cargo test` 통과 (37/37, 신규 15개)
+
+- 결과:
+  - qpdf --pages 기반 재정렬/삭제/삽입 기능
+  - 드래그앤드롭으로 썸네일 순서 변경
+  - 페이지 선택 및 삭제 (전체 페이지 complement 계산)
+  - 다른 PDF에서 페이지 삽입 (위치 지정)
+  - 재정렬, 삭제, 삽입 시 파일 저장 대화상자로 출력 경로 지정
 
 ## 2026-05-19 (v0.5.0 - 외부 도구 자동 설치)
 

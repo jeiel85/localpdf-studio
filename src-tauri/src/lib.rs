@@ -81,6 +81,9 @@ pub fn run() {
             commands::install_qpdf_auto,
             commands::install_tesseract_auto,
             commands::check_elevation,
+            commands::reorder_pages,
+            commands::delete_pages,
+            commands::insert_pages,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run LocalPDF Studio");

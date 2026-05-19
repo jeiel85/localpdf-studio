@@ -96,3 +96,15 @@ export async function installTesseractAuto(): Promise<string> {
 export async function checkElevation(): Promise<boolean> {
   return invoke<boolean>('check_elevation');
 }
+
+export async function reorderPages(inputFile: string, outputPath: string, pageOrder: number[]): Promise<string> {
+  return invoke<string>('reorder_pages', { inputFile, outputPath, pageOrder });
+}
+
+export async function deletePages(inputFile: string, outputPath: string, pagesToDelete: number[], totalPages: number): Promise<string> {
+  return invoke<string>('delete_pages', { inputFile, outputPath, pagesToDelete, totalPages });
+}
+
+export async function insertPages(baseFile: string, insertFile: string, outputPath: string, afterPage: number, baseTotalPages: number): Promise<string> {
+  return invoke<string>('insert_pages', { baseFile, insertFile, outputPath, afterPage, baseTotalPages });
+}
