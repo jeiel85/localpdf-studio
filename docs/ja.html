@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LocalPDF Studio | ローカルファーストのデスクトップPDFスタジオ</title>
+    <meta
+      name="description"
+      content="LocalPDF Studio はアカウント、広告、クラウドアップロードなしでPDFを閲覧・編集・変換するデスクトップアプリです。Windows / macOS / Linux に対応。"
+    />
+    <meta name="theme-color" content="#07111f" />
+    <meta property="og:title" content="LocalPDF Studio" />
+    <meta
+      property="og:description"
+      content="ローカルファーストのデスクトップPDFアプリ。Windows、macOS、Linux 対応。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="img/landing.png" />
+    <link rel="icon" href="img/app-icon.png" />
+    <link rel="alternate" hreflang="ko" href="index.html" />
+    <link rel="alternate" hreflang="en" href="en.html" />
+    <link rel="alternate" hreflang="x-default" href="index.html" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        --ink: #07111f;
+        --panel: #0d1a2b;
+        --text: #f7fbff;
+        --muted: #b8c6d8;
+        --cyan: #26d8f2;
+        --blue: #3178ff;
+        --amber: #ffb23f;
+        --line: rgba(255, 255, 255, 0.16);
+        font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--ink); color: var(--text); }
+      a { color: inherit; text-decoration: none; }
+      .wrap { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
+      .hero {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        background:
+          linear-gradient(90deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.48) 48%, rgba(7, 17, 31, 0.1)),
+          url("img/landing.png") center / cover no-repeat;
+      }
+      .nav {
+        padding: 24px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+      .brand img { width: 32px; height: 32px; }
+      .nav-links { display: flex; gap: 18px; align-items: center; }
+      .nav-links a { color: var(--muted); }
+      .nav-links a:hover { color: var(--text); }
+      .hero-inner {
+        padding: 80px 0 60px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      h1 { font-size: clamp(40px, 6vw, 72px); margin: 12px 0 16px; line-height: 1.05; }
+      .lead { font-size: 18px; color: var(--muted); max-width: 640px; line-height: 1.7; }
+      .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+      .button {
+        padding: 13px 22px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 1px solid transparent;
+        transition: 0.15s;
+      }
+      .button.primary { background: var(--blue); color: white; }
+      .button.primary:hover { background: #2862e0; }
+      .button.secondary { border-color: var(--line); color: var(--text); }
+      .button.secondary:hover { background: rgba(255,255,255,0.05); }
+      .section { padding: 80px 0; border-top: 1px solid var(--line); }
+      h2 { font-size: clamp(28px, 4vw, 40px); margin: 0 0 16px; }
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        margin-top: 32px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .card b { display: block; margin-bottom: 8px; color: var(--cyan); }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+      .download-table {
+        width: 100%;
+        margin-top: 24px;
+        border-collapse: collapse;
+        background: var(--panel);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .download-table th, .download-table td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+      .download-table th { background: rgba(255,255,255,0.04); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .download-table tr:last-child td { border-bottom: none; }
+      .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(255,178,63,0.18); color: var(--amber); margin-left: 8px; }
+      .footer { padding: 40px 0; color: var(--muted); font-size: 13px; text-align: center; border-top: 1px solid var(--line); }
+      .footer a { color: var(--cyan); }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav wrap">
+        <a class="brand" href="./">
+          <img src="img/app-icon.png" alt="" />
+          <span>LocalPDF Studio</span>
+        </a>
+        <div class="nav-links">
+          <a href="#features">機能</a>
+          <a href="#download">ダウンロード</a>
+          <a href="https://github.com/jeiel85/localpdf-studio">GitHub</a>
+          <span style="opacity:0.4">|</span>
+          <a href="index.html">KO</a>
+          <a href="en.html">EN</a>
+          <a href="ja.html" style="font-weight:700">JA</a>
+        </div>
+      </nav>
+
+      <div class="hero-inner wrap">
+        <span class="eyebrow">クロスプラットフォーム · ローカルファースト</span>
+        <h1>LocalPDF Studio</h1>
+        <p class="lead">
+          ユーザーの PC 内だけで PDF を扱うデスクトップアプリ。
+          アカウント・広告・クラウドアップロードは一切ありません。
+          閲覧、検索、結合、分割、OCR、変換、暗号化までローカルで完結します。
+          Windows / macOS / Linux に対応。
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/jeiel85/localpdf-studio/releases/latest">最新版をダウンロード</a>
+          <a class="button secondary" href="https://github.com/jeiel85/localpdf-studio">GitHub で見る</a>
+        </div>
+      </div>
+    </header>
+
+    <section id="features" class="section">
+      <div class="wrap">
+        <h2>本格的な PDF 作業のために</h2>
+        <p style="color: var(--muted); max-width: 720px; line-height: 1.7;">
+          LocalPDF Studio は高性能 PDF ビューアと包括的なローカル PDF ツールを統合しました。
+          すべての操作はお使いのデバイス上で実行されます。
+        </p>
+        <div class="grid">
+          <article class="card">
+            <b>高速 PDF ビューア</b>
+            <p>PDF.js による描画。連続スクロール、フィットモード、ズーム / 回転、テキスト選択、スクロールジャンクを避けるレンダーキュー。</p>
+          </article>
+          <article class="card">
+            <b>大容量 PDF のストリーミング</b>
+            <p>250MB 超の文書はカスタムプロトコル + HTTP Range で逐次読み込み。base64 膨張を回避しメモリを抑えます。</p>
+          </article>
+          <article class="card">
+            <b>マルチタブ・セッション復元</b>
+            <p>複数の PDF を同時に開け、再起動時にはタブ・ページ・倍率・回転・レイアウトを自動復元。</p>
+          </article>
+          <article class="card">
+            <b>結合 / 分割 / 抽出 / 回転</b>
+            <p>qpdf ベース。ドラッグ並び替え、ページ範囲記法、256-bit AES 暗号化、linearize + object stream 圧縮。</p>
+          </article>
+          <article class="card">
+            <b>Tesseract OCR</b>
+            <p>SHA-256 検証付きのワンクリック自動インストール。PDF.js レンダリング + Tesseract の PDF 出力で検索可能 PDF を生成。</p>
+          </article>
+          <article class="card">
+            <b>ページエディタ</b>
+            <p>ドラッグで並び替え、削除、別 PDF からの挿入、ページ単位の回転。約 1 秒ごとに編集状態を自動保存。</p>
+          </article>
+          <article class="card">
+            <b>メタデータ・フォーム・しおり</b>
+            <p>タイトル / 著者 / 件名 / キーワードを編集。AcroForm フィールドの入力。ファイルごとのしおりをローカル保存。</p>
+          </article>
+          <article class="card">
+            <b>左右並べて比較</b>
+            <p>2 つの PDF を分割表示。ページごとのテキスト差分解析で差異のあるページに素早く移動。</p>
+          </article>
+          <article class="card">
+            <b>透かし・ハイライト</b>
+            <p>別 PDF を透かし / スタンプとして重ね合わせ。ページ単位の色バンドを簡易ハイライトとして追加。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" class="section">
+      <div class="wrap">
+        <h2>ダウンロード</h2>
+        <p style="color: var(--muted); max-width: 720px; line-height: 1.7;">
+          お使いのプラットフォーム向けのファイルをお選びください。
+          <a href="https://github.com/jeiel85/localpdf-studio/releases/latest" style="color: var(--cyan);">GitHub の最新リリース</a> から直接ダウンロードできます。
+        </p>
+        <table class="download-table">
+          <thead>
+            <tr><th>プラットフォーム</th><th>形式</th><th>インストール</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Windows 10+</b></td>
+              <td>NSIS .exe / MSI / Portable ZIP</td>
+              <td>インストーラを実行するか <code>winget install jeiel85.LocalPDFStudio</code></td>
+            </tr>
+            <tr>
+              <td><b>macOS 10.15+</b><span class="badge">未署名</span></td>
+              <td>Universal DMG (Apple Silicon + Intel)</td>
+              <td>DMG をマウントし Applications にドラッグ。初回起動は右クリック→開く</td>
+            </tr>
+            <tr>
+              <td><b>Linux</b></td>
+              <td>AppImage / .deb / .rpm</td>
+              <td><code>sudo apt install ./*.deb</code> · <code>chmod +x *.AppImage</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="color: var(--muted); font-size: 13px; margin-top: 16px; line-height: 1.7;">
+          macOS ビルドは Apple Developer の年額 $99 のコストが発生するため、現状は未署名です。
+          Gatekeeper 回避手順は
+          <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">インストールガイド</a>
+          をご覧ください。
+        </p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        © 2026 Aiden Park. Apache-2.0 ライセンス。
+        <a href="https://github.com/jeiel85/localpdf-studio">ソース</a> ·
+        <a href="https://github.com/jeiel85/localpdf-studio/issues">Issues</a> ·
+        <a href="index.html">한국어</a> ·
+        <a href="en.html">English</a>
+      </p>
+    </footer>
+  </body>
+</html>

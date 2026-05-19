@@ -1,5 +1,65 @@
 # CHANGELOG.md
 
+## v0.10.0 - 2026-05-20
+
+크로스플랫폼 배포 라운드. Mac/Linux 빌드 + 패키지 매니저 5종 + 다국어 랜딩.
+
+### Added — Cross-platform 배포
+
+- **macOS 빌드 (Universal: Apple Silicon + Intel)**: tauri.conf.json `targets`에 `dmg`/`app` 추가. release.yml에 macos-latest 러너 + `--target universal-apple-darwin` 매트릭스. 무서명 (Apple Developer $99/년 비용 부담으로 보류). INSTALL.md에 Gatekeeper 우회 절차 명시
+- **Linux 빌드 (AppImage / .deb / .rpm)**: tauri.conf.json `targets`에 `deb`/`rpm`/`appimage` 추가. release.yml에 ubuntu-22.04 매트릭스 + libwebkit2gtk-4.1 등 시스템 의존성 설치
+- **CI 3-OS 매트릭스**: release.yml을 `release-windows` 단일 job → `build` strategy.matrix 3종으로 재작성. 각 플랫폼 산출물 자동 게시
+- **macOS minimumSystemVersion 10.15 (Catalina)**: 안전한 하한선 설정
+
+### Added — 패키지 매니저 매니페스트 5종
+
+`packaging/` 디렉터리에 첫 제출 가능한 형태로 작성. SHA-256은 v0.10.0 릴리즈 게시 후 채워 PR 제출.
+
+- **[winget](packaging/winget/)** (Windows): `jeiel85.LocalPDFStudio` 4종 매니페스트 (version/installer/locale.en/locale.ko). `winget install jeiel85.LocalPDFStudio`
+- **[Chocolatey](packaging/chocolatey/)** (Windows): nuspec + `chocolateyInstall.ps1` / `chocolateyUninstall.ps1`. `choco install localpdf-studio`
+- **[Homebrew Cask](packaging/homebrew/)** (macOS): Personal tap 우선, 공증 후 공식 cask 제출 가이드. `brew tap jeiel85/tap && brew install --cask localpdf-studio`
+- **[Snap](packaging/snap/)** (Linux): `snapcraft.yaml` core22 + gnome extension. `sudo snap install localpdf-studio`
+- **[AUR](packaging/aur/)** (Arch/Manjaro): `localpdf-studio-bin` PKGBUILD (.deb 언패킹). `yay -S localpdf-studio-bin`
+
+각 디렉터리에 제출 절차 + 자동화 GitHub Actions 스니펫 포함.
+
+### Added — 다국어
+
+- **i18n 영어/일본어 사전 대폭 확장**: Toolbar/TabBar/Sidebar/PrintDialog/공통 표현. `useLocale()` 훅으로 언어 변경 즉시 반영 (구독 패턴)
+- **브라우저 언어 자동 감지**: `navigator.language` 기준으로 초기 언어 결정 (`localStorage` 우선)
+- **랜딩 페이지 다국어**: `docs/en.html` (영어), `docs/ja.html` (일본어). hreflang 메타 + 언어 스위처. 한국어 페이지에도 KO/EN/JA 스위처 추가
+
+### Added — 문서
+
+- **[INSTALL.md](INSTALL.md)**: 플랫폼별 설치 가이드. macOS Gatekeeper 우회 (Finder 우클릭 / `xattr` 두 가지), Linux 의존성, qpdf/Tesseract 수동 설치 명령어, 다운로드 무결성 검증
+- **README** 갱신: "Windows 우선" → "Cross-platform" 재정의. 다운로드 표(플랫폼/산출물/설치) 추가. macOS 무서명 안내 명시
+
+### Changed
+
+- `tauri.conf.json` `bundle.targets`: `["nsis", "msi"]` → `["nsis", "msi", "deb", "rpm", "appimage", "dmg", "app"]`
+- `bundle.icon`에 `icons/icon.png` 추가 (macOS/Linux 빌드용, 128x128@2x.png를 복사)
+- `bundle.linux.deb.depends` 명시: `libwebkit2gtk-4.1-0`, `libgtk-3-0`
+- `bundle.macOS.minimumSystemVersion`: 10.15
+- release.yml `releaseBody`에 플랫폼별 다운로드 안내 추가
+
+### Verification
+
+- `cargo check`: 통과
+- `cargo test`: 37/37 통과
+- `npm run typecheck`: 통과
+- `npm test`: 39/39 통과
+- `npm run build`: 통과
+
+### Known limitations
+
+- **macOS 서명/공증**: Apple Developer Program $99/년 비용으로 미적용. 사용자 첫 실행 시 Gatekeeper 우회 필요 (INSTALL.md 안내). 사용자가 의미 있게 늘면 도입 검토
+- **Windows EV 코드 서명**: 연 $300+ 비용으로 미적용. SmartScreen 경고 한 단계 우회 필요. Microsoft Store 등재($19 1회)가 더 가성비 좋아 차후 옵션
+- **패키지 매니저 SHA-256**: v0.10.0 GitHub Release 게시 후 실제 해시로 교체 필요 (각 README 절차 참고)
+- **첫 제출 검수 기간**: winget 1~3일, Chocolatey 2~3주, Snap Store 수 분, AUR 즉시, Homebrew Cask (tap) 즉시
+- **다국어 적용 진행률**: Toolbar/Sidebar/TabBar/PrintDialog 적용. AdvancedPanel/ToolsPanel/MetadataPanel 등은 차기 라운드
+
+---
+
 ## v0.9.0 - 2026-05-19
 
 대규모 기능 확장 라운드. 25개 항목(A1~A6 / B1~B6 / C1~C9 / E1~E5)을 일괄 처리.

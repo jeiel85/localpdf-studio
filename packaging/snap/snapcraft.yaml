@@ -1,0 +1,62 @@
+name: localpdf-studio
+title: LocalPDF Studio
+version: 0.10.0
+summary: Local-first desktop PDF viewer and utility suite
+description: |
+  LocalPDF Studio is a local-first desktop PDF viewer and utility suite built with Tauri.
+
+  Features:
+  - View / search / outline / thumbnails
+  - Merge / split / encrypt / compress
+  - OCR via Tesseract + Searchable PDF generation
+  - Page editor (reorder / delete / rotate / insert)
+  - Metadata editing, form filling, bookmarks, side-by-side compare
+  - Watermark / stamp
+
+  All processing is performed locally — no cloud uploads.
+
+base: core22
+grade: stable
+confinement: strict
+license: Apache-2.0
+website: https://github.com/jeiel85/localpdf-studio
+source-code: https://github.com/jeiel85/localpdf-studio
+issues: https://github.com/jeiel85/localpdf-studio/issues
+contact: https://github.com/jeiel85/localpdf-studio/issues
+
+architectures:
+  - build-on: amd64
+
+apps:
+  localpdf-studio:
+    command: usr/bin/localpdf-studio
+    desktop: usr/share/applications/localpdf-studio.desktop
+    extensions:
+      - gnome
+    plugs:
+      - home
+      - removable-media
+      - network
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - audio-playback
+    environment:
+      DISABLE_WAYLAND: 1
+
+parts:
+  localpdf-studio:
+    plugin: dump
+    # GitHub Release의 .deb를 직접 unpacking (snap 빌드 시간 단축)
+    source: https://github.com/jeiel85/localpdf-studio/releases/download/v0.10.0/localpdf-studio_0.10.0_amd64.deb
+    source-type: deb
+    build-packages:
+      - dpkg
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libgtk-3-0
+      - libayatana-appindicator3-1
+      - librsvg2-2
+      - libsoup-3.0-0

@@ -1,0 +1,40 @@
+# Maintainer: Aiden Park <jeiel85@gmail.com>
+
+pkgname=localpdf-studio-bin
+_pkgname=localpdf-studio
+pkgver=0.10.0
+pkgrel=1
+pkgdesc="Local-first desktop PDF viewer and utility suite (Tauri 2 + React)"
+arch=('x86_64')
+url="https://github.com/jeiel85/localpdf-studio"
+license=('Apache-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+optdepends=(
+  'qpdf: PDF manipulation (auto-installed if missing)'
+  'tesseract: OCR support (auto-installed if missing)'
+  'tesseract-data-kor: Korean OCR'
+  'tesseract-data-eng: English OCR'
+)
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+
+source_x86_64=("$_pkgname-$pkgver-x86_64.deb::https://github.com/jeiel85/localpdf-studio/releases/download/v$pkgver/${_pkgname}_${pkgver}_amd64.deb")
+
+# NOTE: PR 제출 전 release 게시 후 실제 SHA256으로 교체.
+#   updpkgsums  (pacman-contrib 패키지 필요)
+sha256sums_x86_64=('REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE_ASSET')
+
+package() {
+  cd "$srcdir"
+  bsdtar -O -xf "$_pkgname-$pkgver-x86_64.deb" data.tar.gz | bsdtar -C "$pkgdir" -xJf -
+  # 또는 ar 사용 가능:
+  # ar x "$_pkgname-$pkgver-x86_64.deb"
+  # tar -C "$pkgdir" -xf data.tar.gz
+
+  # ELF 권한 정리
+  find "$pkgdir" -type f -name "*.so*" -exec chmod 644 {} \;
+
+  # 라이센스
+  install -Dm644 "$pkgdir/usr/share/doc/$_pkgname/copyright" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+}

@@ -2,17 +2,34 @@
 
 ![LocalPDF Studio landing preview](docs/img/landing.png)
 
-LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF를 열고 정리하고 변환하는 Windows 우선 데스크톱 PDF 앱입니다. 파일은 사용자의 PC 안에서 처리하는 것을 기본 원칙으로 하며, Tauri 기반의 가벼운 데스크톱 경험과 Rust 기반 로컬 PDF 작업 계층을 함께 가져갑니다.
+LocalPDF Studio는 광고, 계정, 클라우드 업로드 없이 PDF를 열고 정리하고 변환하는 데스크톱 PDF 앱입니다. 파일은 사용자의 PC 안에서 처리하는 것을 기본 원칙으로 하며, Tauri 기반의 가벼운 데스크톱 경험과 Rust 기반 로컬 PDF 작업 계층을 함께 가져갑니다.
+
+**Windows / macOS (Apple Silicon + Intel) / Linux (AppImage / .deb / .rpm)** 모두 지원합니다.
+설치 가이드는 [INSTALL.md](INSTALL.md)를 참고하세요.
 
 [GitHub Pages 랜딩 페이지](https://jeiel85.github.io/localpdf-studio/)에서 제품 소개 화면을 볼 수 있습니다.
+
+## 다운로드
+
+[최신 릴리즈](https://github.com/jeiel85/localpdf-studio/releases/latest)에서 OS별 산출물을 받을 수 있습니다.
+
+| 플랫폼 | 산출물 | 설치 |
+|---|---|---|
+| Windows | NSIS .exe / MSI / Portable ZIP | 더블 클릭 또는 `winget install jeiel85.LocalPDFStudio` |
+| macOS Universal (M1/Intel) | `.dmg` ⚠️ 무서명 | DMG 마운트 후 Applications 드래그. 첫 실행 시 우클릭→열기 (자세한 절차 [INSTALL.md](INSTALL.md#macos)) |
+| Linux | AppImage / .deb / .rpm | 배포판별 패키지 또는 AppImage 직접 실행 |
+
+> macOS 빌드는 현재 Apple Developer 서명/공증이 없어 첫 실행 시 Gatekeeper 우회가 필요합니다.
+> 1인 개발자 비용 부담($99/년)으로 인해 서명은 사용자 수가 의미있게 늘면 도입할 예정입니다.
 
 ## 핵심 방향
 
 - 로컬 우선: PDF 내용은 외부 서버로 전송하지 않습니다.
-- Windows 우선: 설치 파일, MSI, Portable ZIP, 우클릭 메뉴, 자동 업데이트를 지원합니다.
+- Cross-platform: Windows (NSIS/MSI/Portable + 우클릭 메뉴 + 자동 업데이트), macOS (Universal DMG), Linux (AppImage/.deb/.rpm).
 - 빠른 데스크톱 UI: Tauri 2, React 19, TypeScript, Rust로 앱 크기와 응답성을 관리합니다.
 - 완성된 PDF 작업: 보기, 탐색, 병합, 분할, OCR, 변환, 암호화 기능을 갖추고 있습니다.
-- 배포 자동화: GitHub Actions와 Tauri updater 기반 릴리즈 흐름이 구축되어 있습니다.
+- 다국어: 한국어/영어/일본어 UI (i18n 적용 중).
+- 배포 자동화: GitHub Actions 3-OS 매트릭스, Tauri updater 기반 릴리즈 흐름이 구축되어 있습니다.
 
 ## 현재 구현 범위
 

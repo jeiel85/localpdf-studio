@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LocalPDF Studio | Local-first desktop PDF studio</title>
+    <meta
+      name="description"
+      content="LocalPDF Studio is a local-first desktop PDF viewer and utility suite. View, search, merge, split, OCR, encrypt — all processed on your PC. Windows, macOS, Linux."
+    />
+    <meta name="theme-color" content="#07111f" />
+    <meta property="og:title" content="LocalPDF Studio" />
+    <meta
+      property="og:description"
+      content="Local-first desktop PDF studio for Windows, macOS, and Linux. No accounts, no ads, no cloud."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="img/landing.png" />
+    <link rel="icon" href="img/app-icon.png" />
+    <link rel="alternate" hreflang="ko" href="index.html" />
+    <link rel="alternate" hreflang="ja" href="ja.html" />
+    <link rel="alternate" hreflang="x-default" href="index.html" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        --ink: #07111f;
+        --panel: #0d1a2b;
+        --text: #f7fbff;
+        --muted: #b8c6d8;
+        --cyan: #26d8f2;
+        --blue: #3178ff;
+        --amber: #ffb23f;
+        --line: rgba(255, 255, 255, 0.16);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--ink); color: var(--text); }
+      a { color: inherit; text-decoration: none; }
+      .wrap { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
+      .hero {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        background:
+          linear-gradient(90deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.48) 48%, rgba(7, 17, 31, 0.1)),
+          url("img/landing.png") center / cover no-repeat;
+      }
+      .nav {
+        padding: 24px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+      .brand img { width: 32px; height: 32px; }
+      .nav-links { display: flex; gap: 18px; align-items: center; }
+      .nav-links a { color: var(--muted); }
+      .nav-links a:hover { color: var(--text); }
+      .hero-inner {
+        padding: 80px 0 60px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      h1 { font-size: clamp(40px, 6vw, 72px); margin: 12px 0 16px; line-height: 1.05; }
+      .lead { font-size: 18px; color: var(--muted); max-width: 640px; line-height: 1.55; }
+      .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+      .button {
+        padding: 13px 22px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 1px solid transparent;
+        transition: 0.15s;
+      }
+      .button.primary { background: var(--blue); color: white; }
+      .button.primary:hover { background: #2862e0; }
+      .button.secondary { border-color: var(--line); color: var(--text); }
+      .button.secondary:hover { background: rgba(255,255,255,0.05); }
+      .section { padding: 80px 0; border-top: 1px solid var(--line); }
+      h2 { font-size: clamp(28px, 4vw, 40px); margin: 0 0 16px; }
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        margin-top: 32px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .card b { display: block; margin-bottom: 8px; color: var(--cyan); }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+      .download-table {
+        width: 100%;
+        margin-top: 24px;
+        border-collapse: collapse;
+        background: var(--panel);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .download-table th, .download-table td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+      .download-table th { background: rgba(255,255,255,0.04); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .download-table tr:last-child td { border-bottom: none; }
+      .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(255,178,63,0.18); color: var(--amber); margin-left: 8px; }
+      .footer { padding: 40px 0; color: var(--muted); font-size: 13px; text-align: center; border-top: 1px solid var(--line); }
+      .footer a { color: var(--cyan); }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav wrap">
+        <a class="brand" href="./">
+          <img src="img/app-icon.png" alt="" />
+          <span>LocalPDF Studio</span>
+        </a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#download">Download</a>
+          <a href="https://github.com/jeiel85/localpdf-studio">GitHub</a>
+          <span style="opacity:0.4">|</span>
+          <a href="index.html">KO</a>
+          <a href="en.html" style="font-weight:700">EN</a>
+          <a href="ja.html">JA</a>
+        </div>
+      </nav>
+
+      <div class="hero-inner wrap">
+        <span class="eyebrow">Cross-platform · Local-first</span>
+        <h1>LocalPDF Studio</h1>
+        <p class="lead">
+          A desktop PDF studio that runs entirely on your machine.
+          No accounts, no ads, no cloud uploads — view, search, merge, split, OCR,
+          and convert PDFs with the privacy guarantees of local computing.
+          Available for Windows, macOS, and Linux.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/jeiel85/localpdf-studio/releases/latest">Download latest</a>
+          <a class="button secondary" href="https://github.com/jeiel85/localpdf-studio">View on GitHub</a>
+        </div>
+      </div>
+    </header>
+
+    <section id="features" class="section">
+      <div class="wrap">
+        <h2>Built for serious PDF work</h2>
+        <p style="color: var(--muted); max-width: 720px;">
+          LocalPDF Studio combines a high-performance PDF viewer with a complete
+          local PDF toolkit. Every operation happens on your device.
+        </p>
+        <div class="grid">
+          <article class="card">
+            <b>Fast PDF viewer</b>
+            <p>PDF.js rendering with continuous scroll, fit modes, zoom/rotate, text selection, and a render queue tuned to avoid scroll jank.</p>
+          </article>
+          <article class="card">
+            <b>Large PDF streaming</b>
+            <p>Documents over 250 MB stream via a custom protocol with HTTP Range requests, avoiding base64 inflation and keeping memory low.</p>
+          </article>
+          <article class="card">
+            <b>Multi-document tabs &amp; session restore</b>
+            <p>Open many PDFs side by side; on restart, your tabs, page, scale, rotation, and layout are restored.</p>
+          </article>
+          <article class="card">
+            <b>Merge / split / extract / rotate</b>
+            <p>qpdf-powered operations. Drag-reorder, page-range syntax, 256-bit AES encryption, linearize + object stream compression.</p>
+          </article>
+          <article class="card">
+            <b>OCR via Tesseract</b>
+            <p>One-click auto-install with SHA-256 integrity verification. Generate searchable PDFs by combining PDF.js rendering and Tesseract's PDF output mode.</p>
+          </article>
+          <article class="card">
+            <b>Page editor</b>
+            <p>Drag to reorder, delete, insert pages from other PDFs, inline rotate per page. Auto-saves edit state every ~1 second to recover from crashes.</p>
+          </article>
+          <article class="card">
+            <b>Metadata, forms, bookmarks</b>
+            <p>Edit Title/Author/Subject/Keywords; fill AcroForm fields; manage per-file bookmarks stored locally.</p>
+          </article>
+          <article class="card">
+            <b>Side-by-side compare</b>
+            <p>Open two PDFs in a split view. Per-page text diff analysis highlights pages that differ for quick navigation.</p>
+          </article>
+          <article class="card">
+            <b>Watermark &amp; highlight</b>
+            <p>Overlay or stamp another PDF as a watermark. Add page-level color bands as quick visual highlights.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" class="section">
+      <div class="wrap">
+        <h2>Download</h2>
+        <p style="color: var(--muted); max-width: 720px;">
+          Pick the artifact for your platform. Direct downloads come from the
+          <a href="https://github.com/jeiel85/localpdf-studio/releases/latest" style="color: var(--cyan);">latest GitHub release</a>.
+        </p>
+        <table class="download-table">
+          <thead>
+            <tr><th>Platform</th><th>Format</th><th>Install</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Windows 10+</b></td>
+              <td>NSIS .exe / MSI / Portable ZIP</td>
+              <td>Double-click installer, or <code>winget install jeiel85.LocalPDFStudio</code></td>
+            </tr>
+            <tr>
+              <td><b>macOS 10.15+</b><span class="badge">Unsigned</span></td>
+              <td>Universal DMG (Apple Silicon + Intel)</td>
+              <td>Mount DMG, drag to Applications, right-click → Open on first launch</td>
+            </tr>
+            <tr>
+              <td><b>Linux</b></td>
+              <td>AppImage / .deb / .rpm</td>
+              <td><code>sudo apt install ./*.deb</code> · <code>chmod +x *.AppImage</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="color: var(--muted); font-size: 13px; margin-top: 16px;">
+          macOS builds are unsigned because Apple Developer notarization costs $99/year.
+          See the
+          <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">install guide</a>
+          for Gatekeeper bypass instructions.
+        </p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        © 2026 Aiden Park. Licensed under Apache-2.0.
+        <a href="https://github.com/jeiel85/localpdf-studio">Source</a> ·
+        <a href="https://github.com/jeiel85/localpdf-studio/issues">Issues</a> ·
+        <a href="index.html">한국어</a> ·
+        <a href="ja.html">日本語</a>
+      </p>
+    </footer>
+  </body>
+</html>

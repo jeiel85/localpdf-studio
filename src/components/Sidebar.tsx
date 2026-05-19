@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { t } from '../i18n/messages';
+import { t, useLocale } from '../i18n/messages';
 import type { SidebarTab } from '../types';
 
 export function Sidebar({
@@ -11,6 +11,7 @@ export function Sidebar({
   onTabChange: (tab: SidebarTab) => void;
   children: ReactNode;
 }) {
+  useLocale();
   const tabs: { key: SidebarTab; labelKey: string }[] = [
     { key: 'document', labelKey: 'sidebar.document' },
     { key: 'thumbnails', labelKey: 'sidebar.thumbnails' },

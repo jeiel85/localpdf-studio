@@ -1,4 +1,5 @@
 import type { DocTab } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
 export function TabBar({
   tabs,
@@ -13,12 +14,13 @@ export function TabBar({
   onClose: (tabId: string) => void;
   onOpen: () => void;
 }) {
+  useLocale();
   if (tabs.length === 0) {
     return (
       <div className="tab-bar empty">
-        <span className="tab-empty-text">열린 문서 없음</span>
+        <span className="tab-empty-text">{t('tab.noOpen')}</span>
         <button type="button" className="tab-new-btn" onClick={onOpen}>
-          + PDF 열기
+          {t('tab.new')}
         </button>
       </div>
     );

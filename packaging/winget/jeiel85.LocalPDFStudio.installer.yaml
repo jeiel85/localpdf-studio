@@ -1,0 +1,22 @@
+PackageIdentifier: jeiel85.LocalPDFStudio
+PackageVersion: 0.10.0
+InstallerLocale: en-US
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+UpgradeBehavior: install
+ReleaseDate: 2026-05-20
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/jeiel85/localpdf-studio/releases/download/v0.10.0/LocalPDF.Studio_0.10.0_x64-setup.exe
+    # NOTE: 실제 PR 시 SHA256은 GitHub release 게시 후 다음 명령으로 계산하여 교체
+    #   (Get-FileHash .\LocalPDF.Studio_0.10.0_x64-setup.exe -Algorithm SHA256).Hash
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE_ASSET
+    InstallerSwitches:
+      Silent: /S
+      SilentWithProgress: /S
+ManifestType: installer
+ManifestVersion: 1.6.0

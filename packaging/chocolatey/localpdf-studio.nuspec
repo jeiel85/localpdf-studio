@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>localpdf-studio</id>
+    <version>0.10.0</version>
+    <packageSourceUrl>https://github.com/jeiel85/localpdf-studio/tree/master/packaging/chocolatey</packageSourceUrl>
+    <owners>jeiel85</owners>
+    <title>LocalPDF Studio</title>
+    <authors>Aiden Park</authors>
+    <projectUrl>https://github.com/jeiel85/localpdf-studio</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/jeiel85/localpdf-studio/master/src-tauri/icons/128x128%402x.png</iconUrl>
+    <copyright>Copyright © 2026 Aiden Park</copyright>
+    <licenseUrl>https://github.com/jeiel85/localpdf-studio/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/jeiel85/localpdf-studio</projectSourceUrl>
+    <docsUrl>https://github.com/jeiel85/localpdf-studio#readme</docsUrl>
+    <bugTrackerUrl>https://github.com/jeiel85/localpdf-studio/issues</bugTrackerUrl>
+    <tags>pdf viewer editor ocr tauri local-first merge split encryption admin</tags>
+    <summary>Local-first desktop PDF studio (viewer, editor, OCR).</summary>
+    <description><![CDATA[
+LocalPDF Studio is a local-first desktop PDF viewer and utility suite built with Tauri 2 + React.
+
+**Features**:
+- View / search / outline / thumbnails
+- Merge / split / encrypt / compress
+- OCR via Tesseract (auto-installed) + Searchable PDF generation
+- Page editor (reorder / delete / rotate / insert)
+- Metadata editing, form filling, bookmarks, side-by-side compare
+- Watermark / stamp
+- Auto-update via Tauri updater (signed)
+
+All processing is performed locally — no cloud uploads.
+
+**External tools** (auto-installed via in-app installer):
+- qpdf (for PDF manipulation)
+- Tesseract OCR (for searchable PDF / text extraction)
+]]></description>
+    <releaseNotes>https://github.com/jeiel85/localpdf-studio/releases/tag/v0.10.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

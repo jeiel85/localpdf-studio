@@ -9,8 +9,22 @@ permissions:
   contents: write
 
 jobs:
-  release-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+            rust-targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+            rust-targets: ''
+          - platform: 'windows-latest'
+            args: ''
+            rust-targets: ''
+
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout
@@ -22,8 +36,22 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Setup Rust
+      - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Install Ubuntu system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
 
       - name: Install dependencies
         run: npm ci
@@ -36,16 +64,28 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'LocalPDF Studio ${{ github.ref_name }}'
-          releaseBody: 'See CHANGELOG.md for release notes.'
+          releaseBody: |
+            See CHANGELOG.md for release notes.
+
+            ## Downloads
+
+            - **Windows**: NSIS installer (.exe), MSI installer, Portable ZIP
+            - **macOS**: Universal DMG (Apple Silicon + Intel). ⚠️ Unsigned — see INSTALL.md
+            - **Linux**: AppImage, .deb, .rpm
+
+            Verify checksums before installing.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+          args: ${{ matrix.args }}
 
-      - name: Create portable ZIP
+      - name: Create portable ZIP (Windows)
+        if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: ./scripts/windows/create-portable-zip.ps1
 
-      - name: Upload portable ZIP to release
+      - name: Upload portable ZIP to release (Windows)
+        if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -55,13 +95,20 @@ jobs:
           fail_on_unmatched_files: false
 
       - name: Verify release assets
-        shell: pwsh
+        shell: bash
         run: |
-          Write-Host "Release assets verification:"
-          Write-Host "- setup.exe (NSIS installer)"
-          Write-Host "- setup.exe.sig (Updater signature)"
-          Write-Host "- MSI installer"
-          Write-Host "- Portable ZIP"
-          Write-Host "- latest.json (Updater manifest)"
-          Write-Host ""
-          Write-Host "Uploaded by tauri-action and action-gh-release"
+          echo "Release assets summary for ${{ matrix.platform }}:"
+          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            echo "- NSIS installer (.exe) + .sig"
+            echo "- MSI installer (ko-KR + en-US)"
+            echo "- Portable ZIP"
+            echo "- latest.json (Updater manifest)"
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            echo "- Universal DMG (aarch64 + x86_64)"
+            echo "- .app bundle"
+            echo "- Unsigned — users must override Gatekeeper (see INSTALL.md)"
+          else
+            echo "- AppImage"
+            echo "- .deb (Debian/Ubuntu)"
+            echo "- .rpm (Fedora/RHEL)"
+          fi

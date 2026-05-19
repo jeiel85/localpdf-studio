@@ -1,4 +1,5 @@
 import type { FitMode, PageLayout, ViewerState } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
 export function Toolbar({
   hasDocument,
@@ -29,49 +30,50 @@ export function Toolbar({
   onFitChange: (mode: FitMode) => void;
   onHelp: () => void;
 }) {
+  useLocale();
   return (
     <div className="toolbar-inner">
-      <button className="primary" type="button" onClick={onOpen}>PDF 열기</button>
+      <button className="primary" type="button" onClick={onOpen}>{t('toolbar.open')}</button>
       {tabCount > 0 && (
-        <span className="tab-count-badge">{tabCount}개 문서</span>
+        <span className="tab-count-badge">{t('toolbar.tabCount', { count: tabCount })}</span>
       )}
       <div className="divider" />
-      <button type="button" disabled={!hasDocument || viewer.currentPage <= 1} onClick={onPrev}>이전</button>
+      <button type="button" disabled={!hasDocument || viewer.currentPage <= 1} onClick={onPrev}>{t('toolbar.prev')}</button>
       <span className="page-indicator">{viewer.currentPage} / {Math.max(viewer.pageCount, 1)}</span>
-      <button type="button" disabled={!hasDocument || viewer.currentPage >= viewer.pageCount} onClick={onNext}>다음</button>
+      <button type="button" disabled={!hasDocument || viewer.currentPage >= viewer.pageCount} onClick={onNext}>{t('toolbar.next')}</button>
       <div className="divider" />
-      <button type="button" disabled={!hasDocument} onClick={onZoomOut}>-</button>
+      <button type="button" disabled={!hasDocument} onClick={onZoomOut} title={t('toolbar.zoomOut')}>-</button>
       <span className="page-indicator">{Math.round(viewer.scale * 100)}%</span>
-      <button type="button" disabled={!hasDocument} onClick={onZoomIn}>+</button>
-      <button type="button" disabled={!hasDocument} onClick={onRotate}>회전</button>
+      <button type="button" disabled={!hasDocument} onClick={onZoomIn} title={t('toolbar.zoomIn')}>+</button>
+      <button type="button" disabled={!hasDocument} onClick={onRotate}>{t('toolbar.rotate')}</button>
       <div className="divider" />
-      <div className="toolbar-group" role="group" aria-label="페이지 레이아웃">
+      <div className="toolbar-group" role="group" aria-label="page layout">
         <button
           type="button"
           className={`toolbar-toggle ${viewer.layout === 'single' ? 'active' : ''}`}
           disabled={!hasDocument}
           onClick={() => onLayoutChange('single')}
-          title="단일 페이지 (한 페이지씩 이동)"
+          title={t('toolbar.single')}
         >
-          단일
+          {t('toolbar.single')}
         </button>
         <button
           type="button"
           className={`toolbar-toggle ${viewer.layout === 'continuous' ? 'active' : ''}`}
           disabled={!hasDocument}
           onClick={() => onLayoutChange('continuous')}
-          title="연속 스크롤 (휠로 부드럽게 이동)"
+          title={t('toolbar.continuous')}
         >
-          연속
+          {t('toolbar.continuous')}
         </button>
       </div>
-      <div className="toolbar-group" role="group" aria-label="페이지 맞춤">
+      <div className="toolbar-group" role="group" aria-label="page fit">
         <button
           type="button"
           className={`toolbar-toggle ${viewer.fitMode === 'fit-width' ? 'active' : ''}`}
           disabled={!hasDocument}
           onClick={() => onFitChange('fit-width')}
-          title="너비에 맞춤"
+          title={t('toolbar.fitWidth')}
         >
           ↔
         </button>
@@ -80,7 +82,7 @@ export function Toolbar({
           className={`toolbar-toggle ${viewer.fitMode === 'fit-page' ? 'active' : ''}`}
           disabled={!hasDocument}
           onClick={() => onFitChange('fit-page')}
-          title="페이지에 맞춤"
+          title={t('toolbar.fitPage')}
         >
           ⤢
         </button>
@@ -89,14 +91,14 @@ export function Toolbar({
           className={`toolbar-toggle ${viewer.fitMode === 'actual' ? 'active' : ''}`}
           disabled={!hasDocument}
           onClick={() => onFitChange('actual')}
-          title="실제 크기 (100%)"
+          title={t('toolbar.actual')}
         >
           1:1
         </button>
       </div>
       <div className="spacer" />
-      <button type="button" onClick={onCheckUpdates}>업데이트 확인</button>
-      <button type="button" onClick={onHelp} title="단축키 도움말 (F1)">?</button>
+      <button type="button" onClick={onCheckUpdates}>{t('toolbar.checkUpdates')}</button>
+      <button type="button" onClick={onHelp} title={`${t('toolbar.help')} (F1)`}>?</button>
     </div>
   );
 }
