@@ -6,12 +6,17 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { UpdateNotification, type UpdateStatus } from './components/UpdateNotification';
 import { AdvancedPanel } from './components/AdvancedPanel';
 import { AppShell } from './components/AppShell';
+import { BookmarksPanel } from './components/BookmarksPanel';
+import { ComparePanel } from './components/ComparePanel';
+import { FormFillPanel } from './components/FormFillPanel';
 import { MergePanel } from './components/MergePanel';
+import { MetadataPanel } from './components/MetadataPanel';
 import { OutlinePanel } from './components/OutlinePanel';
 import { PageEditorPanel } from './components/PageEditorPanel';
 import { PdfCanvas } from './components/PdfCanvas';
 import { RecentFilesPanel } from './components/RecentFilesPanel';
 import { SearchPanel } from './components/SearchPanel';
+import { PrintDialog } from './components/PrintDialog';
 import { ShortcutHelp } from './components/ShortcutHelp';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
@@ -20,9 +25,11 @@ import { ThumbnailPanel } from './components/ThumbnailPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ToolsPanel } from './components/ToolsPanel';
 import { Toolbar } from './components/Toolbar';
+import { initLocale } from './i18n/messages';
 import { base64ToUint8Array } from './lib/base64';
 import { pdfjsLib } from './lib/pdfjs';
-import { printPdf } from './lib/printPdf';
+import { printPdf, type PrintOptions } from './lib/printPdf';
+import { setRevealEnabled } from './lib/revealOutput';
 import {
   addRecentFile,
   checkExternalTools,
@@ -45,6 +52,8 @@ const DEFAULT_VIEWER: ViewerState = {
   fitMode: 'custom',
 };
 
+initLocale();
+
 let tabCounter = 0;
 function nextTabId(): string {
   tabCounter += 1;
@@ -63,6 +72,8 @@ export default function App() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ kind: 'idle' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -76,12 +87,12 @@ export default function App() {
   const activeDocument = activeTabId ? documentsRef.current.get(activeTabId) ?? null : null;
 
   const loadPath = useCallback(
-    async (path: string) => {
+    async (path: string, restore?: Partial<ViewerState>): Promise<string | null> => {
       const existing = tabs.find((t) => t.file.path === path);
       if (existing) {
         setActiveTabId(existing.id);
         setStatus(`${existing.file.fileName} (이미 열려 있음)`);
-        return;
+        return existing.id;
       }
 
       const tabId = nextTabId();
@@ -104,6 +115,8 @@ export default function App() {
             cMapUrl: undefined,
             cMapPacked: true,
             useSystemFonts: true,
+            // @ts-expect-error isEvalSupported is supported at runtime
+            isEvalSupported: false,
           });
           loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
@@ -112,21 +125,36 @@ export default function App() {
           const loadingTask = pdfjsLib.getDocument({
             data: bytes,
             useSystemFonts: true,
+            // @ts-expect-error isEvalSupported is supported at runtime
+            isEvalSupported: false,
           });
           loadingTask.onProgress = onPdfProgress;
           pdf = await loadingTask.promise;
         }
 
+        const baseViewer: ViewerState = {
+          ...DEFAULT_VIEWER,
+          pageCount: pdf.numPages,
+          scale: settings.viewer.initialScale,
+          layout: settings.viewer.pageLayout,
+          fitMode: settings.viewer.defaultFitMode,
+        };
+
+        const viewer: ViewerState = restore
+          ? {
+              ...baseViewer,
+              currentPage: clamp(restore.currentPage ?? 1, 1, pdf.numPages),
+              scale: restore.scale ?? baseViewer.scale,
+              rotation: restore.rotation ?? 0,
+              layout: restore.layout ?? baseViewer.layout,
+              fitMode: restore.fitMode ?? baseViewer.fitMode,
+            }
+          : baseViewer;
+
         const newTab: DocTab = {
           id: tabId,
           file: payload,
-          viewer: {
-            ...DEFAULT_VIEWER,
-            pageCount: pdf.numPages,
-            scale: settings.viewer.initialScale,
-            layout: settings.viewer.pageLayout,
-            fitMode: settings.viewer.defaultFitMode,
-          },
+          viewer,
         };
 
         documentsRef.current.set(tabId, pdf);
@@ -138,8 +166,10 @@ export default function App() {
         setStatus(`${payload.fileName} 열림${mode ? ` (${mode})` : ''}`);
 
         void addRecentFile(payload.path, payload.fileName).catch(() => {});
+        return tabId;
       } catch (error) {
         setStatus((error as Error).message ?? 'PDF를 열 수 없습니다.');
+        return null;
       } finally {
         setLoadProgress(null);
       }
@@ -214,6 +244,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    setRevealEnabled(settings.output.openFolderAfterJob);
+  }, [settings.output.openFolderAfterJob]);
 
   useEffect(() => {
     const theme = settings.ui.theme;
@@ -297,14 +331,44 @@ export default function App() {
           ...v,
           currentPage: Math.min(v.pageCount, v.currentPage + 1),
         }));
+      } else if (e.key === 'Home' && !e.ctrlKey && !e.altKey) {
+        if (activeTabId) {
+          e.preventDefault();
+          updateViewer((v) => ({ ...v, currentPage: 1 }));
+        }
+      } else if (e.key === 'End' && !e.ctrlKey && !e.altKey) {
+        if (activeTabId) {
+          e.preventDefault();
+          updateViewer((v) => ({ ...v, currentPage: v.pageCount }));
+        }
+      } else if (e.ctrlKey && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        updateViewer((v) => ({ ...v, scale: Math.min(4, v.scale + 0.1), fitMode: 'custom' }));
+      } else if (e.ctrlKey && e.key === '-') {
+        e.preventDefault();
+        updateViewer((v) => ({ ...v, scale: Math.max(0.25, v.scale - 0.1), fitMode: 'custom' }));
+      } else if (e.ctrlKey && e.key === '0') {
+        e.preventDefault();
+        updateViewer((v) => ({ ...v, scale: 1, fitMode: 'actual' }));
+      } else if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        updateViewer((v) => ({ ...v, layout: v.layout === 'single' ? 'continuous' : 'single' }));
+      } else if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        const input = window.prompt('이동할 페이지 번호:');
+        if (input) {
+          const n = parseInt(input, 10);
+          if (!Number.isNaN(n) && n > 0) {
+            updateViewer((v) => ({ ...v, currentPage: Math.min(Math.max(1, n), v.pageCount) }));
+          }
+        }
       } else if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         if (activeTabId) closeTab(activeTabId);
       } else if (e.ctrlKey && e.key === 'p') {
         e.preventDefault();
         if (activeTabId) {
-          setStatus('인쇄 준비 중...');
-          void printActivePdf().finally(() => setStatus('준비됨'));
+          setShowPrintDialog(true);
         }
       } else if (e.ctrlKey && e.key === 'Tab') {
         e.preventDefault();
@@ -359,23 +423,26 @@ export default function App() {
             const tabState = await getTabState();
             if (tabState.tabs.length > 0) {
               setStatus('이전 세션 복원 중...');
+              const loadedTabIds: (string | null)[] = [];
               for (const persisted of tabState.tabs) {
                 try {
-                  await loadPath(persisted.path);
+                  const tabId = await loadPath(persisted.path, {
+                    currentPage: persisted.currentPage,
+                    scale: persisted.scale,
+                    rotation: persisted.rotation,
+                    layout: persisted.layout as ViewerState['layout'],
+                    fitMode: persisted.fitMode as ViewerState['fitMode'],
+                  });
+                  loadedTabIds.push(tabId);
                 } catch {
-                  // 파일이 삭제되었거나 접근 불가하면 조용히 건너뜁니다
+                  loadedTabIds.push(null);
                 }
               }
-              if (tabState.activeIndex != null && tabState.tabs[tabState.activeIndex]) {
-                // restore active tab after all tabs are loaded
-                const activePath = tabState.tabs[tabState.activeIndex].path;
-                setTimeout(() => {
-                  setTabs((prev) => {
-                    const found = prev.find((t) => t.file.path === activePath);
-                    if (found) setActiveTabId(found.id);
-                    return prev;
-                  });
-                }, 500);
+              if (
+                tabState.activeIndex != null &&
+                loadedTabIds[tabState.activeIndex]
+              ) {
+                setActiveTabId(loadedTabIds[tabState.activeIndex]!);
               }
               setStatus('이전 세션을 복원했습니다.');
             }
@@ -477,14 +544,18 @@ export default function App() {
     }
   }
 
-  async function printActivePdf() {
+  async function printActivePdf(options: PrintOptions = {}) {
     const doc = activeTabId ? documentsRef.current.get(activeTabId) : null;
     if (!doc) return;
     const page = activeDocTab?.viewer.currentPage ?? 1;
     try {
-      await printPdf(doc, page, (loaded, total) => {
-        setStatus(`인쇄 준비 중... ${loaded} / ${total} 페이지`);
-      });
+      setStatus('인쇄 준비 중...');
+      await printPdf(
+        doc,
+        page,
+        (loaded, total) => setStatus(`인쇄 준비 중... ${loaded} / ${total} 페이지`),
+        options,
+      );
       setStatus('인쇄 대화상자가 열렸습니다.');
     } catch (error) {
       setStatus((error as Error).message ?? '인쇄할 수 없습니다.');
@@ -568,6 +639,7 @@ export default function App() {
               document={activeDocument}
               pageCount={activeDocTab?.viewer.pageCount ?? 0}
               onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+              onQueryChange={setSearchQuery}
             />
           </div>
         );
@@ -610,6 +682,48 @@ export default function App() {
               file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
               pageCount={activeDocTab?.viewer.pageCount ?? 0}
               onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'metadata':
+        return (
+          <div className="sidebar-inner">
+            <h2>메타데이터</h2>
+            <MetadataPanel
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'form':
+        return (
+          <div className="sidebar-inner">
+            <h2>PDF 폼 작성</h2>
+            <FormFillPanel
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'bookmarks':
+        return (
+          <div className="sidebar-inner">
+            <h2>책갈피</h2>
+            <BookmarksPanel
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              currentPage={activeDocTab?.viewer.currentPage ?? 1}
+              onPageSelect={(p) => updateViewer((v) => ({ ...v, currentPage: p }))}
+              onStatus={setStatus}
+            />
+          </div>
+        );
+      case 'compare':
+        return (
+          <div className="sidebar-inner">
+            <h2>분할 뷰 비교</h2>
+            <ComparePanel
+              currentFile={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
               onStatus={setStatus}
             />
           </div>
@@ -693,6 +807,7 @@ export default function App() {
         fitMode={activeDocTab?.viewer.fitMode ?? 'custom'}
         renderQuality={settings.viewer.renderQuality}
         loadProgress={loadProgress}
+        highlightQuery={searchQuery}
         onPageChange={handlePageChange}
         onFittedScale={handleFittedScale}
       />
@@ -703,8 +818,26 @@ export default function App() {
         onStatus={setStatus}
       />
       {showShortcutHelp && <ShortcutHelp onClose={() => setShowShortcutHelp(false)} />}
+      {showPrintDialog && activeDocTab && (
+        <PrintDialog
+          currentPage={activeDocTab.viewer.currentPage}
+          pageCount={activeDocTab.viewer.pageCount}
+          onConfirm={(options) => {
+            setShowPrintDialog(false);
+            void printActivePdf(options);
+          }}
+          onCancel={() => setShowPrintDialog(false)}
+        />
+      )}
     </AppShell>
   );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (Number.isNaN(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
 }
 
 function formatBytes(value: number): string {

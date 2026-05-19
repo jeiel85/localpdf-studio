@@ -1,7 +1,7 @@
+use crate::hidden_cmd;
 use std::{
     io,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 #[derive(Debug, Clone)]
@@ -68,7 +68,7 @@ pub fn find_qpdf_with(override_path: Option<&str>) -> Result<QpdfTool, QpdfError
         _ => which::which("qpdf").map_err(|_| QpdfError::NotFound)?,
     };
 
-    let version = Command::new(&path)
+    let version = hidden_cmd(&path)
         .arg("--version")
         .output()
         .map(|output| {
@@ -173,7 +173,7 @@ pub fn merge_pdfs(
     validate_pdf_files(input_files)?;
     check_output_overwrite(output_path)?;
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
 
     cmd.arg("--empty").arg("--pages");
 
@@ -241,7 +241,7 @@ pub fn split_pdf(
         .unwrap_or("page");
     let output_pattern = output_dir.join(format!("{stem}-%d.pdf"));
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--split-pages")
         .arg(input_file)
         .arg(output_pattern.to_string_lossy().as_ref());
@@ -299,7 +299,61 @@ pub fn encrypt_pdf(
         ));
     }
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let user_pw_file = write_temp_password_file(user_password)?;
+    let owner_pw_file = if owner_password.is_empty() {
+        None
+    } else {
+        Some(write_temp_password_file(owner_password)?)
+    };
+
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
+    cmd.arg("--encrypt")
+        .arg(format!("--user-password-file={}", user_pw_file.display()));
+    if let Some(ref owner) = owner_pw_file {
+        cmd.arg(format!("--owner-password-file={}", owner.display()));
+    } else {
+        cmd.arg(format!("--owner-password-file={}", user_pw_file.display()));
+    }
+    cmd.arg("--bits=256")
+        .arg("--")
+        .arg(input_file)
+        .arg(output_path);
+
+    let output = cmd.output().map_err(|e| {
+        let _ = std::fs::remove_file(&user_pw_file);
+        if let Some(ref owner) = owner_pw_file {
+            let _ = std::fs::remove_file(owner);
+        }
+        QpdfError::ExecutionFailed(format!("qpdf 암호화 실행 중 오류: {e}"))
+    })?;
+
+    let _ = std::fs::remove_file(&user_pw_file);
+    if let Some(ref owner) = owner_pw_file {
+        let _ = std::fs::remove_file(owner);
+    }
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // Fallback for older qpdf without --user-password-file: try inline syntax once
+        if stderr.contains("unknown") || stderr.contains("password-file") {
+            return encrypt_pdf_inline(input_file, output_path, user_password, owner_password, qpdf_tool);
+        }
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 암호화 실패: {stderr}"
+        )));
+    }
+
+    Ok(output_path.to_path_buf())
+}
+
+fn encrypt_pdf_inline(
+    input_file: &Path,
+    output_path: &Path,
+    user_password: &str,
+    owner_password: &str,
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--encrypt")
         .arg(user_password)
         .arg(owner_password)
@@ -307,18 +361,13 @@ pub fn encrypt_pdf(
         .arg("--")
         .arg(input_file)
         .arg(output_path);
-
     let output = cmd.output().map_err(|e| {
-        QpdfError::ExecutionFailed(format!("qpdf 암호화 실행 중 오류: {e}"))
+        QpdfError::ExecutionFailed(format!("qpdf 암호화(레거시) 실행 중 오류: {e}"))
     })?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QpdfError::ExecutionFailed(format!(
-            "qpdf 암호화 실패: {stderr}"
-        )));
+        return Err(QpdfError::ExecutionFailed(format!("qpdf 암호화 실패: {stderr}")));
     }
-
     Ok(output_path.to_path_buf())
 }
 
@@ -339,7 +388,7 @@ pub fn decrypt_pdf(
 
     let pw_file = write_temp_password_file(password)?;
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--decrypt")
         .arg(format!("--password-file={}", pw_file.display()))
         .arg(input_file)
@@ -363,10 +412,23 @@ pub fn decrypt_pdf(
 
 fn write_temp_password_file(password: &str) -> Result<PathBuf, QpdfError> {
     let mut path = std::env::temp_dir();
-    path.push(format!("lpdf_pw_{}", std::process::id()));
-    std::fs::write(&path, password).map_err(|e| {
-        QpdfError::IoError(format!("임시 파일 생성 실패: {e}"))
-    })?;
+    let token = uuid::Uuid::new_v4().simple().to_string();
+    path.push(format!("lpdf_pw_{}_{token}.tmp", std::process::id()));
+
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    let mut opts = OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut file = opts
+        .open(&path)
+        .map_err(|e| QpdfError::IoError(format!("임시 파일 생성 실패: {e}")))?;
+    file.write_all(password.as_bytes())
+        .map_err(|e| QpdfError::IoError(format!("임시 파일 쓰기 실패: {e}")))?;
     Ok(path)
 }
 
@@ -385,7 +447,7 @@ pub fn extract_pages(
         ));
     }
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--empty")
         .arg("--pages")
         .arg(input_file)
@@ -431,7 +493,7 @@ pub fn rotate_pages(
 
     let rotate_arg = format!("{angle}:{range}");
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg(input_file)
         .arg(output_path)
         .arg(format!("--rotate={rotate_arg}"));
@@ -458,7 +520,7 @@ pub fn compress_pdf(
     validate_pdf_files(&[input_file.to_path_buf()])?;
     check_output_overwrite(output_path)?;
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--linearize")
         .arg("--object-streams=generate")
         .arg(input_file)
@@ -478,10 +540,40 @@ pub fn compress_pdf(
     Ok(output_path.to_path_buf())
 }
 
+/// qpdf로 PDF를 정규화 (linearize + object stream + remove-unreferenced).
+/// 완전한 PDF/A 변환은 Ghostscript가 필요하지만 가능한 한 자체 정규화를 수행.
+pub fn normalize_pdf(
+    input_file: &Path,
+    output_path: &Path,
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    validate_pdf_files(&[input_file.to_path_buf()])?;
+    check_output_overwrite(output_path)?;
+
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
+    cmd.arg("--linearize")
+        .arg("--object-streams=generate")
+        .arg("--remove-unreferenced-resources=yes")
+        .arg("--normalize-content=y")
+        .arg(input_file)
+        .arg(output_path);
+
+    let output = cmd.output().map_err(|e| {
+        QpdfError::ExecutionFailed(format!("qpdf 정규화 실행 중 오류: {e}"))
+    })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 정규화 실패: {stderr}"
+        )));
+    }
+    Ok(output_path.to_path_buf())
+}
+
 pub fn read_metadata(input_file: &Path, qpdf_tool: &QpdfTool) -> Result<String, QpdfError> {
     validate_pdf_files(&[input_file.to_path_buf()])?;
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--json").arg(input_file);
 
     let output = cmd.output().map_err(|e| {
@@ -516,7 +608,7 @@ pub fn reorder_pages(
 
     let specification = pages_to_qpdf_spec(page_order);
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--empty")
         .arg("--pages")
         .arg(input_file)
@@ -575,7 +667,7 @@ pub fn delete_pages(
 
     let specification = pages_to_qpdf_spec(&keep_pages);
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--empty")
         .arg("--pages")
         .arg(input_file)
@@ -603,6 +695,60 @@ pub fn delete_pages(
     Ok(output_path.to_path_buf())
 }
 
+/// 각 페이지마다 회전각이 다른 회전을 한 번에 적용.
+/// rotations: (page_number, angle) 목록. angle은 0/90/180/270.
+pub fn rotate_pages_individually(
+    input_file: &Path,
+    output_path: &Path,
+    rotations: &[(u32, u16)],
+    qpdf_tool: &QpdfTool,
+) -> Result<PathBuf, QpdfError> {
+    validate_pdf_files(&[input_file.to_path_buf()])?;
+    check_output_overwrite(output_path)?;
+
+    if rotations.is_empty() {
+        return Err(QpdfError::InvalidInput(
+            "회전할 페이지가 없습니다.".to_string(),
+        ));
+    }
+
+    // 각 각도별 페이지 묶기 (90 / 180 / 270)
+    use std::collections::BTreeMap;
+    let mut groups: BTreeMap<u16, Vec<u32>> = BTreeMap::new();
+    for (page, angle) in rotations {
+        if matches!(*angle, 90 | 180 | 270) {
+            groups.entry(*angle).or_default().push(*page);
+        }
+    }
+    if groups.is_empty() {
+        return Err(QpdfError::InvalidInput(
+            "유효한 회전 페이지가 없습니다.".to_string(),
+        ));
+    }
+
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
+    cmd.arg(input_file).arg(output_path);
+    for (angle, pages) in &groups {
+        cmd.arg(format!("--rotate=+{angle}:{}", pages_to_qpdf_spec(pages)));
+    }
+
+    let output = cmd.output().map_err(|e| {
+        QpdfError::ExecutionFailed(format!("qpdf 페이지 회전 실행 중 오류: {e}"))
+    })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QpdfError::ExecutionFailed(format!(
+            "qpdf 페이지 회전 실패: {stderr}"
+        )));
+    }
+    if !output_path.exists() {
+        return Err(QpdfError::ExecutionFailed(
+            "qpdf가 실행되었으나 출력 파일이 생성되지 않았습니다.".to_string(),
+        ));
+    }
+    Ok(output_path.to_path_buf())
+}
+
 pub fn insert_pages(
     base_file: &Path,
     insert_file: &Path,
@@ -620,7 +766,7 @@ pub fn insert_pages(
         )));
     }
 
-    let mut cmd = Command::new(&qpdf_tool.path);
+    let mut cmd = hidden_cmd(&qpdf_tool.path);
     cmd.arg("--empty").arg("--pages");
 
     if after_page == 0 {

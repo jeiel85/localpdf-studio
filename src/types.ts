@@ -54,7 +54,7 @@ export type RecentFileEntry = {
   openedAt: string;
 };
 
-export type SidebarTab = 'document' | 'thumbnails' | 'outline' | 'search' | 'merge' | 'tools' | 'advanced' | 'editor' | 'settings';
+export type SidebarTab = 'document' | 'thumbnails' | 'outline' | 'search' | 'merge' | 'tools' | 'advanced' | 'editor' | 'metadata' | 'form' | 'bookmarks' | 'compare' | 'settings';
 
 export type ViewerZoomMode = 'fit-width' | 'fit-height' | 'custom';
 export type WheelAction = 'scroll' | 'zoom';

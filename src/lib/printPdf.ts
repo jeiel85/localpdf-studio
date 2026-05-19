@@ -1,11 +1,52 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
+export type PrintOptions = {
+  /** "all" | "current" | "range" */
+  mode?: 'all' | 'current' | 'range';
+  currentPage?: number;
+  /** 페이지 범위 문자열 (예: "1-5, 8, 10-12") - mode='range'일 때만 사용 */
+  range?: string;
+};
+
+function parseRange(range: string, maxPage: number): number[] {
+  const pages: number[] = [];
+  const parts = range.split(',').map((p) => p.trim()).filter(Boolean);
+  for (const part of parts) {
+    if (part.includes('-')) {
+      const [s, e] = part.split('-').map((x) => parseInt(x.trim(), 10));
+      if (Number.isFinite(s) && Number.isFinite(e)) {
+        const start = Math.max(1, Math.min(s, e));
+        const end = Math.min(maxPage, Math.max(s, e));
+        for (let i = start; i <= end; i++) pages.push(i);
+      }
+    } else {
+      const n = parseInt(part, 10);
+      if (Number.isFinite(n) && n >= 1 && n <= maxPage) pages.push(n);
+    }
+  }
+  return Array.from(new Set(pages)).sort((a, b) => a - b);
+}
+
 export async function printPdf(
   pdf: PDFDocumentProxy,
-  _currentPage: number,
+  currentPage: number,
   onProgress?: (loaded: number, total: number) => void,
+  options: PrintOptions = {},
 ): Promise<void> {
-  const total = pdf.numPages;
+  const totalPages = pdf.numPages;
+  const mode = options.mode ?? 'all';
+  let pages: number[];
+  if (mode === 'current') {
+    pages = [Math.min(Math.max(1, options.currentPage ?? currentPage), totalPages)];
+  } else if (mode === 'range' && options.range) {
+    pages = parseRange(options.range, totalPages);
+    if (pages.length === 0) {
+      throw new Error('인쇄할 페이지가 없습니다. 범위를 확인하세요.');
+    }
+  } else {
+    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     throw new Error('팝업 창을 열 수 없습니다. 팝업 차단 설정을 확인하세요.');
@@ -28,16 +69,6 @@ export async function printPdf(
           page-break-after: always;
         }
         canvas:last-child { page-break-after: avoid; }
-        .print-footer {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          text-align: center;
-          font-size: 10px;
-          color: #999;
-          padding: 4px;
-        }
       </style>
     </head>
     <body></body>
@@ -48,9 +79,11 @@ export async function printPdf(
   const body = printWindow.document.body;
 
   try {
-    for (let i = 1; i <= total; i++) {
-      onProgress?.(i, total);
-      const page = await pdf.getPage(i);
+    let processed = 0;
+    for (const pageNum of pages) {
+      processed += 1;
+      onProgress?.(processed, pages.length);
+      const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 2.0 });
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
@@ -69,7 +102,6 @@ export async function printPdf(
         printWindow.close();
       };
       printWindow.print();
-      // Fallback if onafterprint doesn't fire
       setTimeout(() => {
         if (!printWindow.closed) {
           resolve();

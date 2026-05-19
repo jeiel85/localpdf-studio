@@ -6,7 +6,29 @@ use std::{
 
 const PDF_MIME: &str = "application/pdf";
 
+const ALLOWED_ORIGINS: &[&str] = &[
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+    "http://localhost:1420",
+];
+
+fn resolve_origin(request: &http::Request<Vec<u8>>) -> String {
+    let origin = request
+        .headers()
+        .get("origin")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    if ALLOWED_ORIGINS.iter().any(|o| origin.eq_ignore_ascii_case(o)) {
+        origin.to_string()
+    } else {
+        // Default to first known Tauri origin (matches WebView2 default on Windows).
+        ALLOWED_ORIGINS[0].to_string()
+    }
+}
+
 pub fn pdf_local_protocol(request: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+    let cors_origin = resolve_origin(&request);
     let uri = request.uri().to_string();
 
     let path = uri
@@ -86,8 +108,8 @@ pub fn pdf_local_protocol(request: http::Request<Vec<u8>>) -> http::Response<Vec
                         .header("Content-Range", format!("bytes {start}-{end}/{file_size}"))
                         .header("Content-Length", length.to_string())
                         .header("Accept-Ranges", "bytes")
-                        .header("Access-Control-Allow-Origin", "*")
-                        .header("Access-Control-Allow-Headers", "*")
+                        .header("Access-Control-Allow-Origin", cors_origin.as_str())
+                        .header("Access-Control-Allow-Headers", "range")
                         .header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
                         .body(buffer)
                         .unwrap_or_else(|_| error_response(500, "응답 생성 실패"));
@@ -108,7 +130,7 @@ pub fn pdf_local_protocol(request: http::Request<Vec<u8>>) -> http::Response<Vec
             .header("Content-Type", PDF_MIME)
             .header("Content-Length", data.len().to_string())
             .header("Accept-Ranges", "bytes")
-            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Origin", cors_origin.as_str())
             .header("Cache-Control", "no-cache")
             .body(data)
             .unwrap_or_else(|_| error_response(500, "응답 생성 실패")),

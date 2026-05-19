@@ -1,10 +1,13 @@
+use crate::hidden_cmd;
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 const QPDF_VERSION: &str = "12.3.2";
 const QPDF_ZIP_URL: &str = "https://github.com/qpdf/qpdf/releases/download/v12.3.2/qpdf-12.3.2-msvc64.zip";
+const QPDF_SHA256: &str = "8941870a604e7c87ed24566b038d46c24ce76616254d2383c578f60c0677f202";
 const TESSERACT_VERSION: &str = "5.4.0.20240606";
 const TESSERACT_INSTALLER_URL: &str = "https://github.com/UB-Mannheim/tesseract/releases/download/v5.4.0.20240606/tesseract-ocr-w64-setup-5.4.0.20240606.exe";
+const TESSERACT_SHA256: &str = "c885fff6998e0608ba4bb8ab51436e1c6775c2bafc2559a19b423e18678b60c9";
 
 #[derive(Debug)]
 pub struct InstallerError(pub String);
@@ -24,13 +27,16 @@ fn get_tools_dir() -> Result<PathBuf, InstallerError> {
     Ok(tools_dir)
 }
 
-fn download_file(url: &str, dest: &Path) -> Result<(), InstallerError> {
+fn download_file(url: &str, dest: &Path, expected_sha256: &str) -> Result<(), InstallerError> {
     if dest.exists() {
         let _ = std::fs::remove_file(dest);
     }
 
-    let status = Command::new("curl.exe")
-        .args(["-L", "--fail", "--progress-bar", "-o", dest.to_str().unwrap(), url])
+    let dest_str = dest
+        .to_str()
+        .ok_or_else(|| InstallerError("다운로드 경로 변환 실패".to_string()))?;
+    let status = hidden_cmd("curl.exe")
+        .args(["-L", "--fail", "--progress-bar", "-o", dest_str, url])
         .status()
         .map_err(|e| InstallerError(format!("다운로드 실행 실패 (curl): {e}")))?;
 
@@ -46,19 +52,38 @@ fn download_file(url: &str, dest: &Path) -> Result<(), InstallerError> {
         return Err(InstallerError("다운로드된 파일이 너무 작습니다. URL을 확인하세요.".to_string()));
     }
 
+    let actual = sha256_of_file(dest)?;
+    if !actual.eq_ignore_ascii_case(expected_sha256) {
+        let _ = std::fs::remove_file(dest);
+        return Err(InstallerError(format!(
+            "다운로드 파일의 무결성 검증에 실패했습니다.\n\
+             기대 SHA-256: {expected_sha256}\n실제 SHA-256: {actual}\n\
+             네트워크 변조 또는 릴리즈 변경 가능성이 있습니다. 수동 다운로드를 시도하세요."
+        )));
+    }
+
     Ok(())
 }
 
+fn sha256_of_file(path: &Path) -> Result<String, InstallerError> {
+    let mut file = std::fs::File::open(path)
+        .map_err(|e| InstallerError(format!("해시 계산용 파일 열기 실패: {e}")))?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher)
+        .map_err(|e| InstallerError(format!("해시 계산 실패: {e}")))?;
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 fn extract_zip(zip_path: &Path, dest: &Path) -> Result<(), InstallerError> {
-    let status = Command::new("powershell")
+    // 환경변수로 경로 전달 (문자열 보간 회피)
+    let status = hidden_cmd("powershell")
+        .env("LPDF_SRC", zip_path)
+        .env("LPDF_DST", dest)
         .args([
             "-NoProfile",
+            "-NonInteractive",
             "-Command",
-            &format!(
-                "Expand-Archive -LiteralPath '{}' -DestinationPath '{}' -Force",
-                zip_path.display().to_string().replace('\'', "''"),
-                dest.display().to_string().replace('\'', "''"),
-            ),
+            "Expand-Archive -LiteralPath $env:LPDF_SRC -DestinationPath $env:LPDF_DST -Force",
         ])
         .status()
         .map_err(|e| InstallerError(format!("압축 해제 실행 실패: {e}")))?;
@@ -99,7 +124,7 @@ pub fn install_qpdf() -> Result<String, InstallerError> {
 
     let zip_path = tools_dir.join(format!("qpdf-{}-download.zip", QPDF_VERSION));
 
-    download_file(QPDF_ZIP_URL, &zip_path)?;
+    download_file(QPDF_ZIP_URL, &zip_path, QPDF_SHA256)?;
 
     extract_zip(&zip_path, &qpdf_dir)?;
 
@@ -117,7 +142,7 @@ pub fn download_tesseract_installer() -> Result<PathBuf, InstallerError> {
     let tools_dir = get_tools_dir()?;
     let installer_path = tools_dir.join(format!("tesseract-ocr-setup-{}.exe", TESSERACT_VERSION));
 
-    download_file(TESSERACT_INSTALLER_URL, &installer_path)?;
+    download_file(TESSERACT_INSTALLER_URL, &installer_path, TESSERACT_SHA256)?;
 
     Ok(installer_path)
 }
@@ -127,14 +152,13 @@ pub fn run_tesseract_elevated(exe_path: &Path) -> Result<(), InstallerError> {
         return Err(InstallerError("설치 파일을 찾을 수 없습니다.".to_string()));
     }
 
-    let status = Command::new("powershell")
+    let status = hidden_cmd("powershell")
+        .env("LPDF_EXE", exe_path)
         .args([
             "-NoProfile",
+            "-NonInteractive",
             "-Command",
-            &format!(
-                "Start-Process -FilePath '{}' -ArgumentList '/S' -Verb RunAs -Wait",
-                exe_path.display().to_string().replace('\'', "''"),
-            ),
+            "Start-Process -FilePath $env:LPDF_EXE -ArgumentList '/S' -Verb RunAs -Wait",
         ])
         .status()
         .map_err(|e| InstallerError(format!("관리자 권한 실행 실패: {e}")))?;
@@ -162,7 +186,7 @@ pub fn detect_tesseract_path() -> Option<String> {
         }
     }
 
-    if let Ok(output) = Command::new("powershell")
+    if let Ok(output) = hidden_cmd("powershell")
         .args([
             "-NoProfile",
             "-Command",
@@ -180,7 +204,7 @@ pub fn detect_tesseract_path() -> Option<String> {
 }
 
 pub fn is_elevated() -> bool {
-    Command::new("powershell")
+    hidden_cmd("powershell")
         .args([
             "-NoProfile",
             "-Command",

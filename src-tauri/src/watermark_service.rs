@@ -1,7 +1,5 @@
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use crate::hidden_cmd;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub enum WatermarkError {
@@ -54,7 +52,7 @@ pub fn apply_watermark_pdf(
         }
     }
 
-    let mut cmd = Command::new(&qpdf);
+    let mut cmd = hidden_cmd(&qpdf);
     cmd.arg(input_path)
         .arg("--overlay")
         .arg(watermark_path)
@@ -104,7 +102,7 @@ pub fn stamp_pdf(
         }
     }
 
-    let mut cmd = Command::new(&qpdf);
+    let mut cmd = hidden_cmd(&qpdf);
     cmd.arg(input_path)
         .arg("--underlay")
         .arg(stamp_path)

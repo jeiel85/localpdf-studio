@@ -3,6 +3,7 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { checkExternalTools, installQpdfAuto, installTesseractAuto, checkElevation } from '../lib/tauriCommands';
+import { maybeReveal } from '../lib/revealOutput';
 import type { ExternalToolStatus, PdfFilePayload } from '../types';
 
 const TOOL_INSTALL_GUIDE: Record<string, { url: string; hint: string }> = {
@@ -252,6 +253,7 @@ export function ToolsPanel({
             ownerPassword: params.ownerPassword,
           });
           onStatus(result);
+          void maybeReveal(outputPath);
           break;
         }
         case 'decrypt': {
@@ -263,6 +265,7 @@ export function ToolsPanel({
             password: params.password,
           });
           onStatus(result);
+          void maybeReveal(outputPath);
           break;
         }
         case 'extract': {
@@ -274,6 +277,7 @@ export function ToolsPanel({
             pageRange: params.pageRange,
           });
           onStatus(result);
+          void maybeReveal(outputPath);
           break;
         }
         case 'rotate': {
@@ -286,6 +290,7 @@ export function ToolsPanel({
             pageRange: params.pageRange,
           });
           onStatus(result);
+          void maybeReveal(outputPath);
           break;
         }
         case 'compress': {
@@ -296,6 +301,7 @@ export function ToolsPanel({
             outputPath,
           });
           onStatus(result);
+          void maybeReveal(outputPath);
           break;
         }
         case 'metadata': {

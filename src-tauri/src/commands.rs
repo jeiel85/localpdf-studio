@@ -1,3 +1,4 @@
+use crate::hidden_cmd;
 use crate::installer_service;
 use crate::job_queue::{JobManagerState, JobStatus};
 use crate::ocr_service;
@@ -10,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 use tauri::State;
 
@@ -53,15 +53,6 @@ pub struct PdfUrlPayload {
     file_name: String,
     size_bytes: u64,
     url: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OutlineItem {
-    title: String,
-    dest: Option<String>,
-    page_number: Option<u32>,
-    children: Vec<OutlineItem>,
 }
 
 #[derive(Debug, Serialize)]
@@ -198,12 +189,6 @@ pub fn load_pdf_url(path: String) -> Result<PdfUrlPayload, String> {
 }
 
 #[tauri::command]
-pub fn load_pdf_outline(path: String) -> Result<Vec<OutlineItem>, String> {
-    let _pdf_path = validate_pdf_path(&path)?;
-    Err("목차 정보는 PDF.js 프론트엔드에서 추출합니다.".to_string())
-}
-
-#[tauri::command]
 pub fn check_external_tools(settings: State<'_, SettingsState>) -> Vec<ExternalToolStatus> {
     let snap = settings_snapshot(&settings);
     vec![
@@ -331,7 +316,7 @@ pub fn add_recent_file(
 
     let json = serde_json::to_string_pretty(&entries)
         .map_err(|e| format!("최근 파일 목록을 저장할 수 없습니다: {e}"))?;
-    fs::write(&recent_path, json)
+    atomic_write(&recent_path, json.as_bytes())
         .map_err(|e| format!("최근 파일 목록을 저장할 수 없습니다: {e}"))?;
 
     Ok(entries)
@@ -427,8 +412,11 @@ pub fn merge_pdfs(
 ) -> Result<MergeResult, String> {
     let tool = resolve_qpdf(&settings)?;
 
-    let input_paths: Vec<PathBuf> = input_files.iter().map(PathBuf::from).collect();
-    let output = PathBuf::from(&output_path);
+    let input_paths: Vec<PathBuf> = input_files
+        .iter()
+        .map(|p| validate_pdf_path(p))
+        .collect::<Result<Vec<_>, _>>()?;
+    let output = validate_output_path(&output_path)?;
 
     let result = qpdf_service::merge_pdfs(&input_paths, &output, &tool)
         .map_err(|e| e.to_string())?;
@@ -455,8 +443,8 @@ pub fn split_pdf(
 ) -> Result<SplitResult, String> {
     let tool = resolve_qpdf(&settings)?;
 
-    let input = PathBuf::from(&input_file);
-    let dir = PathBuf::from(&output_dir);
+    let input = validate_pdf_path(&input_file)?;
+    let dir = validate_output_dir(&output_dir)?;
 
     let result_files = qpdf_service::split_pdf(&input, &dir, &tool)
         .map_err(|e| e.to_string())?;
@@ -479,8 +467,8 @@ pub fn encrypt_pdf(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::encrypt_pdf(&input, &output, &user_password, &owner_password, &tool)
         .map(|p| format!("암호화 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -494,8 +482,8 @@ pub fn decrypt_pdf(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::decrypt_pdf(&input, &output, &password, &tool)
         .map(|p| format!("복호화 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -509,8 +497,8 @@ pub fn extract_pages(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::extract_pages(&input, &output, &page_range, &tool)
         .map(|p| format!("페이지 추출 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -525,8 +513,8 @@ pub fn rotate_pages(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::rotate_pages(&input, &output, angle, &page_range, &tool)
         .map(|p| format!("페이지 회전 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -539,8 +527,8 @@ pub fn compress_pdf(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::compress_pdf(&input, &output, &tool)
         .map(|p| format!("압축 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -552,7 +540,7 @@ pub fn read_pdf_metadata(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
+    let input = validate_pdf_path(&input_file)?;
     qpdf_service::read_metadata(&input, &tool).map_err(|e| e.to_string())
 }
 
@@ -614,10 +602,34 @@ pub fn run_ocr(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tesseract = resolve_tesseract(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_file);
+    let input = PathBuf::from(&input_file)
+        .canonicalize()
+        .map_err(|e| format!("입력 파일 경로 오류: {e}"))?;
+    let output = validate_output_path(&output_file)?;
     ocr_service::run_ocr(&input, &output, &language, dpi, &tesseract)
         .map(|p| format!("OCR 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn run_ocr_searchable_pdf(
+    image_paths: Vec<String>,
+    output_pdf: String,
+    language: String,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tesseract = resolve_tesseract(&settings)?;
+    let images: Vec<PathBuf> = image_paths
+        .iter()
+        .map(|p| {
+            PathBuf::from(p)
+                .canonicalize()
+                .map_err(|e| format!("이미지 경로 오류 ({p}): {e}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let output = validate_output_path(&output_pdf)?;
+    ocr_service::run_ocr_searchable_pdf(&images, &output, &language, &tesseract)
+        .map(|p| format!("검색 가능 PDF 생성 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
 }
 
@@ -626,10 +638,12 @@ pub fn apply_watermark(
     input_file: String,
     watermark_file: String,
     output_path: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let input = PathBuf::from(&input_file);
-    let watermark = PathBuf::from(&watermark_file);
-    let output = PathBuf::from(&output_path);
+    let _ = settings;
+    let input = validate_pdf_path(&input_file)?;
+    let watermark = validate_pdf_path(&watermark_file)?;
+    let output = validate_output_path(&output_path)?;
     watermark_service::apply_watermark_pdf(&input, &watermark, &output)
         .map(|p| format!("워터마크 적용 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -640,10 +654,12 @@ pub fn apply_stamp(
     input_file: String,
     stamp_file: String,
     output_path: String,
+    settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
-    let input = PathBuf::from(&input_file);
-    let stamp = PathBuf::from(&stamp_file);
-    let output = PathBuf::from(&output_path);
+    let _ = settings;
+    let input = validate_pdf_path(&input_file)?;
+    let stamp = validate_pdf_path(&stamp_file)?;
+    let output = validate_output_path(&output_path)?;
     watermark_service::stamp_pdf(&input, &stamp, &output)
         .map(|p| format!("스탬프 적용 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -651,29 +667,72 @@ pub fn apply_stamp(
 
 #[tauri::command]
 pub fn save_text_file(path: String, content: String) -> Result<String, String> {
-    let file_path = PathBuf::from(&path);
+    let file_path = validate_output_path(&path)?;
+    fs::write(&file_path, &content).map_err(|e| format!("파일 저장 실패: {e}"))?;
+    Ok(file_path.to_string_lossy().to_string())
+}
 
-    let ext = file_path
+#[tauri::command]
+pub fn save_binary_file(path: String, base64_data: String) -> Result<String, String> {
+    let file_path = validate_output_path(&path)?;
+    let bytes = general_purpose::STANDARD
+        .decode(base64_data.as_bytes())
+        .map_err(|e| format!("base64 디코딩 실패: {e}"))?;
+    fs::write(&file_path, &bytes).map_err(|e| format!("파일 저장 실패: {e}"))?;
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+const MAX_READ_BYTES_BYTES: u64 = 512 * 1024 * 1024;
+
+#[tauri::command]
+pub fn read_text_file_if_exists(path: String) -> Result<String, String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Ok(String::new());
+    }
+    let metadata = fs::metadata(&p).map_err(|e| format!("파일 정보 읽기 실패: {e}"))?;
+    if metadata.len() > 8 * 1024 * 1024 {
+        return Err("텍스트 파일이 너무 큽니다 (최대 8MB).".to_string());
+    }
+    fs::read_to_string(&p).map_err(|e| format!("파일 읽기 실패: {e}"))
+}
+
+#[tauri::command]
+pub fn delete_file_if_exists(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if p.exists() && p.is_file() {
+        let _ = fs::remove_file(&p);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn read_file_bytes(path: String) -> Result<String, String> {
+    let pdf_path = PathBuf::from(&path);
+    let canonical = pdf_path
+        .canonicalize()
+        .map_err(|e| format!("파일 경로가 올바르지 않습니다: {e}"))?;
+    let metadata = fs::metadata(&canonical)
+        .map_err(|e| format!("파일 정보를 읽을 수 없습니다: {e}"))?;
+    if !metadata.is_file() {
+        return Err("파일이 아닙니다.".to_string());
+    }
+    if metadata.len() > MAX_READ_BYTES_BYTES {
+        return Err("파일이 너무 큽니다 (최대 512MB).".to_string());
+    }
+    let ext = canonical
         .extension()
         .and_then(|e| e.to_str())
-        .unwrap_or("")
+        .unwrap_or_default()
         .to_lowercase();
-    if matches!(
+    if !matches!(
         ext.as_str(),
-        "exe" | "dll" | "sys" | "bat" | "cmd" | "ps1" | "vbs" | "com"
+        "png" | "jpg" | "jpeg" | "webp" | "bmp" | "gif" | "tif" | "tiff" | "pdf"
     ) {
-        return Err("보호된 파일 형식에는 저장할 수 없습니다.".to_string());
+        return Err("지원하지 않는 파일 형식입니다.".to_string());
     }
-
-    if let Some(parent) = file_path.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("디렉터리를 생성할 수 없습니다: {e}"))?;
-        }
-    }
-
-    fs::write(&path, &content).map_err(|e| format!("파일 저장 실패: {e}"))?;
-    Ok(path)
+    let bytes = fs::read(&canonical).map_err(|e| format!("파일 읽기 실패: {e}"))?;
+    Ok(general_purpose::STANDARD.encode(bytes))
 }
 
 #[tauri::command]
@@ -696,7 +755,7 @@ pub fn save_tab_state(state: TabState) -> Result<(), String> {
     let tab_state_path = app_dir.join("tab_state.json");
     let json = serde_json::to_string_pretty(&state)
         .map_err(|e| format!("탭 상태 직렬화 실패: {e}"))?;
-    fs::write(&tab_state_path, json)
+    atomic_write(&tab_state_path, json.as_bytes())
         .map_err(|e| format!("탭 상태 저장 실패: {e}"))
 }
 
@@ -754,8 +813,8 @@ pub fn reorder_pages(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::reorder_pages(&input, &output, &page_order, &tool)
         .map(|p| format!("페이지 재정렬 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -770,10 +829,39 @@ pub fn delete_pages(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let input = PathBuf::from(&input_file);
-    let output = PathBuf::from(&output_path);
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::delete_pages(&input, &output, &pages_to_delete, total_pages, &tool)
         .map(|p| format!("페이지 삭제 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn normalize_pdf(
+    input_file: String,
+    output_path: String,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
+    qpdf_service::normalize_pdf(&input, &output, &tool)
+        .map(|p| format!("PDF 정규화 완료: {}", p.to_string_lossy()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn rotate_pages_individually(
+    input_file: String,
+    output_path: String,
+    rotations: Vec<(u32, u16)>,
+    settings: State<'_, SettingsState>,
+) -> Result<String, String> {
+    let tool = resolve_qpdf(&settings)?;
+    let input = validate_pdf_path(&input_file)?;
+    let output = validate_output_path(&output_path)?;
+    qpdf_service::rotate_pages_individually(&input, &output, &rotations, &tool)
+        .map(|p| format!("페이지 회전 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
 }
 
@@ -787,9 +875,9 @@ pub fn insert_pages(
     settings: State<'_, SettingsState>,
 ) -> Result<String, String> {
     let tool = resolve_qpdf(&settings)?;
-    let base = PathBuf::from(&base_file);
-    let insert = PathBuf::from(&insert_file);
-    let output = PathBuf::from(&output_path);
+    let base = validate_pdf_path(&base_file)?;
+    let insert = validate_pdf_path(&insert_file)?;
+    let output = validate_output_path(&output_path)?;
     qpdf_service::insert_pages(&base, &insert, &output, after_page, base_total_pages, &tool)
         .map(|p| format!("페이지 삽입 완료: {}", p.to_string_lossy()))
         .map_err(|e| e.to_string())
@@ -810,6 +898,78 @@ fn validate_pdf_path(path: &str) -> Result<PathBuf, String> {
         return Err("PDF 파일만 열 수 있습니다.".to_string());
     }
 
+    Ok(canonical)
+}
+
+const FORBIDDEN_OUTPUT_EXTENSIONS: &[&str] = &[
+    "exe", "dll", "sys", "bat", "cmd", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh",
+    "msi", "msp", "scr", "com", "cpl", "lnk", "reg", "inf",
+];
+
+fn validate_output_path(path: &str) -> Result<PathBuf, String> {
+    if path.trim().is_empty() {
+        return Err("출력 경로가 비어 있습니다.".to_string());
+    }
+    let raw = PathBuf::from(path);
+    let ext = raw
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if FORBIDDEN_OUTPUT_EXTENSIONS.contains(&ext.as_str()) {
+        return Err("보호된 파일 형식에는 저장할 수 없습니다.".to_string());
+    }
+
+    let parent = raw.parent().ok_or_else(|| "상위 디렉터리를 알 수 없습니다.".to_string())?;
+    if parent.as_os_str().is_empty() {
+        return Err("절대 경로를 사용하세요.".to_string());
+    }
+    fs::create_dir_all(parent)
+        .map_err(|e| format!("디렉터리를 생성할 수 없습니다: {e}"))?;
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|e| format!("출력 경로가 올바르지 않습니다: {e}"))?;
+
+    let blocked_roots: Vec<PathBuf> = ["WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMFILES(X86)"]
+        .iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .map(PathBuf::from)
+        .filter_map(|p| p.canonicalize().ok())
+        .collect();
+    for root in &blocked_roots {
+        if canonical_parent.starts_with(root) {
+            return Err("시스템 디렉터리에는 저장할 수 없습니다.".to_string());
+        }
+    }
+
+    let file_name = raw
+        .file_name()
+        .ok_or_else(|| "파일 이름이 없습니다.".to_string())?;
+    Ok(canonical_parent.join(file_name))
+}
+
+fn validate_output_dir(dir: &str) -> Result<PathBuf, String> {
+    if dir.trim().is_empty() {
+        return Err("출력 디렉터리가 비어 있습니다.".to_string());
+    }
+    let raw = PathBuf::from(dir);
+    fs::create_dir_all(&raw)
+        .map_err(|e| format!("디렉터리를 생성할 수 없습니다: {e}"))?;
+    let canonical = raw
+        .canonicalize()
+        .map_err(|e| format!("출력 디렉터리 경로 오류: {e}"))?;
+
+    let blocked_roots: Vec<PathBuf> = ["WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMFILES(X86)"]
+        .iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .map(PathBuf::from)
+        .filter_map(|p| p.canonicalize().ok())
+        .collect();
+    for root in &blocked_roots {
+        if canonical.starts_with(root) {
+            return Err("시스템 디렉터리에는 저장할 수 없습니다.".to_string());
+        }
+    }
     Ok(canonical)
 }
 
@@ -841,7 +1001,7 @@ fn tool_status(
 }
 
 fn read_tool_version(path: &Path) -> Option<String> {
-    let output = Command::new(path).arg("--version").output().ok()?;
+    let output = hidden_cmd(path).arg("--version").output().ok()?;
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let first_line = stdout
@@ -877,21 +1037,29 @@ fn dirs_next_crate() -> Option<PathBuf> {
 }
 
 fn chrono_now() -> String {
-    use std::time::SystemTime;
-    let ts = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let secs = (ts % 86400) as u32;
-    let days = ts / 86400;
+    chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
 
-    let year = 1970 + (days / 365) as u32;
-    let rem = days % 365;
-    let month = (rem / 30 + 1).min(12);
-    let day = (rem % 30 + 1).min(31);
-    let hour = secs / 3600;
-    let min = (secs % 3600) / 60;
-    let sec = secs % 60;
-
-    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}")
+fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("디렉터리 생성 실패: {e}"))?;
+    }
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("tmp");
+    let tmp = parent.join(format!(
+        ".{file_name}.{}.tmp",
+        uuid::Uuid::new_v4().simple()
+    ));
+    fs::write(&tmp, content).map_err(|e| format!("임시 파일 쓰기 실패: {e}"))?;
+    if path.exists() {
+        let _ = fs::remove_file(path);
+    }
+    fs::rename(&tmp, path).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        format!("파일 교체 실패: {e}")
+    })
 }

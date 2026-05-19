@@ -168,7 +168,19 @@ pub fn save_to_dir(app_dir: &Path, settings: &AppSettings) -> Result<(), String>
     let path = settings_file_path(app_dir);
     let json = serde_json::to_string_pretty(settings)
         .map_err(|e| format!("설정 직렬화 실패: {e}"))?;
-    fs::write(&path, json).map_err(|e| format!("설정 저장 실패: {e}"))
+
+    let tmp = path.with_extension(format!(
+        "json.{}.tmp",
+        uuid::Uuid::new_v4().simple()
+    ));
+    fs::write(&tmp, json).map_err(|e| format!("설정 임시 저장 실패: {e}"))?;
+    if path.exists() {
+        let _ = fs::remove_file(&path);
+    }
+    fs::rename(&tmp, &path).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        format!("설정 저장 실패: {e}")
+    })
 }
 
 #[cfg(test)]

@@ -404,6 +404,31 @@ button.primary { border-color: var(--accent); background: var(--accent-bg); }
 .textLayer ::-moz-selection {
   background: rgba(91, 140, 255, 0.4);
 }
+.textLayer span.search-mark {
+  background: rgba(255, 220, 50, 0.55);
+  color: rgba(0, 0, 0, 0.0);
+  border-radius: 2px;
+}
+
+.search-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.print-dialog .print-dialog-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.print-dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
 
 .continuous-page {
   background: var(--canvas-bg);

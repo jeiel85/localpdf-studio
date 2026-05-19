@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { pdfRenderQueue } from '../lib/renderQueue';
 
 interface ThumbnailItem {
   pageNumber: number;
@@ -28,40 +29,42 @@ export function ThumbnailPanel({
     }
 
     let cancelled = false;
+    const handles: { cancel: () => void }[] = [];
     setLoading(true);
+    const items: ThumbnailItem[] = [];
 
-    async function renderThumbnails() {
-      const items: ThumbnailItem[] = [];
-      const thumbScale = 0.2;
-
-      for (let i = 1; i <= pageCount; i++) {
-        if (cancelled) return;
+    const thumbScale = 0.2;
+    for (let i = 1; i <= pageCount; i++) {
+      const pageNum = i;
+      const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
+        if (cancelled || shouldCancel()) return null;
         try {
-          const page = await (document as PDFDocumentProxy).getPage(i);
+          const page = await (document as PDFDocumentProxy).getPage(pageNum);
+          if (cancelled || shouldCancel()) return null;
           const viewport = page.getViewport({ scale: thumbScale });
           const canvas = window.document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           const ctx = canvas.getContext('2d');
-          if (ctx) {
-            await page.render({ canvas, viewport }).promise;
-            items.push({ pageNumber: i, dataUrl: canvas.toDataURL() });
-            setThumbnails([...items]);
-          }
+          if (!ctx) return null;
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          if (cancelled || shouldCancel()) return null;
+          items.push({ pageNumber: pageNum, dataUrl: canvas.toDataURL() });
         } catch {
-          if (!cancelled) {
-            items.push({ pageNumber: i, dataUrl: null });
-            setThumbnails([...items]);
-          }
+          if (!cancelled) items.push({ pageNumber: pageNum, dataUrl: null });
         }
-      }
-      if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setThumbnails([...items].sort((a, b) => a.pageNumber - b.pageNumber));
+          if (items.length === pageCount) setLoading(false);
+        }
+        return null;
+      });
+      handles.push(handle);
     }
-
-    renderThumbnails();
 
     return () => {
       cancelled = true;
+      handles.forEach((h) => h.cancel());
     };
   }, [document, pageCount]);
 

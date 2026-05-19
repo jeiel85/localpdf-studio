@@ -19,6 +19,7 @@ import {
   type ViewerZoomMode,
   type WheelAction,
 } from '../types';
+import { LOCALES, getLocale, setLocale, type Locale } from '../i18n/messages';
 
 type Status = { kind: 'idle' | 'saving' | 'saved' | 'error'; message?: string };
 
@@ -390,6 +391,20 @@ export function SettingsPanel({ onStatus }: { onStatus: (message: string) => voi
 
       <section className="panel">
         <h2>UI</h2>
+        <label className="settings-row">
+          <span>언어 (Language)</span>
+          <select
+            value={getLocale()}
+            onChange={(e) => {
+              setLocale(e.target.value as Locale);
+              onStatus('언어를 변경했습니다. (일부 영역은 재시작 후 반영)');
+            }}
+          >
+            {LOCALES.map((l) => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
+          </select>
+        </label>
         <label className="settings-row">
           <span>테마</span>
           <select

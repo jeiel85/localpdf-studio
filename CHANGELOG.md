@@ -1,5 +1,109 @@
 # CHANGELOG.md
 
+## v0.9.0 - 2026-05-19
+
+대규모 기능 확장 라운드. 25개 항목(A1~A6 / B1~B6 / C1~C9 / E1~E5)을 일괄 처리.
+
+### Added — 새 기능
+
+- **메타데이터 편집** (`MetadataPanel`, [B1](src/components/MetadataPanel.tsx)): Title/Author/Subject/Keywords/Creator/Producer를 pdf-lib로 편집·저장. 사이드바 "정보" 탭. 디지털 서명 감지 표시 ([C5](src/components/MetadataPanel.tsx))
+- **PDF 폼 채우기** (`FormFillPanel`, [C6](src/components/FormFillPanel.tsx)): 텍스트/체크박스/드롭다운/라디오 필드를 자동 검색해 편집 후 저장. 사이드바 "폼" 탭
+- **책갈피** (`BookmarksPanel`, [C4](src/components/BookmarksPanel.tsx)): 페이지에 책갈피 추가/이동/삭제. 앱 데이터 경로에 PDF별 저장(원본 미수정). 사이드바 "책갈피" 탭
+- **분할 뷰 비교** (`ComparePanel`, [C7](src/components/ComparePanel.tsx)): 두 PDF를 좌/우 동시 표시 + 페이지별 텍스트 차이 분석 + 차이 페이지 빠른 이동. 사이드바 "비교" 탭
+- **OCR → 검색 가능 PDF** ([C1](src/components/AdvancedPanel.tsx)): PDF 페이지를 이미지로 렌더 → Tesseract `pdf` 출력 → 텍스트 레이어 합성된 PDF 생성. 새 Rust 명령 `run_ocr_searchable_pdf` (list-file 기반)
+- **이미지 OCR** ([C9](src/components/AdvancedPanel.tsx)): PNG/JPG/WEBP/BMP/TIFF 단일 이미지 → TXT
+- **페이지별 하이라이트 (MVP)** ([C3](src/components/AdvancedPanel.tsx)): 선택 페이지에 색상 띠(노랑/초록/분홍/파랑) 추가. pdf-lib `drawRectangle`로 적용. 본격 텍스트 주석은 추후 확장 예정
+- **PDF 정규화** ([C8](src/components/AdvancedPanel.tsx)): qpdf로 linearize + object stream + 미참조 리소스 제거. 새 Rust 명령 `normalize_pdf`. 완전한 PDF/A 변환은 Ghostscript가 필요해 별도 안내
+- **페이지 편집기 인라인 회전** ([B4](src/components/PageEditorPanel.tsx)): 선택 페이지를 90°/-90° 회전 → 썸네일 회전 시각화 → 일괄 적용 (`rotate_pages_individually` 명령, 각도별 그룹화 후 단일 qpdf 호출)
+- **자동 백업** ([E3](src/components/PageEditorPanel.tsx)): 페이지 편집기 상태(순서, 회전)를 `%APPDATA%/.../autosave/` 디렉터리에 PDF 경로 해시 기반으로 1.2초 debounce 저장. 다시 열 때 복구 프롬프트
+- **인쇄 다이얼로그** ([B3](src/components/PrintDialog.tsx)): 전체/현재 페이지만/지정 페이지 선택. 시스템 인쇄 다이얼로그에서 양면·매수 추가 설정
+- **검색 결과 캔버스 하이라이트** ([B2](src/components/PdfCanvas.tsx)): 검색어가 텍스트 레이어 span에 노란색 mark. 단일/연속 뷰 모두 지원, 검색어 변경 시 재렌더 없이 즉시 갱신
+- **단축키 보강** ([B6](src/App.tsx)): `Ctrl+=`/`Ctrl+-` 줌, `Ctrl+0` 실제크기, `Ctrl+L` 레이아웃 토글, `Home`/`End` 첫/끝 페이지, `Ctrl+G` 페이지 이동
+- **i18n 인프라** ([C2](src/i18n/messages.ts)): 한국어/영어/일본어 사전 + `localStorage` 영속. 설정에서 언어 선택. 사이드바/툴바부터 적용 (전면 적용은 점진적 진행)
+- **e2e 스캐폴드** ([E4](e2e/README.md)): Playwright + Tauri WebDriver 셋업 가이드 + smoke happy-path 작성
+
+### Added — 신규 Tauri 명령
+
+- `save_binary_file`, `read_file_bytes`, `delete_file_if_exists`, `read_text_file_if_exists`
+- `run_ocr_searchable_pdf`, `rotate_pages_individually`, `normalize_pdf`
+
+### Changed — UX/성능
+
+- **SearchPanel 대용량 PDF 최적화** ([A2](src/components/SearchPanel.tsx)): 25페이지 단위 incremental 결과 + `setTimeout(0)` 양보 + 취소 버튼 + 진행률 표시 (`N/M 페이지`)
+- **연속 뷰 메모리 해제** ([E1/E2](src/components/PdfContinuousView.tsx)): 가시 영역 3초 이탈 시 canvas/textLayer 비워 GPU/메모리 해제
+- **번들 분리** ([A6](vite.config.ts)): `manualChunks`로 pdfjs(415KB)/pdf-lib(429KB)/react-vendor(193KB)/tauri(20KB) 분리. 메인 번들 1,142KB → **114KB**
+- **결과 폴더 자동 열기** ([B5](src/lib/revealOutput.ts)): `settings.output.openFolderAfterJob` 설정 ON 시 작업 완료 후 `revealItemInDir` 호출 (ToolsPanel, MetadataPanel, FormFillPanel)
+- **PDF.js JavaScript 차단** ([E5](src/App.tsx)): 모든 `getDocument()` 호출에 `isEvalSupported: false` 적용 — 악성 PDF 임베디드 JS 차단
+
+### Security
+
+- **JSON atomic write** ([A1](src-tauri/src/commands.rs)): `recent_files.json`, `tab_state.json`, `settings.json`을 tempfile + rename으로 원자적 저장 → 동시 호출 시 손상 방지
+- **`pdf-local://` CORS 제한** ([A3](src-tauri/src/protocol.rs)): `Access-Control-Allow-Origin: *` → Tauri webview origin 화이트리스트 (`tauri://localhost`, `http://tauri.localhost` 등) + `Access-Control-Allow-Headers: range`로 제한
+- **PowerShell 환경변수 패턴** ([A4/S-6](src-tauri/src/installer_service.rs)): `-Command` 문자열 보간 제거. `LPDF_SRC` / `LPDF_DST` / `LPDF_EXE` 환경변수로 경로 전달해 쿼팅/이스케이프 우회 위험 제거. `-NonInteractive` 플래그 추가
+
+### Fixed
+
+- `PageEditorPanel.handleResetOrder`의 dead `cancelled` 변수 제거 ([A5](src/components/PageEditorPanel.tsx))
+
+### Verification
+
+- `cargo check`: 통과
+- `cargo test`: 37/37 통과
+- `npm run typecheck`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `npm run build`: 통과 (메인 113KB / pdfjs 415KB / pdf-lib 429KB / react 193KB / tauri 20KB)
+
+### Known limitations / Deferred
+
+- **본격 주석/하이라이트 (텍스트 선택 기반)**: 현재는 페이지별 색상 띠만. 텍스트 선택 좌표→PDF 좌표 변환과 주석 도구 UI는 차기 라운드 예정
+- **완전한 PDF/A 변환**: Ghostscript 필요. 현재는 qpdf 기반 정규화만 제공
+- **i18n 전면 적용**: 사이드바/툴바/설정 일부만 적용. 나머지 패널/다이얼로그는 점진적으로 추가
+- **e2e 실제 실행**: 셋업/스모크 테스트 골격만 추가. `tauri-driver` + Playwright 설치 후 실행 가능
+
+---
+
+## v0.8.0 - 2026-05-19
+
+### Security
+
+- **자동 설치 SHA-256 무결성 검증**: qpdf/Tesseract 다운로드 후 사전에 임베드된 해시와 비교, 불일치 시 파일 삭제 + 에러. Tesseract는 관리자 권한 실행이므로 가장 중요한 보강
+  - `qpdf 12.3.2 msvc64.zip`: `8941870a604e7c87ed24566b038d46c24ce76616254d2383c578f60c0677f202`
+  - `tesseract 5.4.0.20240606 setup.exe`: `c885fff6998e0608ba4bb8ab51436e1c6775c2bafc2559a19b423e18678b60c9`
+- **Tauri CSP 활성화**: `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `object-src 'none'`, `frame-ancestors 'none'`. 임의 origin 스크립트/iframe/object 차단
+- **경로 검증 일원화**: 모든 qpdf/ocr/watermark 명령 진입에 `validate_pdf_path`(input) + `validate_output_path`(output) 적용. 시스템 디렉터리(`%WINDIR%`, `%PROGRAMFILES%`) 출력 차단. 보호된 확장자 블랙리스트 18개로 확장(`exe/dll/sys/bat/cmd/ps1/psm1/vbs/vbe/js/jse/wsf/wsh/msi/msp/scr/com/cpl/lnk/reg/inf`)
+- **암호화 비밀번호 파일 사용**: `encrypt_pdf`도 `--user-password-file` / `--owner-password-file`로 전달 (CLI 인자 노출 방지). 레거시 qpdf fallback 유지
+- **임시 비밀번호 파일 무작위화**: UUID v4 + Unix에서 `0o600` 모드로 생성. PID만 사용하던 예측 가능 이름 제거
+- **PowerShell/curl 호출에 `CREATE_NO_WINDOW` 적용**: `hidden_cmd` 헬퍼를 installer_service/qpdf_service/ocr_service/watermark_service에 일괄 적용. Windows 콘솔 깜빡임 제거
+
+### Added
+
+- **`save_binary_file` Tauri 명령**: base64 디코딩 후 바이너리 저장. PDF→이미지, 이미지→PDF 출력에 사용
+- **`read_file_bytes` Tauri 명령**: 이미지/PDF 파일을 base64로 읽음 (최대 512MB). 이미지→PDF 변환의 입력 fetch 대체
+
+### Fixed
+
+- **PDF → 이미지 변환 깨짐**: 기존 `save_text_file`에 base64 문자열을 그대로 저장해 PNG/JPEG/WebP 파일이 외부 뷰어에서 열리지 않던 문제. `save_binary_file`로 교체
+- **이미지 → PDF 변환 실패**: 이미지 fetch를 `pdf-local://` 프로토콜로 시도했지만 프로토콜이 `.pdf`만 허용해 403 응답. `read_file_bytes`로 교체
+- **세션 복원 절반만 동작**: `tab_state.json`의 currentPage/scale/rotation/layout/fitMode를 viewer에 실제 적용. `loadPath(path, restoreState)` 시그니처 확장
+- **활성 탭 복원 setTimeout 의존 제거**: 모든 탭 로드 결과를 모은 뒤 즉시 setActiveTabId. 0.5초 대기 동안 사용자 조작이 덮어쓰던 race 제거
+- **`chrono_now()` 부정확한 날짜**: 자체 구현 윤년/달별 일수 무시 → `chrono::Utc::now()`로 교체. `recent_files.json`의 `openedAt`이 ISO-8601 UTC
+
+### Changed
+
+- **RenderQueue 사이드바 통합**: ThumbnailPanel / PageEditorPanel / AdvancedPanel(PDF→이미지)이 메인 캔버스와 동일한 `pdfRenderQueue` 사용. 사이드바 활성 시 메인 스크롤 끊김 회귀 제거
+- `load_pdf_outline` 데드 명령 제거 (PDF.js 프론트엔드에서 처리)
+- 의존성 추가: `sha2 = "0.10"`, `chrono = "0.4"` (clock, no default), `uuid = "1"` (v4)
+
+### Verification
+
+- `cargo check`: 통과 (경고 없음)
+- `cargo test`: 37/37 통과
+- `npm run typecheck`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `npm run build`: 통과 (CSS 25 kB, JS 1.14 MB)
+
+---
+
 ## v0.7.0 - 2026-05-19
 
 ### Added

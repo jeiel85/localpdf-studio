@@ -1,9 +1,7 @@
 #![allow(dead_code)]
 
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use crate::hidden_cmd;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct TesseractTool {
@@ -57,7 +55,7 @@ pub fn find_tesseract_with(override_path: Option<&str>) -> Result<TesseractTool,
         _ => which::which("tesseract").map_err(|_| OcrError::NotFound)?,
     };
 
-    let version = Command::new(&path)
+    let version = hidden_cmd(&path)
         .arg("--version")
         .output()
         .map(|output| {
@@ -81,7 +79,7 @@ pub fn find_tesseract_with(override_path: Option<&str>) -> Result<TesseractTool,
 }
 
 fn list_languages(tesseract_path: &Path) -> Result<Vec<String>, OcrError> {
-    let output = Command::new(tesseract_path)
+    let output = hidden_cmd(tesseract_path)
         .arg("--list-langs")
         .output()
         .map_err(|e| OcrError::ExecutionFailed(format!("언어 목록 확인 실패: {e}")))?;
@@ -139,7 +137,7 @@ pub fn run_ocr(
 
     let output_base = output_path.with_extension("");
 
-    let mut cmd = Command::new(&tesseract.path);
+    let mut cmd = hidden_cmd(&tesseract.path);
     cmd.arg(input_path)
         .arg(output_base.to_string_lossy().as_ref())
         .arg("-l")
@@ -173,6 +171,79 @@ pub fn extract_text(
 
     let text = std::fs::read_to_string(output_path)?;
     Ok(text)
+}
+
+/// 여러 이미지 입력 + searchable PDF 출력.
+/// Tesseract list-file 기능을 사용해 단일 multi-page PDF 생성.
+pub fn run_ocr_searchable_pdf(
+    image_paths: &[std::path::PathBuf],
+    output_pdf: &Path,
+    language: &str,
+    tesseract: &TesseractTool,
+) -> Result<PathBuf, OcrError> {
+    if image_paths.is_empty() {
+        return Err(OcrError::InvalidInput("이미지 목록이 비어 있습니다.".to_string()));
+    }
+    if language.trim().is_empty() {
+        return Err(OcrError::InvalidInput("OCR 언어를 지정하세요 (예: kor+eng).".to_string()));
+    }
+    for p in image_paths {
+        if !p.exists() {
+            return Err(OcrError::FileNotFound(p.to_string_lossy().to_string()));
+        }
+    }
+    if output_pdf.exists() {
+        return Err(OcrError::InvalidInput(format!(
+            "출력 파일이 이미 존재합니다: {}",
+            output_pdf.to_string_lossy()
+        )));
+    }
+
+    // list 파일 작성
+    let temp_dir = std::env::temp_dir();
+    let token = format!("lpdf_ocr_{}_{}.txt", std::process::id(), now_nanos());
+    let list_path = temp_dir.join(token);
+    let mut contents = String::new();
+    for p in image_paths {
+        contents.push_str(&p.to_string_lossy());
+        contents.push('\n');
+    }
+    std::fs::write(&list_path, contents)
+        .map_err(|e| OcrError::IoError(format!("OCR 입력 목록 작성 실패: {e}")))?;
+
+    let output_base = output_pdf.with_extension("");
+    let mut cmd = crate::hidden_cmd(&tesseract.path);
+    cmd.arg(&list_path)
+        .arg(output_base.to_string_lossy().as_ref())
+        .arg("-l")
+        .arg(language)
+        .arg("pdf");
+
+    let output = cmd
+        .output()
+        .map_err(|e| OcrError::ExecutionFailed(format!("Tesseract 실행 중 오류: {e}")));
+    let _ = std::fs::remove_file(&list_path);
+    let output = output?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(OcrError::ExecutionFailed(format!(
+            "Searchable PDF OCR 실패: {stderr}"
+        )));
+    }
+    if !output_pdf.exists() {
+        return Err(OcrError::ExecutionFailed(
+            "Tesseract가 실행되었으나 출력 PDF가 생성되지 않았습니다.".to_string(),
+        ));
+    }
+    Ok(output_pdf.to_path_buf())
+}
+
+fn now_nanos() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0)
 }
 
 #[cfg(test)]

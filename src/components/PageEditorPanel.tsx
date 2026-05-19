@@ -1,11 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { deletePages, insertPages, reorderPages } from '../lib/tauriCommands';
+import { deletePages, getAppDataPath, insertPages, reorderPages, rotatePagesIndividually } from '../lib/tauriCommands';
+import { pdfRenderQueue } from '../lib/renderQueue';
+
+interface AutosaveState {
+  pageOrder: number[];
+  rotations: Record<number, number>;
+  savedAt: string;
+}
+
+function autosaveKey(filePath: string): string {
+  // Simple stable hash from path
+  let hash = 0;
+  for (let i = 0; i < filePath.length; i++) {
+    hash = ((hash << 5) - hash + filePath.charCodeAt(i)) | 0;
+  }
+  return `autosave_${Math.abs(hash).toString(36)}.json`;
+}
 
 interface PageEntry {
   pageNumber: number;
   thumbnailUrl: string | null;
+  rotation: number; // 0/90/180/270 (이 페이지에 적용할 추가 회전)
 }
 
 export function PageEditorPanel({
@@ -26,6 +44,72 @@ export function PageEditorPanel({
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const renderRef = useRef<AbortController | null>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [autosavePath, setAutosavePath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const root = await getAppDataPath();
+        if (cancelled) return;
+        const path = `${root}\\autosave\\${autosaveKey(file.path)}`;
+        setAutosavePath(path);
+        const existing = await invoke<string>('read_text_file_if_exists', { path });
+        if (existing && !cancelled) {
+          try {
+            const data = JSON.parse(existing) as AutosaveState;
+            if (data.pageOrder && data.pageOrder.length > 0 && pageCount > 0) {
+              const ok = window.confirm(
+                `이 PDF의 미저장 편집 상태(${data.savedAt})가 있습니다. 복구할까요?`,
+              );
+              if (ok) {
+                setPages(
+                  data.pageOrder.map((pn) => ({
+                    pageNumber: pn,
+                    thumbnailUrl: null,
+                    rotation: data.rotations[pn] ?? 0,
+                  })),
+                );
+                onStatus('자동 백업에서 복구했습니다.');
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
+
+  // 편집 상태 변경 시 debounce 자동 저장
+  useEffect(() => {
+    if (!autosavePath || pages.length === 0) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(async () => {
+      const data: AutosaveState = {
+        pageOrder: pages.map((p) => p.pageNumber),
+        rotations: pages.reduce<Record<number, number>>((acc, p) => {
+          if (p.rotation !== 0) acc[p.pageNumber] = p.rotation;
+          return acc;
+        }, {}),
+        savedAt: new Date().toISOString(),
+      };
+      try {
+        await invoke('save_text_file', { path: autosavePath, content: JSON.stringify(data) });
+      } catch {
+        // silent — non-critical
+      }
+    }, 1200);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [pages, autosavePath]);
 
   useEffect(() => {
     if (!document || pageCount === 0) {
@@ -40,41 +124,47 @@ export function PageEditorPanel({
 
     const entries: PageEntry[] = [];
     for (let i = 1; i <= pageCount; i++) {
-      entries.push({ pageNumber: i, thumbnailUrl: null });
+      entries.push({ pageNumber: i, thumbnailUrl: null, rotation: 0 });
     }
     setPages(entries);
 
     let cancelled = false;
-    async function renderThumbnails() {
-      for (let i = 1; i <= pageCount; i++) {
-        if (cancelled) return;
+    const handles: { cancel: () => void }[] = [];
+    for (let i = 1; i <= pageCount; i++) {
+      const pageNum = i;
+      const handle = pdfRenderQueue.enqueue(async (shouldCancel) => {
+        if (cancelled || shouldCancel()) return null;
         try {
-          const page = await document!.getPage(i);
+          const page = await document!.getPage(pageNum);
+          if (cancelled || shouldCancel()) return null;
           const viewport = page.getViewport({ scale: 0.18 });
           const canvas = globalThis.document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           const ctx = canvas.getContext('2d');
-          if (!ctx) continue;
+          if (!ctx) return null;
           await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+          if (cancelled || shouldCancel()) return null;
           const dataUrl = canvas.toDataURL('image/png');
           setPages((prev) => {
             const next = [...prev];
-            if (next[i - 1]) {
-              next[i - 1] = { ...next[i - 1], thumbnailUrl: dataUrl };
+            const idx = next.findIndex((p) => p.pageNumber === pageNum);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], thumbnailUrl: dataUrl };
             }
             return next;
           });
         } catch {
           // skip rendering errors
         }
-      }
+        return null;
+      });
+      handles.push(handle);
     }
-
-    renderThumbnails();
 
     return () => {
       cancelled = true;
+      handles.forEach((h) => h.cancel());
       controller.abort();
     };
   }, [document, pageCount]);
@@ -201,6 +291,51 @@ export function PageEditorPanel({
     }
   }
 
+  function rotateSelected(delta: number) {
+    if (selected.size === 0) {
+      onStatus('회전할 페이지를 선택하세요.');
+      return;
+    }
+    setPages((prev) =>
+      prev.map((p) =>
+        selected.has(p.pageNumber)
+          ? { ...p, rotation: ((p.rotation + delta) % 360 + 360) % 360 }
+          : p,
+      ),
+    );
+  }
+
+  async function handleRotateApply() {
+    if (!file) {
+      onStatus('PDF 파일 정보가 없습니다.');
+      return;
+    }
+    const rotations: [number, number][] = pages
+      .filter((p) => p.rotation !== 0)
+      .map((p) => [p.pageNumber, p.rotation as 90 | 180 | 270]);
+    if (rotations.length === 0) {
+      onStatus('회전된 페이지가 없습니다.');
+      return;
+    }
+    const stem = file.path.replace(/\.pdf$/i, '');
+    const outPath = await save({
+      defaultPath: `${stem}_rotated.pdf`,
+      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+    });
+    if (!outPath) return;
+    setRunning(true);
+    try {
+      const result = await rotatePagesIndividually(file.path, outPath, rotations);
+      onStatus(result);
+      // 회전 상태 초기화
+      setPages((prev) => prev.map((p) => ({ ...p, rotation: 0 })));
+    } catch (error) {
+      onStatus(`회전 실패: ${(error as Error).message ?? String(error)}`);
+    } finally {
+      setRunning(false);
+    }
+  }
+
   async function handleInsertPdf() {
     if (!file) {
       onStatus('PDF 파일 정보가 없습니다.');
@@ -238,34 +373,40 @@ export function PageEditorPanel({
     if (!document || pageCount === 0) return;
     const entries: PageEntry[] = [];
     for (let i = 1; i <= pageCount; i++) {
-      entries.push({ pageNumber: i, thumbnailUrl: null });
+      entries.push({ pageNumber: i, thumbnailUrl: null, rotation: 0 });
     }
     setPages(entries);
     setSelected(new Set());
 
-    let cancelled = false;
     for (let i = 1; i <= pageCount; i++) {
-      if (cancelled) return;
-      try {
-        const page = await document!.getPage(i);
-        const viewport = page.getViewport({ scale: 0.18 });
-        const canvas = globalThis.document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-        const dataUrl = canvas.toDataURL('image/png');
-        setPages((prev) => {
-          const next = [...prev];
-          if (next[i - 1]) {
-            next[i - 1] = { ...next[i - 1], thumbnailUrl: dataUrl };
-          }
-          return next;
-        });
-      } catch {
-        // skip
-      }
+      const pageNum = i;
+      pdfRenderQueue.enqueue(async (shouldCancel) => {
+        if (shouldCancel()) return null;
+        try {
+          const page = await document!.getPage(pageNum);
+          if (shouldCancel()) return null;
+          const viewport = page.getViewport({ scale: 0.18 });
+          const canvas = globalThis.document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+          if (shouldCancel()) return null;
+          const dataUrl = canvas.toDataURL('image/png');
+          setPages((prev) => {
+            const next = [...prev];
+            const idx = next.findIndex((p) => p.pageNumber === pageNum);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], thumbnailUrl: dataUrl };
+            }
+            return next;
+          });
+        } catch {
+          // skip
+        }
+        return null;
+      });
     }
   }
 
@@ -293,6 +434,32 @@ export function PageEditorPanel({
           onClick={handleDeleteSelected}
         >
           선택 삭제 ({selected.size})
+        </button>
+        <button
+          type="button"
+          className={`editor-btn ${running ? 'disabled' : ''}`}
+          disabled={running || selected.size === 0}
+          onClick={() => rotateSelected(90)}
+          title="선택 페이지 90° 시계방향 회전"
+        >
+          ↻ 90°
+        </button>
+        <button
+          type="button"
+          className={`editor-btn ${running ? 'disabled' : ''}`}
+          disabled={running || selected.size === 0}
+          onClick={() => rotateSelected(-90)}
+          title="선택 페이지 90° 반시계 회전"
+        >
+          ↺ 90°
+        </button>
+        <button
+          type="button"
+          className={`editor-btn primary ${running ? 'disabled' : ''}`}
+          disabled={running || pages.every((p) => p.rotation === 0)}
+          onClick={handleRotateApply}
+        >
+          회전 적용
         </button>
         <button
           type="button"
@@ -337,9 +504,16 @@ export function PageEditorPanel({
             >
               <span className="editor-page-num">{entry.pageNumber}</span>
               {entry.thumbnailUrl ? (
-                <img src={entry.thumbnailUrl} alt={`페이지 ${entry.pageNumber}`} />
+                <img
+                  src={entry.thumbnailUrl}
+                  alt={`페이지 ${entry.pageNumber}`}
+                  style={{ transform: `rotate(${entry.rotation}deg)`, transition: 'transform 0.2s' }}
+                />
               ) : (
                 <div className="editor-page-placeholder" />
+              )}
+              {entry.rotation !== 0 && (
+                <span className="editor-page-rotation">{entry.rotation}°</span>
               )}
             </button>
           );

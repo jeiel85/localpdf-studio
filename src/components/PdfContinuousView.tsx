@@ -1,6 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { computeFitScale, LoadingOverlay, renderQualityToScale, type PdfCanvasProps } from './PdfCanvas';
+import { applyHighlight, computeFitScale, LoadingOverlay, renderQualityToScale, type PdfCanvasProps } from './PdfCanvas';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { pdfjsLib } from '../lib/pdfjs';
 import type { RenderQuality } from '../types';
@@ -18,6 +18,7 @@ export function PdfContinuousView({
   fitMode,
   renderQuality,
   loadProgress,
+  highlightQuery,
   onPageChange,
   onFittedScale,
 }: PdfCanvasProps) {
@@ -178,6 +179,7 @@ export function PdfContinuousView({
             renderQuality={renderQuality}
             container={containerRef.current}
             isScrolling={isScrolling}
+            highlightQuery={highlightQuery ?? ''}
           />
         ))}
     </div>
@@ -194,6 +196,7 @@ type ContinuousPageProps = {
   renderQuality: RenderQuality;
   container: HTMLDivElement | null;
   isScrolling: boolean;
+  highlightQuery: string;
 };
 
 const ContinuousPage = memo(function ContinuousPage({
@@ -206,6 +209,7 @@ const ContinuousPage = memo(function ContinuousPage({
   renderQuality,
   container,
   isScrolling,
+  highlightQuery,
 }: ContinuousPageProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -285,6 +289,9 @@ const ContinuousPage = memo(function ContinuousPage({
                 viewport,
               });
               await textLayer.render();
+              if (highlightQuery) {
+                applyHighlight(textLayerRef.current, highlightQuery);
+              }
             }
           } catch {
             // Text layer rendering failure is not critical
@@ -307,6 +314,28 @@ const ContinuousPage = memo(function ContinuousPage({
       renderTaskRef.current?.cancel();
     };
   }, [visible, rendered, isScrolling, document, pageIndex, scale, rotation, renderQuality]);
+
+  useEffect(() => {
+    applyHighlight(textLayerRef.current, highlightQuery);
+  }, [highlightQuery, rendered]);
+
+  // E1/E2: 가시 영역에서 완전히 벗어나면 canvas/text 비워 GPU/메모리 해제
+  useEffect(() => {
+    if (visible || !rendered) return;
+    const timer = window.setTimeout(() => {
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        canvasRef.current.width = 1;
+        canvasRef.current.height = 1;
+      }
+      if (textLayerRef.current) {
+        textLayerRef.current.innerHTML = '';
+      }
+      setRendered(false);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [visible, rendered]);
 
   const w = actualSize?.width ?? defaultWidth;
   const h = actualSize?.height ?? defaultHeight;

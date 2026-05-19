@@ -15,7 +15,7 @@ use std::sync::Mutex;
 
 /// Windows에서 자식 프로세스의 콘솔 창을 숨기기 위한 Command 생성 헬퍼.
 /// CREATE_NO_WINDOW (0x08000000) 플래그를 설정한다.
-pub fn hidden_cmd(program: &str) -> std::process::Command {
+pub fn hidden_cmd<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
     let mut cmd = std::process::Command::new(program);
     #[cfg(target_os = "windows")]
     {
@@ -49,7 +49,6 @@ pub fn run() {
             commands::app_info,
             commands::load_pdf_base64,
             commands::load_pdf_url,
-            commands::load_pdf_outline,
             commands::get_startup_context,
             commands::check_external_tools,
             commands::check_tesseract_available,
@@ -63,9 +62,14 @@ pub fn run() {
             commands::compress_pdf,
             commands::read_pdf_metadata,
             commands::run_ocr,
+            commands::run_ocr_searchable_pdf,
             commands::apply_watermark,
             commands::apply_stamp,
             commands::save_text_file,
+            commands::save_binary_file,
+            commands::read_file_bytes,
+            commands::delete_file_if_exists,
+            commands::read_text_file_if_exists,
             commands::get_recent_files,
             commands::add_recent_file,
             commands::check_qpdf_available,
@@ -84,6 +88,8 @@ pub fn run() {
             commands::reorder_pages,
             commands::delete_pages,
             commands::insert_pages,
+            commands::rotate_pages_individually,
+            commands::normalize_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run LocalPDF Studio");

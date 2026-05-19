@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { t } from '../i18n/messages';
 import type { SidebarTab } from '../types';
 
 export function Sidebar({
@@ -10,16 +11,20 @@ export function Sidebar({
   onTabChange: (tab: SidebarTab) => void;
   children: ReactNode;
 }) {
-  const tabs: { key: SidebarTab; label: string }[] = [
-    { key: 'document', label: '문서' },
-    { key: 'thumbnails', label: '썸네일' },
-    { key: 'outline', label: '목차' },
-    { key: 'search', label: '검색' },
-    { key: 'merge', label: '병합' },
-    { key: 'tools', label: '도구' },
-    { key: 'advanced', label: '고급' },
-    { key: 'editor', label: '편집' },
-    { key: 'settings', label: '설정' },
+  const tabs: { key: SidebarTab; labelKey: string }[] = [
+    { key: 'document', labelKey: 'sidebar.document' },
+    { key: 'thumbnails', labelKey: 'sidebar.thumbnails' },
+    { key: 'outline', labelKey: 'sidebar.outline' },
+    { key: 'search', labelKey: 'sidebar.search' },
+    { key: 'merge', labelKey: 'sidebar.merge' },
+    { key: 'tools', labelKey: 'sidebar.tools' },
+    { key: 'advanced', labelKey: 'sidebar.advanced' },
+    { key: 'editor', labelKey: 'sidebar.editor' },
+    { key: 'metadata', labelKey: 'sidebar.metadata' },
+    { key: 'form', labelKey: 'sidebar.form' },
+    { key: 'bookmarks', labelKey: 'sidebar.bookmarks' },
+    { key: 'compare', labelKey: 'sidebar.compare' },
+    { key: 'settings', labelKey: 'sidebar.settings' },
   ];
 
   return (
@@ -29,14 +34,14 @@ export function Sidebar({
         <p className="muted">로컬 우선 PDF 데스크톱 앱</p>
       </div>
       <div className="sidebar-tabs">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <button
-            key={t.key}
+            key={tab.key}
             type="button"
-            className={`sidebar-tab ${activeTab === t.key ? 'active' : ''}`}
-            onClick={() => onTabChange(t.key)}
+            className={`sidebar-tab ${activeTab === tab.key ? 'active' : ''}`}
+            onClick={() => onTabChange(tab.key)}
           >
-            {t.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>

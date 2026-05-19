@@ -18,6 +18,19 @@ export default defineConfig({
     target: 'es2022',
     minify: 'esbuild',
     sourcemap: true,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/pdfjs-dist')) return 'pdfjs';
+          if (id.includes('node_modules/pdf-lib')) return 'pdf-lib';
+          if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/@tauri-apps')) return 'tauri';
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',

@@ -14,7 +14,12 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
     { key: 'Ctrl+5', action: '병합 탭' },
     { key: 'Ctrl+6', action: '도구 탭' },
     { key: 'Ctrl+7', action: '고급 기능 탭' },
-    { key: 'Alt+\u2190 / Alt+\u2192', action: '이전/다음 페이지' },
+    { key: 'Alt+← / Alt+→', action: '이전/다음 페이지' },
+    { key: 'Home / End', action: '첫 페이지 / 마지막 페이지' },
+    { key: 'Ctrl+G', action: '특정 페이지로 이동' },
+    { key: 'Ctrl+= / Ctrl+-', action: '확대 / 축소' },
+    { key: 'Ctrl+0', action: '실제 크기 (100%)' },
+    { key: 'Ctrl+L', action: '단일/연속 레이아웃 토글' },
     { key: 'F1', action: '이 도움말 보기' },
   ];
 

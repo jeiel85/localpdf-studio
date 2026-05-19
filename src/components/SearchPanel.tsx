@@ -6,22 +6,30 @@ export function SearchPanel({
   document,
   pageCount,
   onPageSelect,
+  onQueryChange,
 }: {
   document: PDFDocumentProxy | null;
   pageCount: number;
   onPageSelect: (page: number) => void;
+  onQueryChange?: (query: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const searchRef = useRef(0);
+
+  useEffect(() => {
+    onQueryChange?.(query.trim());
+  }, [query, onQueryChange]);
 
   const doSearch = useCallback(
     async (searchQuery: string) => {
       if (!document || !searchQuery.trim() || pageCount === 0) {
         setResults([]);
         setError(null);
+        setProgress(null);
         return;
       }
 
@@ -29,9 +37,11 @@ export function SearchPanel({
       setSearching(true);
       setError(null);
       setResults([]);
+      setProgress({ done: 0, total: pageCount });
 
       const found: SearchResult[] = [];
       const lowerQuery = searchQuery.toLowerCase();
+      const CHUNK = 25;
 
       try {
         for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
@@ -58,9 +68,17 @@ export function SearchPanel({
             idx += 1;
           }
 
-          if (found.length > 0 && searchId === searchRef.current) {
-            setResults([...found]);
+          if (searchId === searchRef.current) {
+            setProgress({ done: pageNum, total: pageCount });
+            if (pageNum % CHUNK === 0 || pageNum === pageCount) {
+              setResults([...found]);
+              // UI 이벤트가 처리되도록 양보
+              await new Promise((r) => setTimeout(r, 0));
+            }
           }
+        }
+        if (searchId === searchRef.current) {
+          setResults([...found]);
         }
       } catch (e) {
         if (searchId === searchRef.current) {
@@ -69,11 +87,18 @@ export function SearchPanel({
       } finally {
         if (searchId === searchRef.current) {
           setSearching(false);
+          setProgress(null);
         }
       }
     },
     [document, pageCount],
   );
+
+  function cancelSearch() {
+    searchRef.current += 1;
+    setSearching(false);
+    setProgress(null);
+  }
 
   useEffect(() => {
     if (!query.trim()) {
@@ -100,7 +125,14 @@ export function SearchPanel({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {searching && <p className="empty-text">검색 중...</p>}
+      {searching && (
+        <div className="search-progress-row">
+          <span className="empty-text">
+            검색 중... {progress ? `${progress.done}/${progress.total}` : ''}
+          </span>
+          <button type="button" className="btn-small" onClick={cancelSearch}>취소</button>
+        </div>
+      )}
       {error && <p className="empty-text" style={{ color: '#f2c66a' }}>{error}</p>}
       {!searching && query.trim() && results.length === 0 && (
         <p className="empty-text">검색 결과가 없습니다.</p>

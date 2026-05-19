@@ -14,9 +14,26 @@ export type PdfCanvasProps = {
   fitMode: FitMode;
   renderQuality: RenderQuality;
   loadProgress: { loaded: number; total: number } | null;
+  highlightQuery?: string;
   onPageChange?: (page: number) => void;
   onFittedScale?: (scale: number) => void;
 };
+
+export function applyHighlight(container: HTMLElement | null, query: string): void {
+  if (!container) return;
+  const trimmed = query.trim();
+  // 기존 하이라이트 제거
+  container.querySelectorAll('.search-mark').forEach((el) => {
+    el.classList.remove('search-mark');
+  });
+  if (!trimmed) return;
+  const lower = trimmed.toLowerCase();
+  container.querySelectorAll<HTMLElement>('span').forEach((span) => {
+    if (span.textContent && span.textContent.toLowerCase().includes(lower)) {
+      span.classList.add('search-mark');
+    }
+  });
+}
 
 function PdfCanvasInner(props: PdfCanvasProps) {
   if (props.layout === 'continuous') {
@@ -35,6 +52,7 @@ function PdfCanvasSingle({
   fitMode,
   renderQuality,
   loadProgress,
+  highlightQuery,
   onFittedScale,
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +125,9 @@ function PdfCanvasSingle({
                 viewport,
               });
               await textLayer.render();
+              if (highlightQuery) {
+                applyHighlight(textLayerRef.current, highlightQuery);
+              }
             }
           } catch {
             // Text layer rendering failure is not critical
@@ -127,6 +148,11 @@ function PdfCanvasSingle({
       renderTaskRef.current?.cancel();
     };
   }, [document, pageNumber, scale, rotation, fitMode, renderQuality]);
+
+  // 검색어만 변경 시 재렌더 없이 하이라이트만 갱신
+  useEffect(() => {
+    applyHighlight(textLayerRef.current, highlightQuery ?? '');
+  }, [highlightQuery]);
 
   return (
     <div className="canvas-wrap" ref={containerRef}>

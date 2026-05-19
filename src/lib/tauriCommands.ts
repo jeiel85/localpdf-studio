@@ -85,6 +85,22 @@ export async function saveTabState(state: TabState): Promise<void> {
   return invoke<void>('save_tab_state', { state });
 }
 
+export async function saveBinaryFile(path: string, base64Data: string): Promise<string> {
+  return invoke<string>('save_binary_file', { path, base64Data });
+}
+
+export async function runOcrSearchablePdf(
+  imagePaths: string[],
+  outputPdf: string,
+  language: string,
+): Promise<string> {
+  return invoke<string>('run_ocr_searchable_pdf', { imagePaths, outputPdf, language });
+}
+
+export async function readFileBytes(path: string): Promise<string> {
+  return invoke<string>('read_file_bytes', { path });
+}
+
 export async function installQpdfAuto(): Promise<string> {
   return invoke<string>('install_qpdf_auto');
 }
@@ -107,4 +123,12 @@ export async function deletePages(inputFile: string, outputPath: string, pagesTo
 
 export async function insertPages(baseFile: string, insertFile: string, outputPath: string, afterPage: number, baseTotalPages: number): Promise<string> {
   return invoke<string>('insert_pages', { baseFile, insertFile, outputPath, afterPage, baseTotalPages });
+}
+
+export async function rotatePagesIndividually(
+  inputFile: string,
+  outputPath: string,
+  rotations: [number, number][],
+): Promise<string> {
+  return invoke<string>('rotate_pages_individually', { inputFile, outputPath, rotations });
 }
