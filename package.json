@@ -1,7 +1,7 @@
 {
   "name": "localpdf-studio",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.17.0",
   "type": "module",
   "description": "Local-first desktop PDF studio built with Tauri, React, TypeScript, and Rust.",
   "scripts": {

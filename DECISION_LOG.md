@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-20 - v0.16.1 GitHub Release 배포 규칙
+
+- 결정: 릴리즈는 `v*` 태그 푸시로만 시작하고, Windows build job이 산출물을 artifact로 업로드한 뒤 단일 release job이 GitHub Release를 생성한다.
+- 이유: 참고 프로젝트처럼 빌드 단계와 릴리즈 게시 단계를 분리하면 릴리즈 본문, asset 목록, 공개 타이밍을 예측 가능하게 유지할 수 있다. matrix job이 Draft Release를 동시에 수정하는 구조보다 실패 지점과 재실행 범위도 명확하다.
+- 안전장치: 릴리즈 본문은 `CHANGELOG.md`의 현재 버전 섹션에서 추출하고, `actions/upload-artifact`와 `softprops/action-gh-release` 모두 asset 누락 시 실패하도록 설정한다.
+- 한계: 이번 정비는 Windows 실사용 배포 산출물(setup exe, MSI, Portable ZIP, updater signature, latest.json)을 우선한다. macOS/Linux 자동 릴리즈는 서명/검증 정책이 정리된 뒤 별도 job으로 확장한다.
+
 ## 2026-05-20 - v0.16.0 패키지 매니저 매니페스트 동기화 전략
 
 - 결정: winget, Chocolatey, Homebrew, Snap, AUR 제출 파일의 버전/URL/SHA-256 갱신을 `scripts/windows/sync-package-manifests.ps1` 단일 스크립트로 자동화한다.

@@ -7,21 +7,27 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$setupExe = Join-Path $ReleaseDir "bundled/nsis/*_x64-setup.exe" | Resolve-Path | Select-Object -First 1
-$sigFile = "$setupExe.sig"
+$versionClean = $Version -replace '^v', ''
+$nsisPattern = Join-Path $ReleaseDir "bundle/nsis/*_${versionClean}_x64-setup.exe"
+$setupExe = Resolve-Path $nsisPattern | Select-Object -First 1
 
-if (-not (Test-Path $setupExe)) {
-  throw "Setup exe not found: $setupExe"
+if (-not $setupExe) {
+  throw "Setup exe not found: $nsisPattern"
 }
+
+$setupExePath = $setupExe.Path
+$sigFile = "$setupExePath.sig"
+
 if (-not (Test-Path $sigFile)) {
   throw "Signature file not found: $sigFile"
 }
 
 $signature = Get-Content $sigFile -Raw
 $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-$versionClean = $Version -replace '^v', ''
 $repo = "jeiel85/localpdf-studio"
-$downloadUrl = "https://github.com/$repo/releases/download/v$versionClean/localpdf-studio_${versionClean}_x64-setup.exe"
+$assetName = Split-Path $setupExePath -Leaf
+$assetNameEncoded = [uri]::EscapeDataString($assetName)
+$downloadUrl = "https://github.com/$repo/releases/download/v$versionClean/$assetNameEncoded"
 
 $latest = @{
   version   = "v$versionClean"

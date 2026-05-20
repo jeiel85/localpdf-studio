@@ -1,5 +1,21 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.16.1 - GitHub Release 배포 규칙 정비)
+
+- 작업: `D:\Project\claude-usage-tray-windows`의 태그 기반 GitHub Release 흐름을 참고해 LocalPDF Studio 릴리즈 규칙을 Windows 산출물 중심으로 정비.
+- 변경 파일:
+  - `.github/workflows/release.yml` — 태그 푸시 시 Windows에서 빌드와 아티팩트 업로드만 수행하고, 별도 `release` job에서 `CHANGELOG.md`의 현재 버전 섹션을 릴리즈 노트로 사용해 GitHub Release를 생성하도록 변경.
+  - `scripts/windows/generate-latest-json.ps1` — 실제 Tauri bundle 경로(`bundle/nsis`)와 asset 파일명 URL 인코딩을 사용하도록 수정.
+  - `scripts/windows/release.ps1` [NEW] — clean working tree 확인, 버전 범프, 버전 파일 동기화, 커밋, 태그, `origin master` 태그 푸시를 수행하는 보조 스크립트 추가.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `README.md`, `TASKS.md`, `CHANGELOG.md`, `DECISION_LOG.md` — v0.16.1 릴리즈 기록 및 메타데이터 동기화.
+- 설계 결정:
+  - Draft 릴리즈를 matrix build가 직접 만지는 방식 대신, 빌드 산출물을 artifact로 모은 뒤 마지막 release job 하나가 공개 릴리즈를 생성하는 단순한 구조를 채택.
+  - 현재 프로젝트의 실제 배포 기대 산출물(setup exe, MSI, portable zip, updater signature, latest.json)에 맞춰 Windows 릴리즈를 우선 안정화.
+- 검증:
+  - `npm run typecheck` 통과.
+  - `npm run build` 통과.
+  - `npm run tauri:build`는 Rust release build와 NSIS/MSI 생성까지 완료했으나 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계에서 실패. updater signature와 `latest.json`은 GitHub Actions secret 주입 환경에서 최종 확인.
+
 ## 2026-05-20 (v0.16.0 - 패키지 매니저 매니페스트 동기화 자동화)
 
 - 후속 조정: 릴리즈 워크플로가 matrix 빌드 중에는 Draft를 유지하되 모든 플랫폼 빌드 성공 후 `publish` job에서 Draft를 공개 릴리즈로 전환하도록 변경.

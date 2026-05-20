@@ -1,5 +1,15 @@
 # TASKS.md
 
+## v0.16.1 - GitHub Release 배포 규칙 정비
+
+- [x] 참고 프로젝트(`D:\Project\claude-usage-tray-windows`)의 태그 기반 릴리즈 흐름 확인
+- [x] Release workflow를 Windows build job + 단일 GitHub Release job 구조로 정비
+- [x] `CHANGELOG.md` 현재 버전 섹션을 릴리즈 노트로 자동 추출
+- [x] NSIS setup exe, MSI, updater signature, Portable ZIP, `latest.json`을 릴리즈 필수 산출물로 업로드
+- [x] `generate-latest-json.ps1`의 Tauri bundle 경로 및 asset URL 생성 수정
+- [x] `scripts/windows/release.ps1` 배포 보조 스크립트 추가
+- [x] v0.16.1 릴리즈 메타데이터 동기화 (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `README.md`)
+
 ## v0.16.0 - 패키지 매니저 매니페스트 동기화 자동화
 
 - [x] GitHub Release asset digest를 조회해 winget/Chocolatey/Homebrew/Snap/AUR 매니페스트 버전, URL, SHA-256을 동기화하는 PowerShell 스크립트 추가 (`scripts/windows/sync-package-manifests.ps1`)

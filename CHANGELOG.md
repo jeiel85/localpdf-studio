@@ -1,5 +1,25 @@
 # CHANGELOG.md
 
+## v0.16.1 - 2026-05-20
+
+GitHub Release 배포 규칙을 태그 기반 단일 릴리즈 생성 흐름으로 정비.
+
+### Changed
+- `.github/workflows/release.yml`을 Windows 빌드 아티팩트 생성 job과 GitHub Release 생성 job으로 분리.
+- 릴리즈 노트는 현재 태그 버전의 `CHANGELOG.md` 섹션에서 자동 추출하도록 변경.
+- `tauri-action`의 matrix별 Draft Release 직접 조작을 제거하고, `softprops/action-gh-release`가 최종 산출물을 한 번에 게시하도록 변경.
+- Windows 릴리즈 산출물 기준을 NSIS setup exe, MSI, updater signature, Portable ZIP, `latest.json`으로 명확화.
+- `scripts/windows/generate-latest-json.ps1`의 bundle 경로와 다운로드 URL 생성을 실제 Tauri 산출물 이름 기준으로 수정.
+- 참고 프로젝트와 같은 태그 푸시 중심 배포를 위해 `scripts/windows/release.ps1` 릴리즈 보조 스크립트 추가.
+- 앱 릴리즈 메타데이터를 v0.16.1로 동기화.
+
+### Verification
+- `npm run typecheck`: 통과.
+- `npm run build`: 통과.
+- `npm run tauri:build`: Rust release build 및 NSIS/MSI 생성 완료 후 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계 실패. CI tag build에서 secret 주입 후 최종 산출물 생성 예정.
+
+---
+
 ## v0.16.0 - 2026-05-20
 
 패키지 매니저 제출 준비를 자동화하고 v0.15.0 릴리즈 산출물 기준 매니페스트를 최신화.
