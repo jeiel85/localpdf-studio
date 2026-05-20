@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## v0.16.2 - 2026-05-20
+
+v0.16.1 태그 배포 중 발견된 태그/앱 버전 불일치를 바로잡고 릴리즈 검증을 강화.
+
+### Fixed
+- `package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`의 앱 버전을 v0.16.2로 재동기화.
+- 릴리즈 워크플로에 태그 버전과 앱 메타데이터 버전이 다르면 빌드 전에 실패하는 검증 단계를 추가.
+
+### Verification
+- GitHub Actions tag build에서 `npm run typecheck`, `npm run build`, `npm run tauri:build`, updater signature, Portable ZIP, `latest.json`, GitHub Release 생성을 검증 예정.
+
+---
+
 ## v0.16.1 - 2026-05-20
 
 GitHub Release 배포 규칙을 태그 기반 단일 릴리즈 생성 흐름으로 정비.

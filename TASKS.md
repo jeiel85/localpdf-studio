@@ -1,5 +1,12 @@
 # TASKS.md
 
+## v0.16.2 - 태그/앱 버전 불일치 수정
+
+- [x] v0.16.1 실패 원인 확인: 태그 버전과 앱 메타데이터 버전 불일치
+- [x] v0.16.2 릴리즈 메타데이터 동기화
+- [x] Release workflow에 태그/앱 버전 사전 검증 추가
+- [x] v0.16.2 태그 재배포 준비
+
 ## v0.16.1 - GitHub Release 배포 규칙 정비
 
 - [x] 참고 프로젝트(`D:\Project\claude-usage-tray-windows`)의 태그 기반 릴리즈 흐름 확인

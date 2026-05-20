@@ -1,5 +1,14 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.16.2 - 태그/앱 버전 불일치 수정)
+
+- 작업: v0.16.1 태그 배포 중 태그 버전과 앱 메타데이터 버전이 일치하지 않아 `latest.json` 생성 단계가 실패한 문제를 수정.
+- 변경 파일:
+  - `.github/workflows/release.yml` — 태그 버전과 `package.json`, `tauri.conf.json` 버전 일치 여부를 빌드 전에 검증하는 단계 추가.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `README.md`, `TASKS.md`, `CHANGELOG.md` — v0.16.2 릴리즈 메타데이터 동기화.
+- 검증:
+  - GitHub Actions tag build에서 최종 확인.
+
 ## 2026-05-20 (v0.16.1 - GitHub Release 배포 규칙 정비)
 
 - 작업: `D:\Project\claude-usage-tray-windows`의 태그 기반 GitHub Release 흐름을 참고해 LocalPDF Studio 릴리즈 규칙을 Windows 산출물 중심으로 정비.
