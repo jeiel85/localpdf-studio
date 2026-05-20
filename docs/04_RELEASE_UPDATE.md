@@ -44,6 +44,7 @@ Repository Settings → Secrets and variables → Actions:
 6. `create-portable-zip.ps1`이 portable ZIP 생성
 7. `action-gh-release`가 portable ZIP을 release에 추가
 8. `includeUpdaterJson: true`로 `latest.json` 자동 생성 및 업로드
+9. 모든 플랫폼 빌드가 성공하면 publish job이 draft release를 공개 릴리즈로 전환
 
 ## 업데이터 엔드포인트
 

@@ -7,6 +7,12 @@
 - 안전장치: 스크립트는 필수 asset이 없거나 digest가 누락된 경우 즉시 실패하고, 파일 저장 시 UTF-8 no BOM을 사용해 한글 locale/README 인코딩을 보존한다.
 - 한계: GitHub CLI 인증 및 릴리즈 asset digest 제공이 필요하다. Draft 릴리즈 상태에서도 조회는 가능하지만, 실제 패키지 매니저 제출 전에는 공개 릴리즈 여부를 별도로 확인해야 한다.
 
+## 2026-05-20 - 릴리즈 Draft 자동 공개 전략
+
+- 결정: matrix 빌드 중에는 기존처럼 Draft 릴리즈에 산출물을 업로드하고, 모든 플랫폼 빌드가 성공한 뒤 별도 `publish` job에서 `gh release edit --draft=false --latest`로 공개 전환한다.
+- 이유: `releaseDraft: false`를 matrix job에 직접 설정하면 첫 플랫폼 빌드가 끝나는 순간 불완전한 산출물 목록이 공개될 수 있다. 별도 publish job은 산출물이 모두 올라간 뒤 공개하므로 사용자에게 반쪽 릴리즈가 보이는 시간을 없앤다.
+- 한계: publish job은 GitHub CLI와 `contents: write` 권한에 의존한다.
+
 ## 2026-05-20 - v0.15.0 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction) 구현 전략
 
 - 결정: PDF.js의 `getTextContent()` API를 활용해 오프라인으로 텍스트 구조를 스캔하고, 8종 프라이버시 핵심 식별자(주민번호, 휴대전화번호, 이메일, 신용카드 번호, 은행 계좌번호, 사업자등록번호, 여권번호, 운전면허번호) 정규식과 연계하여 100% 온디바이스 로컬 방식으로 개인정보 자동 탐지(Auto-Redaction) 코어 엔진을 설계한다. 이를 프리미엄 다크모드 친화적 UI 목록으로 렌더링하고, 사용자가 토글 제어하여 상위 마스킹 영역(`RedactionArea`)에 실시간으로 일체화하도록 연동한다.

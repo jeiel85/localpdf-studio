@@ -2,6 +2,7 @@
 
 ## 2026-05-20 (v0.16.0 - 패키지 매니저 매니페스트 동기화 자동화)
 
+- 후속 조정: 릴리즈 워크플로가 matrix 빌드 중에는 Draft를 유지하되 모든 플랫폼 빌드 성공 후 `publish` job에서 Draft를 공개 릴리즈로 전환하도록 변경.
 - 작업: GitHub Release asset digest를 기준으로 winget, Chocolatey, Homebrew, Snap, AUR 제출 파일의 버전/URL/SHA-256을 일괄 갱신하는 PowerShell 자동화 스크립트 추가 및 v0.15.0 산출물 기준 매니페스트 최신화.
 - 변경 파일:
   - `scripts/windows/sync-package-manifests.ps1` [NEW] — `gh release view`의 asset digest를 읽어 NSIS, DEB, DMG 산출물 SHA-256을 추출하고 패키지 매니페스트를 동기화.
@@ -10,6 +11,7 @@
   - `packaging/homebrew/localpdf-studio.rb` — v0.15.0 Universal DMG URL 및 SHA-256 반영.
   - `packaging/snap/snapcraft.yaml`, `packaging/aur/PKGBUILD` — v0.15.0 Linux `.deb` 기반 패키징 URL 및 SHA-256 반영.
   - `README.md`, `docs/index.html`, `docs/en.html`, `docs/ja.html`, `TASKS.md`, `CHANGELOG.md`, `DECISION_LOG.md` — v0.16.0 작업 기록 및 패키징 자동화 설명 추가.
+  - `.github/workflows/release.yml`, `docs/04_RELEASE_UPDATE.md` — 릴리즈 Draft 자동 공개 단계 추가.
   - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` — v0.16.0 릴리즈 메타데이터 동기화.
 - 설계 결정:
   - 패키지 매니저 제출 전 사람이 릴리즈 산출물을 다운로드해 SHA-256을 옮겨 적는 반복 작업을 줄이기 위해 GitHub Release가 제공하는 `sha256:` digest를 단일 신뢰 입력으로 사용.

@@ -10,6 +10,7 @@
 ### Changed
 - `packaging/winget`, `packaging/chocolatey`, `packaging/homebrew`, `packaging/snap`, `packaging/aur` 제출 파일을 v0.15.0 릴리즈 산출물 기준으로 갱신.
 - 패키지별 제출 README의 수동 SHA 계산 안내를 동기화 스크립트 중심으로 보강.
+- 릴리즈 워크플로에 모든 플랫폼 빌드 성공 후 Draft 릴리즈를 공개로 전환하는 `publish` job 추가.
 - 앱 릴리즈 메타데이터를 v0.16.0으로 동기화.
 
 ### Verification
