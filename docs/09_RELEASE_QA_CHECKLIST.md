@@ -10,7 +10,7 @@
 - [x] `cargo test`
 - [x] `scripts/windows/validate-winget-manifests.ps1`
 - [x] `scripts/windows/publish-chocolatey.ps1 -SkipPush`
-- [x] `scripts/windows/verify-release-assets.ps1 -Version 0.17.0`
+- [x] `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`
 
 ## 태그 릴리즈 산출물
 
@@ -20,15 +20,15 @@
 - [x] Windows MSI updater signatures
 - [x] Portable ZIP
 - [x] `latest.json`
-- [ ] macOS Universal DMG
-- [ ] Linux AppImage / deb / rpm
+- [x] macOS Universal DMG
+- [x] Linux AppImage / deb / rpm
 
-macOS/Linux 산출물은 v0.17.2부터 GitHub Actions matrix에 복구했다. 첫 태그 빌드 성공 후 이 체크리스트를 갱신한다.
+macOS/Linux 산출물은 v0.17.2 태그 빌드에서 복구 검증됐다.
 
 ## 패키지 매니저 제출
 
 - [x] winget 매니페스트 로컬 검증
-- [x] winget PR 제출: <https://github.com/microsoft/winget-pkgs/pull/377207>
+- [x] winget PR 제출: <https://github.com/microsoft/winget-pkgs/pull/377220>
 - [x] Chocolatey `.nupkg` 생성
 - [ ] Chocolatey community push
 

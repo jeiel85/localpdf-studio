@@ -1,6 +1,6 @@
 name: localpdf-studio
 title: LocalPDF Studio
-version: 0.15.0
+version: 0.17.2
 summary: Local-first desktop PDF viewer and utility suite
 description: |
   LocalPDF Studio is a local-first desktop PDF viewer and utility suite built with Tauri.
@@ -50,7 +50,7 @@ parts:
   localpdf-studio:
     plugin: dump
     # GitHub Release의 .deb를 직접 unpacking (snap 빌드 시간 단축)
-    source: https://github.com/jeiel85/localpdf-studio/releases/download/v0.15.0/LocalPDF.Studio_0.15.0_amd64.deb
+    source: https://github.com/jeiel85/localpdf-studio/releases/download/v0.17.2/LocalPDF.Studio_0.17.2_amd64.deb
     source-type: deb
     build-packages:
       - dpkg

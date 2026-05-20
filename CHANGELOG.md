@@ -22,8 +22,9 @@
 - 앱 버전을 `0.17.2`로 동기화.
 
 ### Distribution
-- `wingetcreate submit`으로 v0.17.0 winget PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377207
-- Chocolatey v0.17.0 `.nupkg` 생성 검증 완료. 실제 community push는 로컬/CI에 `CHOCO_API_KEY`가 없어 보류.
+- `wingetcreate submit`으로 v0.17.2 winget PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377220
+- v0.17.2 릴리즈 산출물 SHA-256으로 winget, Chocolatey, Homebrew, Snap, AUR 매니페스트 동기화 완료.
+- Chocolatey v0.17.2 `.nupkg` 생성 검증 완료. 실제 community push는 로컬/CI에 `CHOCO_API_KEY`가 없어 보류.
 
 ### Verification
 - `npm run typecheck`: 통과.
@@ -32,7 +33,8 @@
 - `cargo test`: 40/40 통과.
 - `scripts/windows/validate-winget-manifests.ps1`: 통과.
 - `scripts/windows/publish-chocolatey.ps1 -SkipPush`: 통과.
-- `scripts/windows/verify-release-assets.ps1 -Version 0.17.0`: 통과.
+- `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`: 통과.
+- `scripts/windows/sync-package-manifests.ps1 -Version 0.17.2`: 통과.
 
 ---
 

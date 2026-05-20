@@ -5,10 +5,11 @@
 - [x] `save_text_file` / `save_binary_file` 직접 쓰기를 임시 파일 기반 교체 저장으로 변경
 - [x] `read_text_file_if_exists` 허용 확장자와 시스템 디렉터리 접근 검증 추가
 - [x] `delete_file_if_exists` 임시 파일 삭제 용도에 맞게 허용 확장자 제한 및 보호 확장자 삭제 차단
-- [x] winget 매니페스트 검증 스크립트 추가 및 v0.17.0 PR 제출
-- [x] Chocolatey 패키지 생성 스크립트 추가 및 `.nupkg` 생성 검증
+- [x] winget 매니페스트 검증 스크립트 추가 및 v0.17.2 PR 제출
+- [x] Chocolatey 패키지 생성 스크립트 추가 및 v0.17.2 `.nupkg` 생성 검증
 - [x] 릴리즈 워크플로 macOS/Linux 빌드 job 복구
 - [x] 릴리즈 산출물 검증 스크립트 추가
+- [x] v0.17.2 릴리즈 산출물 SHA-256으로 winget/Chocolatey/Homebrew/Snap/AUR 매니페스트 갱신
 - [x] QA 체크리스트 최신화
 
 ## v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리

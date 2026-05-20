@@ -1,5 +1,5 @@
 PackageIdentifier: jeiel85.LocalPDFStudio
-PackageVersion: 0.17.0
+PackageVersion: 0.17.2
 InstallerLocale: en-US
 InstallerType: nullsoft
 Scope: user
@@ -11,8 +11,8 @@ UpgradeBehavior: install
 ReleaseDate: 2026-05-20
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/jeiel85/localpdf-studio/releases/download/v0.17.0/LocalPDF.Studio_0.17.0_x64-setup.exe
-    InstallerSha256: 02d3f33e7f5defa1adc8f5691485d2b381bc19d452d96400c3308bd0619c23b2
+    InstallerUrl: https://github.com/jeiel85/localpdf-studio/releases/download/v0.17.2/LocalPDF.Studio_0.17.2_x64-setup.exe
+    InstallerSha256: bb4bedb4ad3d39e0407202defe1301600a4901034f3ad96320c7b1ac95ea7d81
     InstallerSwitches:
       Silent: /S
       SilentWithProgress: /S

@@ -20,10 +20,11 @@
   - `cargo test` 40/40 통과.
   - `scripts/windows/validate-winget-manifests.ps1` 통과.
   - `scripts/windows/publish-chocolatey.ps1 -SkipPush` 통과.
-  - `scripts/windows/verify-release-assets.ps1 -Version 0.17.0` 통과.
+  - `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform` 통과.
+  - `scripts/windows/sync-package-manifests.ps1 -Version 0.17.2` 통과. NSIS sha256 `bb4bedb4ad3d39e0407202defe1301600a4901034f3ad96320c7b1ac95ea7d81`.
 - 제출:
-  - winget v0.17.0 PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377207
-  - Chocolatey v0.17.0 패키지 생성 완료. `CHOCO_API_KEY`가 로컬에 없어 community push는 인증 대기.
+  - winget v0.17.2 PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377220
+  - Chocolatey v0.17.2 패키지 생성 완료. `CHOCO_API_KEY`가 로컬에 없어 community push는 인증 대기.
 
 ## 2026-05-20 (v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리)
 
