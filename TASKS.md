@@ -13,6 +13,7 @@
 - [x] Homebrew tap 저장소 생성 및 v0.17.2 Cask 게시
 - [x] v0.17.2 `latest.json` updater URL 수정 및 검증
 - [x] QA 체크리스트 최신화
+- [x] 외부 계정/인증이 필요한 후속 작업 문서화 (`docs/10_EXTERNAL_PUBLISHING_TODO.md`)
 
 ## v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리
 

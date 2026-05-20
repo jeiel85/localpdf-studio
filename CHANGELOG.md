@@ -10,6 +10,7 @@
 - `scripts/windows/publish-chocolatey.ps1`: Chocolatey `.nupkg` 생성과 `CHOCO_API_KEY` 기반 push 자동화.
 - `scripts/windows/verify-release-assets.ps1`: GitHub Release 필수 산출물과 SHA-256 digest 존재 여부 검증.
 - `docs/09_RELEASE_QA_CHECKLIST.md`: 자동 검증, 릴리즈 산출물, 패키지 매니저 제출, 수동 QA 체크리스트 정리.
+- `docs/10_EXTERNAL_PUBLISHING_TODO.md`: winget review, Chocolatey API key, Snapcraft, AUR, Apple Developer 서명/공증처럼 사용자 계정이 필요한 후속 작업 정리.
 
 ### Security
 - `save_text_file`, `save_binary_file`을 직접 `fs::write` 대신 임시 파일 생성 후 교체하는 저장 경로로 통일.

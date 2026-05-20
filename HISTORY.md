@@ -11,6 +11,7 @@
   - `.github/workflows/ci.yml` — Vitest, Rust test, winget manifest 검증, Chocolatey pack 검증 추가.
   - `scripts/windows/validate-winget-manifests.ps1`, `submit-winget.ps1`, `publish-chocolatey.ps1`, `verify-release-assets.ps1` [NEW] — 패키지 검증/제출/릴리즈 산출물 검증 자동화.
   - `docs/09_RELEASE_QA_CHECKLIST.md` [NEW] — 자동 검증, 산출물, 패키지 매니저 제출, 수동 앱 QA 체크리스트 정리.
+  - `docs/10_EXTERNAL_PUBLISHING_TODO.md` [NEW] — 다음 세션에서 이어갈 외부 계정/인증 기반 배포 작업 목록 정리.
   - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` — 버전 `0.17.2` 동기화.
   - `README.md`, `CHANGELOG.md`, `TASKS.md`, `DECISION_LOG.md` — v0.17.2 기록 반영.
 - 검증:

@@ -2,6 +2,8 @@
 
 이 문서는 태그 릴리즈 전후에 LocalPDF Studio의 핵심 배포 품질을 확인하기 위한 최신 체크리스트다.
 
+외부 계정/인증이 필요한 남은 작업은 [10_EXTERNAL_PUBLISHING_TODO.md](10_EXTERNAL_PUBLISHING_TODO.md)에 따로 정리한다.
+
 ## 자동 검증
 
 - [x] `npm run typecheck`
