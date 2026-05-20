@@ -524,6 +524,15 @@ const ko: Dict = {
   'redact.modeLabel': '마스킹 모드',
   'redact.clearAll': '전체 삭제',
   'redact.modeInfo': '주의: 래스터화 마스킹은 해당 페이지를 이미지로 변환하므로 텍스트 드래그가 차단됩니다. 일반 마스킹은 텍스트 정보가 하단에 남을 수 있습니다.',
+  'redact.autoDetect': '개인정보 자동 탐지',
+  'redact.scanning': '문서 스캔 중...',
+  'redact.noMatches': '탐지된 개인정보가 없습니다.',
+  'redact.addSelected': '선택한 {count}개 영역 마스킹에 추가',
+  'redact.type.jumin': '주민등록번호',
+  'redact.type.phone': '전화번호',
+  'redact.type.email': '이메일',
+  'redact.type.card': '신용카드',
+  'redact.type.account': '계좌번호',
 };
 
 const en: Dict = {
@@ -1042,6 +1051,15 @@ const en: Dict = {
   'redact.modeLabel': 'Redaction Mode',
   'redact.clearAll': 'Clear All',
   'redact.modeInfo': 'Warning: Rasterization mode renders pages as images, which prevents text selection on those pages. Vector mode might leave underlying text searchable.',
+  'redact.autoDetect': 'Auto-Detect Private Info',
+  'redact.scanning': 'Scanning document...',
+  'redact.noMatches': 'No private information detected.',
+  'redact.addSelected': 'Add {count} selected areas to masking',
+  'redact.type.jumin': 'Resident Registration Number',
+  'redact.type.phone': 'Phone Number',
+  'redact.type.email': 'Email',
+  'redact.type.card': 'Credit Card',
+  'redact.type.account': 'Account Number',
 };
 
 const ja: Dict = {
@@ -1560,6 +1578,15 @@ const ja: Dict = {
   'redact.modeLabel': '黒塗りモード',
   'redact.clearAll': 'すべて削除',
   'redact.modeInfo': '注意：ラスタライズ黒塗りは対象ページを画像に変換するため、テキストの選択・コピーができなくなります。通常黒塗りの場合は、下部にテキストデータが残る可能性があります。',
+  'redact.autoDetect': '個人情報自動検出',
+  'redact.scanning': '文書をスキャン中...',
+  'redact.noMatches': '検出された個人情報はありません。',
+  'redact.addSelected': '選択した {count} 箇所を黒塗りに追加',
+  'redact.type.jumin': '住民登録番号',
+  'redact.type.phone': '電話番号',
+  'redact.type.email': 'メールアドレス',
+  'redact.type.card': 'クレジットカード',
+  'redact.type.account': '口座番号',
 };
 
 const dictionaries: Record<Locale, Dict> = { ko, en, ja };

@@ -1,5 +1,28 @@
 # CHANGELOG.md
 
+## v0.15.0 - 2026-05-20
+
+오프라인 로컬 우선 PDF 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction) 기능 구현 완료.
+
+### Added — 개인정보 자동 패턴 탐지 및 추천 엔진
+- **코어 스캔 엔진 개발** ([`src/lib/autoRedaction.ts`](src/lib/autoRedaction.ts)): 5대 개인정보 핵심 패턴(주민등록번호, 휴대전화번호, 이메일 주소, 신용카드 번호, 계좌번호)을 100% 로컬 오프라인에서 스캔하는 엔진 탑재.
+- **정밀 문자 비례 배분 좌표 환산 공식**: `pdf.js`가 추출하는 `TextItem`의 `transform` 배열과 `width` 속성을 파싱하여, 텍스트 일부분만 개인정보 패턴에 일치하는 경우에도 정확한 가상 문자 너비(`charWidth`)를 산출 및 배분하여 정확히 밀착되는 `SelectionRect` 바운딩 박스 생성 알고리즘 구현.
+- **단위 테스트 통과** ([`src/lib/autoRedaction.test.ts`](src/lib/autoRedaction.test.ts)): 주민번호 단일 탐지, 여러 TextItem에 걸쳐 쪼개진 이메일 주소의 통합/매핑, 매칭 없음 등 3대 시나리오에 대한 수학적 정합성을 검증하는 단위 테스트 통과.
+
+### Added — 프리미엄 추천 UI/UX 확장
+- **자동 마스킹 추천 패널 확장** ([`src/components/AdvancedPanel.tsx`](src/components/AdvancedPanel.tsx)): `RedactForm` 컴포넌트 내에 프리미엄 **[🔍 개인정보 자동 탐지]** 액션 버튼 추가.
+  - **스캔 진행 인디케이터**: 비동기 텍스트 추출 중 물결치는 Spinner 애니메이션과 로딩 텍스트를 연동하여 시각적 만족도 극대화.
+  - **마스킹 추천 리스트업**: 탐지된 결과를 주민번호(보라), 전화번호(청록), 이메일(오렌지), 신용카드(로즈), 계좌번호(에메랄드) 등 HSL 기반 다채로운 배지와 함께 다크모드 특화 카드 리스트로 렌더링.
+  - **프라이버시 아스테리스크 보호**: 사용자 화면에 노출되는 개인정보를 아스테리스크 기호(`*`)로 영리하게 필터링(`maskSensitiveText`)하여 표시.
+  - **체크박스 및 병합**: 전체 선택/해제 및 개별 토글을 통해 최종 확정된 영역을 unrotated PDF Point 기반 `RedactionArea` 데이터 구조로 변환하여 기존 마스킹 목록에 누적/병합 연동 구현.
+- **다국어 리소스 적용** ([`src/i18n/messages.ts`](src/i18n/messages.ts)): ko, en, ja 언어 사전에 신규 번역 텍스트 9종 일괄 탑재.
+
+### Verification
+- `npm run typecheck`: 통과 (TypeScript 컴파일 에러 Zero)
+- `npm run test`: 전체 44/44 테스트 통과 (Vitest 100% 성공)
+
+---
+
 ## v0.14.0 - 2026-05-20
 
 오프라인 로컬 우선 PDF 개인정보 보안 마스킹 (개인정보 보호 블랙아웃) 기능 구현 완료.

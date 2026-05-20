@@ -7,6 +7,7 @@ import { pdfRenderQueue } from '../lib/renderQueue';
 import { t, useLocale } from '../i18n/messages';
 import type { PageSelection } from '../lib/textSelection';
 import { applyRedactions } from '../lib/redaction';
+import { scanPageForPrivateInfo, AutoRedactMatch } from '../lib/autoRedaction';
 
 function uint8ToBase64(bytes: Uint8Array): string {
   const CHUNK = 0x8000;
@@ -1176,6 +1177,12 @@ function RedactForm({
 }) {
   const [useRaster, setUseRaster] = useState(true);
 
+  // 자동 탐지 관련 상태 변수들
+  const [scanning, setScanning] = useState(false);
+  const [scanDone, setScanDone] = useState(false);
+  const [matches, setMatches] = useState<AutoRedactMatch[]>([]);
+  const [selectedMatchIds, setSelectedMatchIds] = useState<Set<string>>(new Set());
+
   // 마운트 시 마스킹 드래그 모드 활성화, 언마운트 시 해제
   useEffect(() => {
     setRedactModeEnabled?.(true);
@@ -1229,6 +1236,157 @@ function RedactForm({
     }
   }
 
+  // 개인정보 자동 스캔 트리거
+  async function handleAutoDetect() {
+    if (!document) return;
+    setScanning(true);
+    setScanDone(false);
+    setMatches([]);
+    setSelectedMatchIds(new Set());
+
+    try {
+      const allMatches: AutoRedactMatch[] = [];
+      for (let p = 1; p <= document.numPages; p++) {
+        const page = await document.getPage(p);
+        const textContent = await page.getTextContent();
+        
+        const textItems = textContent.items.map((item: any) => ({
+          str: item.str || '',
+          width: item.width || 0,
+          height: item.height || 0,
+          transform: item.transform || [1, 0, 0, 1, 0, 0],
+        }));
+
+        const pageMatches = scanPageForPrivateInfo(textItems, p);
+        allMatches.push(...pageMatches);
+      }
+
+      setMatches(allMatches);
+      setSelectedMatchIds(new Set(allMatches.map(m => m.id)));
+      setScanDone(true);
+    } catch (e) {
+      console.error('Auto detect failed:', e);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  // 선택한 탐지 대상을 마스킹 영역에 병합하여 추가
+  function handleAddSelectedMatches() {
+    const newRedactions: RedactionArea[] = [];
+    matches.forEach(m => {
+      if (selectedMatchIds.has(m.id)) {
+        m.rects.forEach((rect, idx) => {
+          newRedactions.push({
+            id: `auto_${m.id}_rect_${idx}`,
+            pageNumber: m.pageNumber,
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          });
+        });
+      }
+    });
+
+    if (setRedactions) {
+      setRedactions(prev => {
+        // 기존 자동 탐지로 추가된 영역은 지우고 갱신 병합
+        const filteredPrev = prev.filter(p => !p.id.startsWith('auto_'));
+        return [...filteredPrev, ...newRedactions];
+      });
+    }
+  }
+
+  // 개별 토글
+  function toggleMatch(id: string) {
+    setSelectedMatchIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  // 전체 토글
+  function toggleAllMatches() {
+    if (selectedMatchIds.size === matches.length) {
+      setSelectedMatchIds(new Set());
+    } else {
+      setSelectedMatchIds(new Set(matches.map(m => m.id)));
+    }
+  }
+
+  // 개인정보 유형별 컬러 배지 취득 함수
+  function getBadgeStyles(type: string) {
+    switch (type) {
+      case 'jumin': // 보라
+        return { bg: 'rgba(168, 85, 247, 0.15)', color: '#d8b4fe', label: t('redact.type.jumin') || '주민번호' };
+      case 'phone': // 청록
+        return { bg: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', label: t('redact.type.phone') || '전화번호' };
+      case 'email': // 오렌지
+        return { bg: 'rgba(249, 115, 22, 0.15)', color: '#ffedd5', label: t('redact.type.email') || '이메일' };
+      case 'card': // 로즈
+        return { bg: 'rgba(244, 63, 94, 0.15)', color: '#fecdd3', label: t('redact.type.card') || '카드번호' };
+      case 'account': // 에메랄드
+        return { bg: 'rgba(16, 185, 129, 0.15)', color: '#a7f3d0', label: t('redact.type.account') || '계좌번호' };
+      default:
+        return { bg: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', label: type };
+    }
+  }
+
+  function maskSensitiveText(text: string, type: string): string {
+    switch (type) {
+      case 'jumin':
+        return text.replace(/^(\d{6}-[1-4])\d{6}$/, '$1******');
+      case 'phone':
+        if (text.includes('-')) {
+          const parts = text.split('-');
+          if (parts.length === 3) {
+            return `${parts[0]}-****-${parts[2]}`;
+          }
+        } else if (text.length === 11) {
+          return `${text.slice(0, 3)}****${text.slice(7)}`;
+        }
+        return text;
+      case 'email': {
+        const [local, domain] = text.split('@');
+        if (local && domain) {
+          if (local.length <= 3) {
+            return `${local[0]}***@${domain}`;
+          }
+          return `${local.slice(0, 3)}***@${domain}`;
+        }
+        return text;
+      }
+      case 'card':
+        if (text.includes('-')) {
+          const parts = text.split('-');
+          if (parts.length === 4) {
+            return `${parts[0]}-****-****-${parts[3]}`;
+          }
+        } else if (text.length === 16) {
+          return `${text.slice(0, 4)}********${text.slice(12)}`;
+        }
+        return text;
+      case 'account':
+        if (text.includes('-')) {
+          const parts = text.split('-');
+          if (parts.length >= 3) {
+            return `${parts[0]}-${'*'.repeat(parts[1].length)}-${parts.slice(2).join('-')}`;
+          } else if (parts.length === 2) {
+            return `${parts[0].slice(0, Math.max(1, parts[0].length - 3))}***-${parts[1]}`;
+          }
+        }
+        return text.length > 6 ? `${text.slice(0, 3)}***${text.slice(6)}` : '***';
+      default:
+        return text;
+    }
+  }
+
   // 페이지별 그룹화하여 현황 표시
   const pageGroups = redactions.reduce<Record<number, number>>((acc, r) => {
     acc[r.pageNumber] = (acc[r.pageNumber] || 0) + 1;
@@ -1278,6 +1436,271 @@ function RedactForm({
             </div>
           </label>
         </div>
+      </div>
+
+      {/* 개인정보 자동 마스킹 추천 섹션 */}
+      <div
+        className="form-label"
+        style={{
+          marginBottom: '20px',
+          borderTop: '1px solid var(--border-color, #333)',
+          paddingTop: '15px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <strong>{t('redact.autoDetect') || '개인정보 자동 탐지'}</strong>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              color: 'var(--primary-color, #a855f7)',
+              backgroundColor: 'rgba(168, 85, 247, 0.1)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              letterSpacing: '0.5px'
+            }}
+          >
+            Premium
+          </span>
+        </div>
+
+        {!scanDone && !scanning ? (
+          <button
+            type="button"
+            className="secondary"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+              border: '1px solid rgba(168, 85, 247, 0.3)',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={handleAutoDetect}
+          >
+            <span>🔍</span> {t('redact.autoDetect') || '개인정보 자동 탐지'}
+          </button>
+        ) : scanning ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '20px 10px',
+              textAlign: 'center',
+              backgroundColor: 'var(--bg-accent, rgba(255,255,255,0.02))',
+              borderRadius: '8px',
+              border: '1px dashed var(--border-color, #333)',
+            }}
+          >
+            <div className="premium-spinner" style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              border: '2px solid rgba(168, 85, 247, 0.1)',
+              borderTopColor: 'var(--primary-color, #a855f7)',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+            <style>{`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
+            <span style={{ fontSize: '12px', color: 'var(--muted, #888)' }}>
+              {t('redact.scanning') || '문서 스캔 중...'}
+            </span>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              backgroundColor: 'var(--bg-accent, rgba(255,255,255,0.02))',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color, #333)',
+            }}
+          >
+            {matches.length === 0 ? (
+              <div
+                style={{
+                  padding: '15px 0',
+                  textAlign: 'center',
+                  color: 'var(--muted, #888)',
+                  fontSize: '12px',
+                }}
+              >
+                📭 {t('redact.noMatches') || '탐지된 개인정보가 없습니다.'}
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '12px',
+                    borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+                    paddingBottom: '8px',
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedMatchIds.size === matches.length}
+                      onChange={toggleAllMatches}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>
+                      전체 선택 ({selectedMatchIds.size}/{matches.length})
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    style={{
+                      fontSize: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary-color, #a855f7)',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0,
+                    }}
+                    onClick={handleAutoDetect}
+                  >
+                    다시 스캔
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    paddingRight: '4px',
+                  }}
+                >
+                  {matches.map(m => {
+                    const badge = getBadgeStyles(m.type);
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          fontSize: '11px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMatchIds.has(m.id)}
+                            onChange={() => toggleMatch(m.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '9px',
+                              fontWeight: 'bold',
+                              backgroundColor: badge.bg,
+                              color: badge.color,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: 'monospace',
+                              color: 'var(--text-color, #fff)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {maskSensitiveText(m.text, m.type)}
+                          </span>
+                        </label>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            color: 'var(--muted, #888)',
+                            backgroundColor: 'rgba(255,255,255,0.08)',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            marginLeft: '6px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          P.{m.pageNumber}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="primary"
+                  style={{
+                    marginTop: '4px',
+                    padding: '8px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.25)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  disabled={selectedMatchIds.size === 0}
+                  onClick={handleAddSelectedMatches}
+                >
+                  {t('redact.addSelected', { count: selectedMatchIds.size }) ||
+                    `선택한 ${selectedMatchIds.size}개 영역 마스킹에 추가`}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="form-label" style={{ marginBottom: '15px', borderTop: '1px solid var(--border-color, #333)', paddingTop: '15px' }}>
