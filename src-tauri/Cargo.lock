@@ -2028,7 +2028,7 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "localpdf-studio"
-version = "0.13.0"
+version = "0.15.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",

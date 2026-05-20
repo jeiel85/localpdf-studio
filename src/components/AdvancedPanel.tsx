@@ -1180,8 +1180,10 @@ function RedactForm({
   // 자동 탐지 관련 상태 변수들
   const [scanning, setScanning] = useState(false);
   const [scanDone, setScanDone] = useState(false);
+  const [scanTextItemCount, setScanTextItemCount] = useState(0);
   const [matches, setMatches] = useState<AutoRedactMatch[]>([]);
   const [selectedMatchIds, setSelectedMatchIds] = useState<Set<string>>(new Set());
+  const [lastAddedAutoIds, setLastAddedAutoIds] = useState<string[]>([]);
 
   // 마운트 시 마스킹 드래그 모드 활성화, 언마운트 시 해제
   useEffect(() => {
@@ -1198,6 +1200,15 @@ function RedactForm({
       onStatus(t('redact.noAreas') || '마스킹할 영역을 드래그해서 지정해주세요.');
       return;
     }
+
+    const confirmed = window.confirm(
+      useRaster
+        ? t('redact.confirmRaster') ||
+            '래스터화 마스킹은 선택한 페이지를 이미지로 변환하여 원본 텍스트 레이어를 제거합니다. 계속할까요?'
+        : t('redact.confirmVector') ||
+            '벡터 마스킹은 빠르지만 원본 텍스트가 PDF 내부에 남을 수 있습니다. 계속할까요?'
+    );
+    if (!confirmed) return;
 
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_redacted.pdf'),
@@ -1241,11 +1252,14 @@ function RedactForm({
     if (!document) return;
     setScanning(true);
     setScanDone(false);
+    setScanTextItemCount(0);
     setMatches([]);
     setSelectedMatchIds(new Set());
+    setLastAddedAutoIds([]);
 
     try {
       const allMatches: AutoRedactMatch[] = [];
+      let nonEmptyTextItemCount = 0;
       for (let p = 1; p <= document.numPages; p++) {
         const page = await document.getPage(p);
         const textContent = await page.getTextContent();
@@ -1256,16 +1270,28 @@ function RedactForm({
           height: item.height || 0,
           transform: item.transform || [1, 0, 0, 1, 0, 0],
         }));
+        nonEmptyTextItemCount += textItems.filter(item => item.str.trim().length > 0).length;
 
         const pageMatches = scanPageForPrivateInfo(textItems, p);
         allMatches.push(...pageMatches);
       }
 
+      setScanTextItemCount(nonEmptyTextItemCount);
       setMatches(allMatches);
       setSelectedMatchIds(new Set(allMatches.map(m => m.id)));
       setScanDone(true);
+      onStatus(
+        allMatches.length > 0
+          ? t('redact.scanDone', { count: allMatches.length }) ||
+              `자동 탐지 완료: ${allMatches.length}개 후보를 찾았습니다.`
+          : nonEmptyTextItemCount === 0
+            ? t('redact.scanNeedsOcr') ||
+                '텍스트 레이어가 없어 자동 탐지할 수 없습니다. OCR → 검색 가능 PDF를 먼저 실행해 주세요.'
+            : t('redact.noMatches') || '탐지된 개인정보가 없습니다.'
+      );
     } catch (e) {
       console.error('Auto detect failed:', e);
+      onStatus(t('redact.scanFailed', { error: String(e) }) || `자동 탐지 실패: ${String(e)}`);
     } finally {
       setScanning(false);
     }
@@ -1296,6 +1322,18 @@ function RedactForm({
         return [...filteredPrev, ...newRedactions];
       });
     }
+    setLastAddedAutoIds(newRedactions.map(redaction => redaction.id));
+    onStatus(
+      t('redact.addedSelected', { count: newRedactions.length }) ||
+        `자동 탐지 영역 ${newRedactions.length}개를 마스킹 목록에 추가했습니다.`
+    );
+  }
+
+  function undoLastAutoAdd() {
+    if (lastAddedAutoIds.length === 0) return;
+    const ids = new Set(lastAddedAutoIds);
+    setRedactions?.(prev => prev.filter(redaction => !ids.has(redaction.id)));
+    setLastAddedAutoIds([]);
   }
 
   // 개별 토글
@@ -1333,6 +1371,12 @@ function RedactForm({
         return { bg: 'rgba(244, 63, 94, 0.15)', color: '#fecdd3', label: t('redact.type.card') || '카드번호' };
       case 'account': // 에메랄드
         return { bg: 'rgba(16, 185, 129, 0.15)', color: '#a7f3d0', label: t('redact.type.account') || '계좌번호' };
+      case 'business':
+        return { bg: 'rgba(59, 130, 246, 0.15)', color: '#bfdbfe', label: t('redact.type.business') || '사업자등록번호' };
+      case 'passport':
+        return { bg: 'rgba(234, 179, 8, 0.15)', color: '#fef08a', label: t('redact.type.passport') || '여권번호' };
+      case 'driver':
+        return { bg: 'rgba(236, 72, 153, 0.15)', color: '#fbcfe8', label: t('redact.type.driver') || '운전면허번호' };
       default:
         return { bg: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', label: type };
     }
@@ -1382,6 +1426,12 @@ function RedactForm({
           }
         }
         return text.length > 6 ? `${text.slice(0, 3)}***${text.slice(6)}` : '***';
+      case 'business':
+        return text.replace(/^(\d{3})-\d{2}-(\d{5})$/, '$1-**-$2');
+      case 'passport':
+        return text.length > 4 ? `${text.slice(0, 2)}***${text.slice(-2)}` : '***';
+      case 'driver':
+        return text.replace(/^(\d{2})-\d{2}-\d{6}-(\d{2})$/, '$1-**-******-$2');
       default:
         return text;
     }
@@ -1531,16 +1581,47 @@ function RedactForm({
             }}
           >
             {matches.length === 0 ? (
-              <div
-                style={{
-                  padding: '15px 0',
-                  textAlign: 'center',
-                  color: 'var(--muted, #888)',
-                  fontSize: '12px',
-                }}
-              >
-                📭 {t('redact.noMatches') || '탐지된 개인정보가 없습니다.'}
-              </div>
+              <>
+                <div
+                  style={{
+                    padding: '15px 0 8px',
+                    textAlign: 'center',
+                    color: 'var(--muted, #888)',
+                    fontSize: '12px',
+                  }}
+                >
+                  📭{' '}
+                  {scanTextItemCount === 0
+                    ? t('redact.noTextLayer') ||
+                      '텍스트 레이어가 없어 자동 탐지할 수 없습니다.'
+                    : t('redact.noMatches') || '탐지된 개인정보가 없습니다.'}
+                </div>
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                    border: '1px solid rgba(6, 182, 212, 0.18)',
+                    color: 'var(--text-secondary, #cbd5e1)',
+                    fontSize: '11px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {scanTextItemCount === 0
+                    ? t('redact.noTextLayerHint') ||
+                      '스캔 이미지 PDF는 먼저 OCR → 검색 가능 PDF를 실행한 뒤 다시 자동 탐지를 시도하세요.'
+                    : t('redact.noMatchesHint') ||
+                      '표준 패턴과 일치하지 않는 항목은 뷰어에서 직접 드래그해 마스킹할 수 있습니다.'}
+                </div>
+                <button
+                  type="button"
+                  className="secondary"
+                  style={{ marginTop: '4px', padding: '8px', fontSize: '12px' }}
+                  onClick={handleAutoDetect}
+                >
+                  {t('redact.rescan') || '다시 스캔'}
+                </button>
+              </>
             ) : (
               <>
                 <div
@@ -1569,7 +1650,7 @@ function RedactForm({
                       style={{ cursor: 'pointer' }}
                     />
                     <span>
-                      전체 선택 ({selectedMatchIds.size}/{matches.length})
+                      {t('redact.selectAll') || '전체 선택'} ({selectedMatchIds.size}/{matches.length})
                     </span>
                   </label>
                   <button
@@ -1585,7 +1666,7 @@ function RedactForm({
                     }}
                     onClick={handleAutoDetect}
                   >
-                    다시 스캔
+                    {t('redact.rescan') || '다시 스캔'}
                   </button>
                 </div>
 
@@ -1697,6 +1778,16 @@ function RedactForm({
                   {t('redact.addSelected', { count: selectedMatchIds.size }) ||
                     `선택한 ${selectedMatchIds.size}개 영역 마스킹에 추가`}
                 </button>
+                {lastAddedAutoIds.length > 0 && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    style={{ padding: '7px', fontSize: '11px' }}
+                    onClick={undoLastAutoAdd}
+                  >
+                    {t('redact.undoAutoAdd') || '방금 추가한 자동 탐지 영역 되돌리기'}
+                  </button>
+                )}
               </>
             )}
           </div>

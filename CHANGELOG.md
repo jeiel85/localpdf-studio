@@ -5,7 +5,8 @@
 오프라인 로컬 우선 PDF 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction) 기능 구현 완료.
 
 ### Added — 개인정보 자동 패턴 탐지 및 추천 엔진
-- **코어 스캔 엔진 개발** ([`src/lib/autoRedaction.ts`](src/lib/autoRedaction.ts)): 5대 개인정보 핵심 패턴(주민등록번호, 휴대전화번호, 이메일 주소, 신용카드 번호, 계좌번호)을 100% 로컬 오프라인에서 스캔하는 엔진 탑재.
+- **코어 스캔 엔진 개발** ([`src/lib/autoRedaction.ts`](src/lib/autoRedaction.ts)): 5대 개인정보 핵심 패턴(주민등록번호, 휴대전화번호, 이메일 주소, 신용카드 번호, 계좌번호)에 사업자등록번호, 여권번호, 운전면허번호를 더해 8종 민감 식별자를 100% 로컬 오프라인에서 스캔하는 엔진 탑재.
+- **중복 탐지 정리**: 계좌번호처럼 넓은 정규식과 사업자등록번호 같은 구조화 식별자가 겹치는 경우 우선순위 기반 dedupe로 더 구체적인 유형을 표시.
 - **정밀 문자 비례 배분 좌표 환산 공식**: `pdf.js`가 추출하는 `TextItem`의 `transform` 배열과 `width` 속성을 파싱하여, 텍스트 일부분만 개인정보 패턴에 일치하는 경우에도 정확한 가상 문자 너비(`charWidth`)를 산출 및 배분하여 정확히 밀착되는 `SelectionRect` 바운딩 박스 생성 알고리즘 구현.
 - **단위 테스트 통과** ([`src/lib/autoRedaction.test.ts`](src/lib/autoRedaction.test.ts)): 주민번호 단일 탐지, 여러 TextItem에 걸쳐 쪼개진 이메일 주소의 통합/매핑, 매칭 없음 등 3대 시나리오에 대한 수학적 정합성을 검증하는 단위 테스트 통과.
 
@@ -15,11 +16,15 @@
   - **마스킹 추천 리스트업**: 탐지된 결과를 주민번호(보라), 전화번호(청록), 이메일(오렌지), 신용카드(로즈), 계좌번호(에메랄드) 등 HSL 기반 다채로운 배지와 함께 다크모드 특화 카드 리스트로 렌더링.
   - **프라이버시 아스테리스크 보호**: 사용자 화면에 노출되는 개인정보를 아스테리스크 기호(`*`)로 영리하게 필터링(`maskSensitiveText`)하여 표시.
   - **체크박스 및 병합**: 전체 선택/해제 및 개별 토글을 통해 최종 확정된 영역을 unrotated PDF Point 기반 `RedactionArea` 데이터 구조로 변환하여 기존 마스킹 목록에 누적/병합 연동 구현.
-- **다국어 리소스 적용** ([`src/i18n/messages.ts`](src/i18n/messages.ts)): ko, en, ja 언어 사전에 신규 번역 텍스트 9종 일괄 탑재.
+  - **OCR 필요 안내 및 되돌리기**: 텍스트 레이어가 없는 스캔 이미지 PDF에서는 OCR → 검색 가능 PDF를 먼저 실행하도록 빈 상태 안내를 제공하고, 자동 탐지로 방금 추가한 영역을 되돌릴 수 있는 안전 장치 추가.
+  - **마스킹 적용 전 확인**: 래스터화/벡터 마스킹의 보안 차이를 저장 직전에 확인하여 파괴적 작업을 명확히 고지.
+- **다국어 리소스 적용** ([`src/i18n/messages.ts`](src/i18n/messages.ts)): ko, en, ja 언어 사전에 신규 번역 텍스트 일괄 탑재.
 
 ### Verification
 - `npm run typecheck`: 통과 (TypeScript 컴파일 에러 Zero)
-- `npm run test`: 전체 44/44 테스트 통과 (Vitest 100% 성공)
+- `npm run test`: 전체 45/45 테스트 통과 (Vitest 100% 성공)
+- `npm run build`: 통과 (Vite production build)
+- `npm run tauri:build`: Windows exe/NSIS/MSI 산출물 생성 확인. 로컬 updater 서명은 `TAURI_SIGNING_PRIVATE_KEY` 부재로 CI tag build에서 완료 예정.
 
 ---
 

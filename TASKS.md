@@ -2,15 +2,18 @@
 
 ## v0.15.0 - 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction)
 
-- [x] 5대 개인정보 정규식 패턴(주민번호, 전화번호, 이메일, 신용카드, 계좌번호) 코어 검색 로직 정립 (`src/lib/autoRedaction.ts`)
+- [x] 8종 개인정보/문서 식별자 정규식 패턴(주민번호, 전화번호, 이메일, 신용카드, 계좌번호, 사업자등록번호, 여권번호, 운전면허번호) 코어 검색 로직 정립 (`src/lib/autoRedaction.ts`)
 - [x] 부분 문자열 매칭 시 오프셋 및 너비를 charWidth 비율로 정밀 역산하는 Bounding Box 환산 수식 적용
 - [x] 주민번호 단일 탐지, 분산 이메일 통합 매핑 등의 정합성을 확보하는 단위 테스트 3종 구축 (`src/lib/autoRedaction.test.ts`)
-- [x] 9개 테스트 스위트의 44개 테스트 케이스 100% 무결성 통과 (Vitest 검증 완수)
+- [x] 9개 테스트 스위트의 45개 테스트 케이스 100% 무결성 통과 (Vitest 검증 완수)
 - [x] ko, en, ja 3개 국어 번역 리소스 연동 (`src/i18n/messages.ts` 내 9개 신규 키 연동)
 - [x] AdvancedPanel 내의 RedactForm UI 확장 및 [🔍 개인정보 자동 탐지] 프리미엄 그라데이션 버튼 탑재
 - [x] 로딩 Spinner 애니메이션 및 유형별 HSL 배지 적용, 아스테리스크 프라이버시 필터링 구현
 - [x] 체크박스를 이용한 개별/전체 선택 제어 및 unrotated PDF Point 기반 RedactionArea 최상위 상태 누적/병합 연동
+- [x] 텍스트 레이어 없는 스캔 이미지 PDF에 OCR → 검색 가능 PDF 선행 안내 추가
+- [x] 자동 탐지 영역 추가 후 되돌리기 및 마스킹 적용 전 래스터/벡터 확인 대화상자 추가
 - [x] `npm run typecheck` 타입 검증 Zero-Error 무오류 완수
+- [x] v0.15.0 릴리즈 메타데이터 동기화 (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `README.md`)
 
 ## v0.14.0 - PDF 개인정보 보안 마스킹 (블랙아웃)
 

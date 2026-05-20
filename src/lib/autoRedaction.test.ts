@@ -81,4 +81,24 @@ describe('autoRedaction - 개인정보 자동 스캔 엔진 테스트', () => {
     const results = scanPageForPrivateInfo(mockItems, 1);
     expect(results).toHaveLength(0);
   });
+
+  it('사업자등록번호, 여권번호, 운전면허번호를 탐지하고 계좌번호 중복은 제거해야 한다', () => {
+    const mockItems: TextItem[] = [
+      {
+        str: '사업자 123-45-67890 여권 M12345678 면허 12-34-567890-12',
+        width: 360,
+        height: 12,
+        transform: [1, 0, 0, 1, 20, 80],
+      },
+    ];
+
+    const results = scanPageForPrivateInfo(mockItems, 3);
+    expect(results.map(result => result.type)).toEqual(['business', 'passport', 'driver']);
+    expect(results.map(result => result.text)).toEqual([
+      '123-45-67890',
+      'M12345678',
+      '12-34-567890-12',
+    ]);
+    expect(results.some(result => result.type === 'account')).toBe(false);
+  });
 });

@@ -9,19 +9,43 @@ export interface TextItem {
 
 export interface AutoRedactMatch {
   id: string;
-  type: 'jumin' | 'phone' | 'email' | 'card' | 'account';
+  type: AutoRedactType;
   text: string;
   pageNumber: number;
   rects: SelectionRect[];
 }
 
-// 5대 개인정보 정규식 정의
+export type AutoRedactType =
+  | 'jumin'
+  | 'phone'
+  | 'email'
+  | 'card'
+  | 'account'
+  | 'business'
+  | 'passport'
+  | 'driver';
+
+const PATTERN_PRIORITY: AutoRedactType[] = [
+  'jumin',
+  'business',
+  'driver',
+  'passport',
+  'card',
+  'phone',
+  'email',
+  'account',
+];
+
+// 핵심 개인정보 및 국내 문서 식별자 정규식 정의
 export const REDACTION_PATTERNS = {
   jumin: /\b\d{6}-[1-4]\d{6}\b/g,
   phone: /(010-\d{4}-\d{4}|0\d{2}-\d{3,4}-\d{4}|\b010\d{8}\b)/g,
   email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
   card: /(\b\d{4}-\d{4}-\d{4}-\d{4}\b|\b\d{16}\b)/g,
   account: /\b\d{3,6}-\d{2,6}-\d{3,6}\b/g,
+  business: /\b\d{3}-\d{2}-\d{5}\b/g,
+  passport: /\b(?:[MSROD]\d{8}|[A-Z]{2}\d{7})\b/g,
+  driver: /\b\d{2}-\d{2}-\d{6}-\d{2}\b/g,
 };
 
 interface CharMapEntry {
@@ -58,10 +82,9 @@ export function scanPageForPrivateInfo(
     // 여기서는 텍스트 레이어 글자 결합 특성을 유지하기 위해 단순 결합을 사용합니다.
   }
 
-  const matches: AutoRedactMatch[] = [];
-  const matchTypes = Object.keys(REDACTION_PATTERNS) as Array<keyof typeof REDACTION_PATTERNS>;
+  const matches: Array<AutoRedactMatch & { startIndex: number; endIndex: number }> = [];
 
-  for (const type of matchTypes) {
+  for (const type of PATTERN_PRIORITY) {
     const pattern = REDACTION_PATTERNS[type];
     // 정규식 매칭 플래그 초기화
     pattern.lastIndex = 0;
@@ -122,17 +145,50 @@ export function scanPageForPrivateInfo(
           text: matchedText,
           pageNumber,
           rects,
+          startIndex: matchStart,
+          endIndex: matchEnd,
         });
       }
     }
   }
 
-  // 페이지 매치들을 시작 인덱스 순 정렬
-  return matches.sort((a, b) => {
-    const aStart = parseInt(a.id.split('_').pop() ?? '0', 10);
-    const bStart = parseInt(b.id.split('_').pop() ?? '0', 10);
-    return aStart - bStart;
-  });
+  return dedupeOverlappingMatches(matches).map(({ startIndex, endIndex, ...match }) => match);
+}
+
+function dedupeOverlappingMatches(
+  matches: Array<AutoRedactMatch & { startIndex: number; endIndex: number }>,
+): Array<AutoRedactMatch & { startIndex: number; endIndex: number }> {
+  const priority = new Map(PATTERN_PRIORITY.map((type, index) => [type, index]));
+  const selected: Array<AutoRedactMatch & { startIndex: number; endIndex: number }> = [];
+
+  for (const candidate of matches.sort((a, b) => {
+    if (a.startIndex !== b.startIndex) return a.startIndex - b.startIndex;
+    return (priority.get(a.type) ?? 999) - (priority.get(b.type) ?? 999);
+  })) {
+    const overlappingIndex = selected.findIndex(existing =>
+      candidate.startIndex < existing.endIndex && candidate.endIndex > existing.startIndex
+    );
+
+    if (overlappingIndex === -1) {
+      selected.push(candidate);
+      continue;
+    }
+
+    const existing = selected[overlappingIndex];
+    const candidatePriority = priority.get(candidate.type) ?? 999;
+    const existingPriority = priority.get(existing.type) ?? 999;
+    const candidateLength = candidate.endIndex - candidate.startIndex;
+    const existingLength = existing.endIndex - existing.startIndex;
+
+    if (
+      candidatePriority < existingPriority ||
+      (candidatePriority === existingPriority && candidateLength > existingLength)
+    ) {
+      selected[overlappingIndex] = candidate;
+    }
+  }
+
+  return selected.sort((a, b) => a.startIndex - b.startIndex);
 }
 
 /**

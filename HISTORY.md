@@ -2,19 +2,25 @@
 
 ## 2026-05-20 (v0.15.0 - 개인정보 자동 패턴 탐지 및 마스킹 추천)
 
-- 작업: 5대 핵심 개인정보(주민번호, 전화번호, 이메일, 신용카드, 계좌번호) 오프라인 스캔 및 글자 비례 배분 좌표 정밀 역산 알고리즘(charWidth)을 탑재한 코어 엔진 구현, 그리고 다크모드/다국어 친화적 프리미엄 UI 패널 연동 완료.
+- 작업: 8종 핵심 개인정보/문서 식별자(주민번호, 전화번호, 이메일, 신용카드, 계좌번호, 사업자등록번호, 여권번호, 운전면허번호) 오프라인 스캔 및 글자 비례 배분 좌표 정밀 역산 알고리즘(charWidth)을 탑재한 코어 엔진 구현, 그리고 다크모드/다국어 친화적 프리미엄 UI 패널 연동 완료.
 - 변경 파일:
-  - `src/lib/autoRedaction.ts` [NEW] — 5대 개인정보 정규식 검색, TextItem[] 전체 인덱스 매핑 테이블 구축 및 부분 글자 매칭 시의 precise charWidth 비례 배분 바운딩 박스 생성 알고리즘 탑재.
-  - `src/lib/autoRedaction.test.ts` [NEW] — 가상 TextItem 데이터를 활용하여 주민번호 단일 항목 스캔 및 이메일 분산 항목 통합 매핑, 매칭 실패 상황 등의 수학적 정합성을 검증하는 단위 테스트 3종 작성.
-  - `src/i18n/messages.ts` — ko/en/ja 언어 사전에 자동 마스킹 추천용 다국어 문구 키셋 9종(스캔 시작, 진행, 결과 칩 5종 등) 추가.
-  - `src/components/AdvancedPanel.tsx` — `RedactForm` 컴포넌트를 확장하여 프리미엄 [🔍 개인정보 자동 탐지] 버튼 탑재, 비동기 스캔 로딩 스피너 및 탐지 대상 목록 렌더링, 체크박스를 통한 실시간 개별/전체 토글 지원, 선택된 영역을 unrotated PDF Point 기반 `RedactionArea` 데이터 구조로 변환하여 최상위 뷰어 마스킹 상태에 병합 연동하는 전체 UI/UX 통합.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` — v0.15.0 릴리즈 메타데이터 동기화.
+  - `README.md` — 기능 표기를 v0.15.0으로 갱신하고 개인정보 자동 탐지 및 마스킹 추천 설명 추가.
+  - `src/lib/autoRedaction.ts` [NEW] — 8종 민감 식별자 정규식 검색, TextItem[] 전체 인덱스 매핑 테이블 구축, 부분 글자 매칭 시의 precise charWidth 비례 배분 바운딩 박스 생성 알고리즘 및 중복 탐지 우선순위 정리 로직 탑재.
+  - `src/lib/autoRedaction.test.ts` [NEW] — 가상 TextItem 데이터를 활용하여 주민번호 단일 항목 스캔, 이메일 분산 항목 통합 매핑, 매칭 실패, 사업자/여권/운전면허 탐지 및 계좌번호 중복 제거 상황 등의 수학적 정합성을 검증하는 단위 테스트 작성.
+  - `src/i18n/messages.ts` — ko/en/ja 언어 사전에 자동 마스킹 추천용 다국어 문구 키셋(스캔 시작, OCR 필요 안내, 결과 칩, 되돌리기, 확인 대화상자 등) 추가.
+  - `src/components/AdvancedPanel.tsx` — `RedactForm` 컴포넌트를 확장하여 프리미엄 [🔍 개인정보 자동 탐지] 버튼 탑재, 비동기 스캔 로딩 스피너 및 탐지 대상 목록 렌더링, 체크박스를 통한 실시간 개별/전체 토글 지원, OCR 필요 빈 상태 안내, 자동 추가 영역 되돌리기, 래스터/벡터 적용 전 확인 대화상자, 선택된 영역을 unrotated PDF Point 기반 `RedactionArea` 데이터 구조로 변환하여 최상위 뷰어 마스킹 상태에 병합 연동하는 전체 UI/UX 통합.
 - 설계 결정:
   - 100% 로컬 오프라인 구동 철학을 철저히 고수하여 클라이언트 사이드에서만 안전하게 텍스트를 파싱하고 외부망 전송을 원천 배제함.
   - 고정폭/가변폭 폰트 혼재로 인한 부분 텍스트 매칭 시의 오차를 최소화하기 위해, 매칭 영역에 걸친 TextItem 내부의 unrotated `transform` 행렬과 `width` 속성을 기반으로 가상 문자 단위 너비(`charWidth`)를 산출 및 배분하여 정확히 밀착되는 `SelectionRect` 좌표계를 도출함.
   - 사용자에게 노출되는 탐지 결과에는 `maskSensitiveText` 헬퍼 함수를 통한 프라이버시 보호 마스킹(* 기호 처리)을 적용하여 개인정보 뷰어로서의 안전성과 시각적 완성도를 극대화함.
+  - 텍스트 레이어가 없는 스캔 이미지 PDF는 자동 탐지 엔진의 입력이 없으므로, OCR → 검색 가능 PDF를 선행하도록 UI에서 즉시 안내하는 쪽으로 UX를 확정함.
 - 검증:
   - `npm run typecheck` 100% 성공 (TypeScript Zero-Error 완수)
-  - `npm run test` 전체 44/44 통과 (Vitest 자동화 테스트 100% 성공)
+  - `npm run test` 전체 45/45 통과 (Vitest 자동화 테스트 100% 성공)
+  - `npm run build` 성공 (Vite production build)
+  - `npm run tauri:build`는 release exe, NSIS installer, MSI 2종 생성까지 성공했으나 로컬 환경에 `TAURI_SIGNING_PRIVATE_KEY`가 없어 updater 서명 단계에서 실패. 서명과 `latest.json`은 GitHub Actions tag build의 secret 주입으로 완료 예정.
+  - `scripts/windows/create-portable-zip.ps1`로 Portable ZIP 생성 확인.
 
 ## 2026-05-20 (v0.14.0 - PDF 개인정보 보안 마스킹 및 오프라인 블랙아웃 엔진)
 
