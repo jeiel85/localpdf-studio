@@ -1,5 +1,11 @@
 # DECISION_LOG.md
 
+## 2026-05-20 - v0.13.0 하이라이트 다중 페이지 캡처 및 표준 주석 연동
+
+- 결정: 다중 페이지 텍스트 캡처를 지원하기 위해 DOMRect의 중심 Y축으로 페이지 엘리먼트 경계를 동적 식별하고, 단순배경 덧칠(`drawRectangle`) 방식 대신 `pdf-lib` 저수준 context API를 활용하여 국제 표준 PDF `/Highlight` Annotation 딕셔너리를 임베딩한다.
+- 이유: 사용자가 두 개 이상의 페이지를 가로지르며 텍스트를 드래그하는 UX를 자연스럽게 처리하고, 생성된 하이라이트 PDF가 Adobe Acrobat, Chrome 브라우저 등에서 '주석'으로 정식 인식(편집, 조회, 삭제 가능)되도록 표준 사양의 호환성을 확보하기 위함이다.
+- 한계: 저수준 PDF Object 조작이 필요하므로 pdf-lib의 `/Annots` 딕셔너리 구조에 직접 write하며, 이 과정에서 strict typechecking 유지를 위해 low-level context lookup 처리가 요구된다.
+
 ## 2026-05-18 - P3 OCR/변환 구현 전략
 
 - 결정: OCR은 Tesseract CLI, PDF↔이미지 변환은 프론트엔드 canvas + pdf-lib 사용.

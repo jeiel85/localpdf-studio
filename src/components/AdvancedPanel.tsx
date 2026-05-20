@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFArray, PDFNumber, PDFString } from 'pdf-lib';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { t, useLocale } from '../i18n/messages';
 import type { PageSelection } from '../lib/textSelection';
@@ -46,7 +46,7 @@ export function AdvancedPanel({
   document: PDFDocumentProxy | null;
   file: { path: string; fileName: string } | null;
   onStatus: (message: string) => void;
-  lastSelection?: PageSelection | null;
+  lastSelection?: PageSelection[] | null;
 }) {
   useLocale();
   const [action, setAction] = useState<AdvancedAction>(null);
@@ -157,7 +157,7 @@ function ActionForm({
   file: { path: string; fileName: string } | null;
   running: boolean;
   tesseractInfo: { available: boolean; languages: string[] } | null;
-  lastSelection: PageSelection | null;
+  lastSelection: PageSelection[] | null;
   onStatus: (msg: string) => void;
   onComplete: () => void;
   setRunning: (v: boolean) => void;
@@ -618,7 +618,7 @@ function HighlightForm({
   document: PDFDocumentProxy | null;
   file: { path: string; fileName: string } | null;
   running: boolean;
-  lastSelection: PageSelection | null;
+  lastSelection: PageSelection[] | null;
   onStatus: (msg: string) => void;
   onComplete: () => void;
   setRunning: (v: boolean) => void;
@@ -638,7 +638,7 @@ function HighlightForm({
 
   async function run() {
     if (!document || !file) return;
-    if (mode === 'selection' && (!lastSelection || lastSelection.rects.length === 0)) {
+    if (mode === 'selection' && (!lastSelection || lastSelection.length === 0 || lastSelection.reduce((acc, s) => acc + s.rects.length, 0) === 0)) {
       onStatus(t('adv.hl.noSelection'));
       return;
     }
@@ -660,19 +660,84 @@ function HighlightForm({
       const rgb = colorMap[color];
       const docPages = doc.getPages();
 
-      if (mode === 'selection' && lastSelection) {
-        const page = docPages[lastSelection.pageNumber - 1];
-        if (!page) throw new Error(t('adv.hl.noPages'));
-        for (const r of lastSelection.rects) {
-          // 텍스트 줄 위로 약간 여유 (pdf-lib y는 사각형 아래 모서리)
-          page.drawRectangle({
-            x: r.x,
-            y: r.y,
-            width: r.width,
-            height: r.height,
-            color: { type: 'RGB', red: rgb.r, green: rgb.g, blue: rgb.b } as never,
-            opacity: 0.4,
+      if (mode === 'selection' && lastSelection && lastSelection.length > 0) {
+        for (const pageSel of lastSelection) {
+          const page = docPages[pageSel.pageNumber - 1];
+          if (!page) continue;
+
+          // 1. 대상 페이지의 /Annots 리스트 가져오기 및 초기화
+          let annots = page.node.get(PDFName.of('Annots'));
+          if (!annots) {
+            annots = doc.context.obj([]);
+            page.node.set(PDFName.of('Annots'), annots);
+          }
+
+          let annotsArray: PDFArray;
+          if (annots instanceof PDFArray) {
+            annotsArray = annots;
+          } else {
+            const resolved = doc.context.lookup(annots);
+            if (resolved instanceof PDFArray) {
+              annotsArray = resolved;
+            } else {
+              annotsArray = doc.context.obj([]);
+              page.node.set(PDFName.of('Annots'), annotsArray);
+            }
+          }
+
+          // 2. 사각형 전체 경계 Bounding Box (Rect) 및 꼭짓점 (QuadPoints) 계산
+          const rects = pageSel.rects;
+          if (rects.length === 0) continue;
+
+          const xmin = Math.min(...rects.map((r) => r.x));
+          const ymin = Math.min(...rects.map((r) => r.y));
+          const xmax = Math.max(...rects.map((r) => r.x + r.width));
+          const ymax = Math.max(...rects.map((r) => r.y + r.height));
+
+          // QuadPoints 배열 빌드 (각 사각형별: [좌상, 우상, 좌하, 우하] 순서의 8개 꼭짓점 조합)
+          const quadPointsArray: number[] = [];
+          for (const r of rects) {
+            quadPointsArray.push(
+              r.x, r.y + r.height,            // 좌상 (x, y + h)
+              r.x + r.width, r.y + r.height,  // 우상 (x + w, y + h)
+              r.x, r.y,                       // 좌하 (x, y)
+              r.x + r.width, r.y              // 우하 (x + w, y)
+            );
+          }
+
+          // 3. Highlight Annotation 딕셔너리 생성
+          const highlightAnnot = doc.context.obj({
+            Type: PDFName.of('Annot'),
+            Subtype: PDFName.of('Highlight'),
+            Rect: PDFArray.withContext(doc.context),
+            QuadPoints: PDFArray.withContext(doc.context),
+            C: PDFArray.withContext(doc.context),
+            CA: PDFNumber.of(0.4), // 투명도 40%
+            T: PDFString.of('LocalPDF Studio'), // 작성자 표시명
+            Contents: PDFString.of(pageSel.text), // 주석 텍스트 내용
+            F: 4, // Print flag
           });
+
+          // 4. 값 주입
+          const annotRect = highlightAnnot.get(PDFName.of('Rect')) as PDFArray;
+          annotRect.push(PDFNumber.of(xmin));
+          annotRect.push(PDFNumber.of(ymin));
+          annotRect.push(PDFNumber.of(xmax));
+          annotRect.push(PDFNumber.of(ymax));
+
+          const annotQuad = highlightAnnot.get(PDFName.of('QuadPoints')) as PDFArray;
+          for (const val of quadPointsArray) {
+            annotQuad.push(PDFNumber.of(val));
+          }
+
+          const annotColor = highlightAnnot.get(PDFName.of('C')) as PDFArray;
+          annotColor.push(PDFNumber.of(rgb.r));
+          annotColor.push(PDFNumber.of(rgb.g));
+          annotColor.push(PDFNumber.of(rgb.b));
+
+          // 5. 페이지 주석 배열에 추가 및 Indirect Object 등록
+          const annotRef = doc.context.register(highlightAnnot);
+          annotsArray.push(annotRef);
         }
       } else {
         const pages = parsePageRange(pageList, document.numPages);
@@ -712,12 +777,17 @@ function HighlightForm({
     }
   }
 
+  // selectionPreview 텍스트 고도화
+  const totalPages = lastSelection ? lastSelection.length : 0;
+  const totalRects = lastSelection ? lastSelection.reduce((acc, s) => acc + s.rects.length, 0) : 0;
+  const sampleText = lastSelection && lastSelection.length > 0 ? lastSelection[0].text : '';
+
   const selectionPreview =
-    lastSelection && lastSelection.text
+    lastSelection && lastSelection.length > 0 && totalRects > 0
       ? t('adv.hl.selectionInfo', {
-          text: lastSelection.text.length > 40 ? `${lastSelection.text.slice(0, 40)}…` : lastSelection.text,
-          page: lastSelection.pageNumber,
-          count: lastSelection.rects.length,
+          text: sampleText.length > 40 ? `${sampleText.slice(0, 40)}…` : sampleText,
+          page: lastSelection.map((s) => s.pageNumber).join(', '),
+          count: totalRects,
         })
       : t('adv.hl.noSelection');
 

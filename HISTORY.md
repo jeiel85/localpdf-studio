@@ -1,5 +1,21 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.13.0 - 다중 페이지 하이라이트 및 표준 주석 연동)
+
+- 작업: 사용자가 마우스 드래그로 두 개 이상의 페이지를 가로지르며 텍스트를 선택했을 때의 드래그 좌표 그룹화 지원(과제 A) 및 국제 표준 PDF Highlight 주석 명세에 부합하는 주석 데이터 임베딩 구현(과제 B).
+- 변경 파일:
+  - `src/lib/textSelection.ts` — `captureCurrentSelection`이 화면 상의 렌더링된 모든 페이지 노드들을 쿼리하고, 드래그 영역의 각 DOMRect 중심 Y축 좌표를 기준으로 해당 페이지 번호에 동적 매핑 및 분리 그룹화하도록 개선하여 `PageSelection[] | null`로 다중 페이지 그룹 데이터 반환 구조 구현.
+  - `src/App.tsx` — `lastSelection` 상태 변수 타입을 `PageSelection[] | null`로 변경하고 `AdvancedPanel`로 넘겨주는 props 인터페이스와 일치시킴.
+  - `src/components/AdvancedPanel.tsx` — `HighlightForm`의 `lastSelection` props 타입을 `PageSelection[]`로 마이그레이션. 텍스트 선택 영역 미리보기에서 다중 페이지 선택 상태가 올바르게 표시되도록 수정. 하이라이트 생성 로직에서 기존 배경 위에 사각형을 덧칠하던 `drawRectangle` 방식 대신 `pdf-lib` 저수준 딕셔너리 빌드 API를 사용해 국제 표준 PDF `Highlight` Annotation 딕셔너리를 생성하여 각 페이지의 `/Annots` 리스트에 직접 임베딩하는 구조를 구현. 각 selectionRect에 맞춰 Bounding Box인 `/Rect`와 각 꼭짓점 정보인 `/QuadPoints` 좌표계를 매핑하고, 작성자명(`LocalPDF Studio`) 및 드래그 텍스트 내용을 `/Contents`에 삽입하는 루프 구현.
+  - `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` — 버전 범프 (`v0.13.0`으로 인상).
+- 설계 결정:
+  - 다중 페이지 텍스트 선택 시, DOMRect들의 중심 Y축 좌표를 활용하여 현재 렌더링된 페이지 경계를 판별하고, 정확하게 페이지 번호별로 좌표를 분류하는 알고리즘을 설계함.
+  - PDF 뷰어 표준(Adobe Acrobat, Chrome 등)과의 완전한 호환을 제공하여, 타 리더의 '주석 패널'에서도 사용자가 주석을 편집, 조회, 삭제할 수 있도록 `/Highlight` Annotation 객체를 임베딩하는 구조로 전면 전환함.
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm test` 39/39 통과
+  - `cargo test` 37/37 통과
+
 ## 2026-05-20 (Unreleased - 텍스트 선택 기반 하이라이트 고도화)
 
 - 작업: PDF 페이지 회전 각도(원본 페이지 회전 + 뷰어 회전)에 대한 수학적 역변환 공식을 적용하여 0, 90, 180, 270도 모든 회전 상태에서 텍스트 하이라이트 좌표를 정확하게 보정.

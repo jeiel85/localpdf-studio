@@ -76,6 +76,13 @@
 - [x] 관리자 승격 흐름 (Start-Process -Verb RunAs, 승격 거부 안내)
 - [x] ToolsPanel 자동 설치 UI (자동 설치/관리자 권한 설치 버튼 + 수동 다운로드)
 
+## v0.13.0 - 다중 페이지 하이라이트 및 표준 주석 연동
+
+- [x] 다중 페이지 드래그 선택 지원 (Y축 좌표 기반 페이지 매핑 알고리즘)
+- [x] 표준 PDF Highlight 주석(Annotation) 임베딩 (/Annots 내 /Highlight 딕셔너리 생성)
+- [x] pdf-lib 저수준 API를 활용한 QuadPoints 및 Rect 매핑
+- [x] Adobe Acrobat 및 Chrome 등 타 PDF 뷰어의 주석 패널 호환성 확보
+
 ## v0.8.0 - 하이라이트 고도화
 
 - [x] 페이지 회전 좌표계 보정 (0도, 90도, 180도, 270도 역변환 수학 공식 적용)

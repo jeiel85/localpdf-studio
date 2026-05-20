@@ -75,7 +75,7 @@ export default function App() {
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPrintDialog, setShowPrintDialog] = useState(false);
-  const [lastSelection, setLastSelection] = useState<PageSelection | null>(null);
+  const [lastSelection, setLastSelection] = useState<PageSelection[] | null>(null);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);

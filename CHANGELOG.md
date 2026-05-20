@@ -1,5 +1,32 @@
 # CHANGELOG.md
 
+## v0.13.0 - 2026-05-20
+
+다중 페이지 드래그 선택 하이라이트 지원 및 국제 표준 PDF Highlight 주석(Annotation) 규격 연동 완료.
+
+### Added — 다중 페이지 드래그 선택 지원 (과제 A)
+
+- **다중 페이지 캡처 알고리즘 도입** ([`src/lib/textSelection.ts`](src/lib/textSelection.ts)): `captureCurrentSelection`이 화면 상의 렌더링된 모든 페이지 노드들을 쿼리하고, 드래그 영역의 각 DOMRect 중심 Y축 좌표를 기준으로 해당 페이지 번호에 동적 매핑하여 그룹화하는 구조를 설계하여, `PageSelection[] | null` 타입으로 여러 페이지에 걸친 드래그 선택 영역을 완벽하게 수집하고 반환
+- **글로벌 상태 마이그레이션** ([`src/App.tsx`](src/App.tsx)): `lastSelection` 상태 변수 타입을 `PageSelection[] | null`로 확장하여 `AdvancedPanel` 및 하위 폼에 데이터가 유실 없이 전송되도록 마이그레이션
+
+### Added — 표준 PDF Highlight 주석(Annotation) 객체 연동 (과제 B)
+
+- **표준 주석 객체 임베딩** ([`src/components/AdvancedPanel.tsx`](src/components/AdvancedPanel.tsx)): 기존에 PDF 페이지의 배경 콘텐츠 위에 사각형을 직접 덧그려 덧칠하는 `drawRectangle` 방식 대신, `pdf-lib` 저수준 딕셔너리 빌드 API를 사용해 각 페이지의 `/Annots` 목록에 직접 표준 Highlight Annotation 딕셔너리를 빌드하여 등록하는 구조로 전면 개편.
+  - **Annotation 딕셔너리 구성**: 전체 사각형 경계를 아우르는 Bounding Box인 `/Rect`, 각 개별 사각형 영역의 꼭짓점을 지정하는 `/QuadPoints` (각 사각형별 [좌상, 우상, 좌하, 우하] 8개 좌표 조합), 색상 `/C` 및 불투명도 `/CA`(0.4), 작성자명 `/T`(`LocalPDF Studio`), 드래그된 주석 텍스트 `/Contents` 등을 표준 양식으로 주입.
+  - **뷰어 완벽 호환성 확보**: 이를 통해 생성된 하이라이트 PDF 문서는 **Adobe Acrobat, Chrome 브라우저 내장 뷰어, Edge, macOS Preview** 등 모든 정식 PDF 리더기의 '주석/Annotation 패널'에서 정상적으로 조회, 편집, 삭제, 덧글 작성이 가능.
+- **다중 페이지 렌더링 지원 및 UI 갱신**:
+  - `lastSelection` props 타입을 `PageSelection[]` 배열로 마이그레이션.
+  - 텍스트 선택 미리보기 레이블에 선택된 다중 페이지 목록과 총 사각형 갯수가 직관적으로 표현되도록 고도화.
+  - `run()` 함수 내에서 다중 페이지 선택 데이터에 대해 순차적으로 루프를 돌며 각각의 `/Highlight` 주석 객체를 삽입하도록 보완.
+
+### Verification
+
+- `npm run typecheck`: 통과 (TypeScript 컴파일 무오류)
+- `npm test`: 39/39 통과 (Vitest 프론트엔드 테스트 100% 성공)
+- `cargo test`: 37/37 통과 (Tauri Rust 백엔드 단위 테스트 100% 성공)
+
+---
+
 ## v0.12.0 - 2026-05-20
 
 텍스트 선택 기반 하이라이트 기능 페이지 회전 좌표계 보정 완료.

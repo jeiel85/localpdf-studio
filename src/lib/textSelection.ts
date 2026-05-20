@@ -115,46 +115,78 @@ function rectToPdfPoint(
   return { x: pdfX, y: pdfY, width: pdfWidth, height: pdfHeight };
 }
 
-// 현재 window.getSelection()을 PDF 좌표 페이지별 사각형으로 변환.
-// 페이지를 가로지르는 선택은 첫 페이지의 사각형만 반환 (MVP).
-export function captureCurrentSelection(): PageSelection | null {
+// 현재 window.getSelection()을 PDF 좌표 페이지별 사각형 배열로 변환.
+// 페이지를 가로지르는 다중 페이지 드래그 선택을 완벽히 지원합니다.
+export function captureCurrentSelection(): PageSelection[] | null {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
 
   const text = sel.toString();
   if (!text.trim()) return null;
 
-  // 첫 range의 시작 컨테이너에서 페이지 정보 찾음
-  const range = sel.getRangeAt(0);
-  const info = findPageNode(range.startContainer);
-  if (!info) return null;
+  // 현재 화면에 렌더링된 모든 페이지 엘리먼트 검색 및 정보 구축
+  const pageNodes = Array.from(document.querySelectorAll<HTMLElement>('[data-page-index]'));
+  const pagesInfo = pageNodes
+    .map((node) => {
+      const pageNumber = parseInt(node.dataset.pageIndex ?? '0', 10);
+      const baseWidth = parseFloat(node.dataset.baseWidth ?? '0');
+      const baseHeight = parseFloat(node.dataset.baseHeight ?? '0');
+      const pageRotation = parseInt(node.dataset.pageRotation ?? '0', 10);
+      const rect = node.getBoundingClientRect();
+      return { node, pageNumber, baseWidth, baseHeight, pageRotation, rect };
+    })
+    .filter((p) => p.pageNumber > 0 && p.baseWidth > 0 && p.baseHeight > 0 && p.rect.width > 0 && p.rect.height > 0);
 
-  const pageRect = info.node.getBoundingClientRect();
-  if (pageRect.width === 0 || pageRect.height === 0) return null;
+  if (pagesInfo.length === 0) return null;
 
-  // 모든 range의 client rects를 모음. 같은 페이지 안 사각형만 채택.
-  const rects: SelectionRect[] = [];
+  // 페이지 번호별 선택 영역 그룹화 맵
+  const pageRectsMap = new Map<number, { info: typeof pagesInfo[0]; rects: SelectionRect[] }>();
+
+  // 모든 range의 client rects를 순회하며 Y축 매핑을 통해 적절한 페이지에 할당
   for (let i = 0; i < sel.rangeCount; i++) {
     const r = sel.getRangeAt(i);
     const clientRects = r.getClientRects();
     for (let j = 0; j < clientRects.length; j++) {
       const cr = clientRects[j];
       if (cr.width < 0.5 || cr.height < 0.5) continue;
-      // 페이지 영역과 겹치는지 확인
-      const overlapsHorizontal = cr.right > pageRect.left && cr.left < pageRect.right;
-      const overlapsVertical = cr.bottom > pageRect.top && cr.top < pageRect.bottom;
-      if (!overlapsHorizontal || !overlapsVertical) continue;
-      const pdfRect = rectToPdfPoint(cr, pageRect, info.baseWidth, info.baseHeight, info.pageRotation);
-      if (pdfRect.width > 0.5 && pdfRect.height > 0.5) rects.push(pdfRect);
+
+      // 사각형의 중앙 Y축 값으로 매칭 페이지 찾기
+      const centerY = (cr.top + cr.bottom) / 2;
+      const matchedPage = pagesInfo.find((p) => centerY >= p.rect.top && centerY <= p.rect.bottom);
+      if (!matchedPage) continue;
+
+      const pdfRect = rectToPdfPoint(
+        cr,
+        matchedPage.rect,
+        matchedPage.baseWidth,
+        matchedPage.baseHeight,
+        matchedPage.pageRotation,
+      );
+
+      if (pdfRect.width > 0.5 && pdfRect.height > 0.5) {
+        if (!pageRectsMap.has(matchedPage.pageNumber)) {
+          pageRectsMap.set(matchedPage.pageNumber, { info: matchedPage, rects: [] });
+        }
+        pageRectsMap.get(matchedPage.pageNumber)!.rects.push(pdfRect);
+      }
     }
   }
 
-  if (rects.length === 0) return null;
+  if (pageRectsMap.size === 0) return null;
 
-  return {
-    pageNumber: info.pageNumber,
-    rects,
-    text,
-    capturedAt: Date.now(),
-  };
+  const result: PageSelection[] = [];
+  const capturedAt = Date.now();
+
+  for (const [pageNumber, data] of pageRectsMap.entries()) {
+    result.push({
+      pageNumber,
+      rects: data.rects,
+      text, // 드래그된 전체 텍스트 보존
+      capturedAt,
+    });
+  }
+
+  // 페이지 번호 순 정렬
+  result.sort((a, b) => a.pageNumber - b.pageNumber);
+  return result;
 }
