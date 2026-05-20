@@ -1,17 +1,29 @@
 # HISTORY.md
 
-## 2026-05-20 (Unreleased - 파일 command 안전성 보강)
+## 2026-05-20 (v0.17.2 - 파일 command 안전성 + 배포 후속 처리)
 
-- 작업: 프론트에서 호출 가능한 로컬 파일 저장/읽기/삭제 command의 실패 시 원본 보존과 임의 파일 접근 차단을 보강.
+- 작업: 프론트에서 호출 가능한 로컬 파일 저장/읽기/삭제 command의 실패 시 원본 보존과 임의 파일 접근 차단을 보강하고, 남은 배포 후속 작업 5개를 스크립트/CI/문서/실제 제출 가능한 범위까지 정리.
 - 변경 파일:
   - `src-tauri/src/commands.rs` — `save_text_file`, `save_binary_file`을 `atomic_write` 기반으로 전환하고, 기존 파일 교체 실패 시 백업 파일을 원래 경로로 복원하도록 개선.
   - `src-tauri/src/commands.rs` — `read_text_file_if_exists`는 `.json`/`.txt`만 읽도록 제한하고, `delete_file_if_exists`는 이미지 임시 파일과 `.txt`/`.json`만 삭제하도록 제한.
   - `src-tauri/src/commands.rs` — 출력/읽기/삭제 경로의 시스템 디렉터리 차단 로직을 공통 helper로 정리하고 Rust 단위 테스트 3개 추가.
-  - `README.md`, `CHANGELOG.md`, `TASKS.md`, `DECISION_LOG.md` — 파일 command 안전성 보강 기록 반영.
+  - `.github/workflows/release.yml` — macOS Universal DMG 및 Linux AppImage/deb/rpm 빌드 job 복구.
+  - `.github/workflows/ci.yml` — Vitest, Rust test, winget manifest 검증, Chocolatey pack 검증 추가.
+  - `scripts/windows/validate-winget-manifests.ps1`, `submit-winget.ps1`, `publish-chocolatey.ps1`, `verify-release-assets.ps1` [NEW] — 패키지 검증/제출/릴리즈 산출물 검증 자동화.
+  - `docs/09_RELEASE_QA_CHECKLIST.md` [NEW] — 자동 검증, 산출물, 패키지 매니저 제출, 수동 앱 QA 체크리스트 정리.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` — 버전 `0.17.2` 동기화.
+  - `README.md`, `CHANGELOG.md`, `TASKS.md`, `DECISION_LOG.md` — v0.17.2 기록 반영.
 - 검증:
   - `npm run typecheck` 통과.
   - `npm run test` 55/55 통과.
+  - `npm run build` 통과.
   - `cargo test` 40/40 통과.
+  - `scripts/windows/validate-winget-manifests.ps1` 통과.
+  - `scripts/windows/publish-chocolatey.ps1 -SkipPush` 통과.
+  - `scripts/windows/verify-release-assets.ps1 -Version 0.17.0` 통과.
+- 제출:
+  - winget v0.17.0 PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377207
+  - Chocolatey v0.17.0 패키지 생성 완료. `CHOCO_API_KEY`가 로컬에 없어 community push는 인증 대기.
 
 ## 2026-05-20 (v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리)
 

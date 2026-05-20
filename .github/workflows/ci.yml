@@ -29,9 +29,24 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Test frontend
+        run: npm run test
+
       - name: Build frontend
         run: npm run build
 
       - name: Check Rust backend
         run: cargo check
         working-directory: src-tauri
+
+      - name: Test Rust backend
+        run: cargo test
+        working-directory: src-tauri
+
+      - name: Validate winget manifests
+        shell: pwsh
+        run: ./scripts/windows/validate-winget-manifests.ps1
+
+      - name: Build Chocolatey package
+        shell: pwsh
+        run: ./scripts/windows/publish-chocolatey.ps1 -SkipPush

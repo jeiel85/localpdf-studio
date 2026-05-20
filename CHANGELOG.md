@@ -1,18 +1,38 @@
 # CHANGELOG.md
 
-## Unreleased - 2026-05-20
+## v0.17.2 - 2026-05-20
 
-파일 저장/읽기/삭제 command의 로컬 파일 안전성 보강.
+파일 command 안전성 보강, 패키지 제출 자동화, cross-platform 릴리즈 matrix 복구.
+
+### Added
+- `scripts/windows/validate-winget-manifests.ps1`: README가 섞인 디렉터리 검증 실패를 피하도록 YAML만 임시 디렉터리에 복사해 `winget validate` 실행.
+- `scripts/windows/submit-winget.ps1`: GitHub token 또는 `WINGET_TOKEN`으로 `wingetcreate submit` 자동 실행.
+- `scripts/windows/publish-chocolatey.ps1`: Chocolatey `.nupkg` 생성과 `CHOCO_API_KEY` 기반 push 자동화.
+- `scripts/windows/verify-release-assets.ps1`: GitHub Release 필수 산출물과 SHA-256 digest 존재 여부 검증.
+- `docs/09_RELEASE_QA_CHECKLIST.md`: 자동 검증, 릴리즈 산출물, 패키지 매니저 제출, 수동 QA 체크리스트 정리.
 
 ### Security
 - `save_text_file`, `save_binary_file`을 직접 `fs::write` 대신 임시 파일 생성 후 교체하는 저장 경로로 통일.
 - `read_text_file_if_exists`는 `.json`/`.txt`만 허용하고 시스템 디렉터리 접근을 차단하도록 제한.
 - `delete_file_if_exists`는 이미지 임시 파일과 `.txt`/`.json`만 삭제할 수 있게 하여 보호 확장자 임의 삭제를 차단.
 
+### Changed
+- 릴리즈 워크플로를 Windows/macOS/Linux build job + 단일 GitHub Release job 구조로 확장해 DMG, AppImage, deb, rpm 산출물 업로드를 복구.
+- CI에 Vitest, Rust test, winget manifest 검증, Chocolatey package 생성 검증을 추가.
+- 앱 버전을 `0.17.2`로 동기화.
+
+### Distribution
+- `wingetcreate submit`으로 v0.17.0 winget PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377207
+- Chocolatey v0.17.0 `.nupkg` 생성 검증 완료. 실제 community push는 로컬/CI에 `CHOCO_API_KEY`가 없어 보류.
+
 ### Verification
 - `npm run typecheck`: 통과.
 - `npm run test`: 55/55 통과.
+- `npm run build`: 통과.
 - `cargo test`: 40/40 통과.
+- `scripts/windows/validate-winget-manifests.ps1`: 통과.
+- `scripts/windows/publish-chocolatey.ps1 -SkipPush`: 통과.
+- `scripts/windows/verify-release-assets.ps1 -Version 0.17.0`: 통과.
 
 ---
 
