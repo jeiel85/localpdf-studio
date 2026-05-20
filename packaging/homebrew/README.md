@@ -35,16 +35,22 @@ Apple Developer 가입 + 공증 자동화 추가 후 가능:
 2. `Casks/l/localpdf-studio.rb` 경로에 이 파일 복사
 3. `brew style --fix --cask localpdf-studio` 통과
 4. `brew audit --new-cask localpdf-studio` 통과
-5. PR 제목: `localpdf-studio 0.10.0 (new cask)`
+5. PR 제목: `localpdf-studio <버전> (new cask)`
 6. 모더레이터 리뷰 (보통 며칠 ~ 2주)
 
 ## SHA-256 계산
 
 ```bash
-shasum -a 256 ~/Downloads/LocalPDF\ Studio_0.10.0_universal.dmg
+shasum -a 256 ~/Downloads/LocalPDF.Studio_<버전>_universal.dmg
 ```
 
 값을 `localpdf-studio.rb`의 `sha256 "..."` 에 입력.
+
+또는 저장소 루트에서 다음 스크립트로 GitHub Release digest를 자동 반영:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\sync-package-manifests.ps1 -Version <버전>
+```
 
 ## 자동 livecheck
 

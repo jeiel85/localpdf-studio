@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>localpdf-studio</id>
-    <version>0.10.0</version>
+    <version>0.15.0</version>
     <packageSourceUrl>https://github.com/jeiel85/localpdf-studio/tree/master/packaging/chocolatey</packageSourceUrl>
     <owners>jeiel85</owners>
     <title>LocalPDF Studio</title>
@@ -35,7 +35,7 @@ All processing is performed locally — no cloud uploads.
 - qpdf (for PDF manipulation)
 - Tesseract OCR (for searchable PDF / text extraction)
 ]]></description>
-    <releaseNotes>https://github.com/jeiel85/localpdf-studio/releases/tag/v0.10.0</releaseNotes>
+    <releaseNotes>https://github.com/jeiel85/localpdf-studio/releases/tag/v0.15.0</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

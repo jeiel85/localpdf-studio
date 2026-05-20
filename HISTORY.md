@@ -1,5 +1,27 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.16.0 - 패키지 매니저 매니페스트 동기화 자동화)
+
+- 작업: GitHub Release asset digest를 기준으로 winget, Chocolatey, Homebrew, Snap, AUR 제출 파일의 버전/URL/SHA-256을 일괄 갱신하는 PowerShell 자동화 스크립트 추가 및 v0.15.0 산출물 기준 매니페스트 최신화.
+- 변경 파일:
+  - `scripts/windows/sync-package-manifests.ps1` [NEW] — `gh release view`의 asset digest를 읽어 NSIS, DEB, DMG 산출물 SHA-256을 추출하고 패키지 매니페스트를 동기화.
+  - `packaging/winget/*` — v0.15.0 NSIS 설치 파일 URL 및 SHA-256 반영.
+  - `packaging/chocolatey/*` — v0.15.0 nuspec, installer URL, checksum 반영.
+  - `packaging/homebrew/localpdf-studio.rb` — v0.15.0 Universal DMG URL 및 SHA-256 반영.
+  - `packaging/snap/snapcraft.yaml`, `packaging/aur/PKGBUILD` — v0.15.0 Linux `.deb` 기반 패키징 URL 및 SHA-256 반영.
+  - `README.md`, `docs/index.html`, `docs/en.html`, `docs/ja.html`, `TASKS.md`, `CHANGELOG.md`, `DECISION_LOG.md` — v0.16.0 작업 기록 및 패키징 자동화 설명 추가.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` — v0.16.0 릴리즈 메타데이터 동기화.
+- 설계 결정:
+  - 패키지 매니저 제출 전 사람이 릴리즈 산출물을 다운로드해 SHA-256을 옮겨 적는 반복 작업을 줄이기 위해 GitHub Release가 제공하는 `sha256:` digest를 단일 신뢰 입력으로 사용.
+  - 스크립트는 파일 저장 시 UTF-8 no BOM을 명시해 한글 매니페스트/문서의 인코딩 손상을 방지하도록 수정.
+- 검증:
+  - `powershell -ExecutionPolicy Bypass -File scripts/windows/sync-package-manifests.ps1 -Version 0.15.0` 실행 성공.
+  - `npm run typecheck` 통과.
+  - `npm run test` 45/45 통과.
+  - `npm run build` 통과.
+  - `cargo check` 통과.
+  - `cargo test` 37/37 통과.
+
 ## 2026-05-20 (v0.15.0 - 개인정보 자동 패턴 탐지 및 마스킹 추천)
 
 - 작업: 8종 핵심 개인정보/문서 식별자(주민번호, 전화번호, 이메일, 신용카드, 계좌번호, 사업자등록번호, 여권번호, 운전면허번호) 오프라인 스캔 및 글자 비례 배분 좌표 정밀 역산 알고리즘(charWidth)을 탑재한 코어 엔진 구현, 그리고 다크모드/다국어 친화적 프리미엄 UI 패널 연동 완료.

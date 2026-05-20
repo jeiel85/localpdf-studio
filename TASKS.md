@@ -1,5 +1,12 @@
 # TASKS.md
 
+## v0.16.0 - 패키지 매니저 매니페스트 동기화 자동화
+
+- [x] GitHub Release asset digest를 조회해 winget/Chocolatey/Homebrew/Snap/AUR 매니페스트 버전, URL, SHA-256을 동기화하는 PowerShell 스크립트 추가 (`scripts/windows/sync-package-manifests.ps1`)
+- [x] v0.15.0 공개 산출물 기준 winget, Chocolatey, Homebrew, Snap, AUR 제출 파일 버전 및 SHA-256 갱신
+- [x] 패키지 제출 README의 수동 SHA 계산 안내를 동기화 스크립트 중심 흐름으로 보강
+- [x] v0.16.0 릴리즈 메타데이터 동기화 (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `README.md`)
+
 ## v0.15.0 - 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction)
 
 - [x] 8종 개인정보/문서 식별자 정규식 패턴(주민번호, 전화번호, 이메일, 신용카드, 계좌번호, 사업자등록번호, 여권번호, 운전면허번호) 코어 검색 로직 정립 (`src/lib/autoRedaction.ts`)

@@ -12,15 +12,14 @@ winget upgrade jeiel85.LocalPDFStudio
 
 ### 1. 새 버전이 GitHub Release에 게시된 후
 
-**SHA-256 계산**:
+**매니페스트 동기화**:
 
 ```powershell
-# release에서 NSIS .exe 다운로드 후
-(Get-FileHash .\LocalPDF.Studio_<버전>_x64-setup.exe -Algorithm SHA256).Hash
+powershell -ExecutionPolicy Bypass -File scripts\windows\sync-package-manifests.ps1 -Version <버전>
 ```
 
-[installer.yaml](jeiel85.LocalPDFStudio.installer.yaml)의 `InstallerSha256`
-및 `InstallerUrl`을 새 버전으로 교체.
+스크립트는 GitHub Release asset digest를 읽어 [installer.yaml](jeiel85.LocalPDFStudio.installer.yaml)의
+`InstallerSha256`, `InstallerUrl`, `PackageVersion`, `ReleaseNotesUrl`을 새 버전으로 교체합니다.
 
 ### 2. wingetcreate로 자동 제출 (권장)
 

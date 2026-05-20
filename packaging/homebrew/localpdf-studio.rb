@@ -1,8 +1,6 @@
 cask "localpdf-studio" do
-  version "0.10.0"
-  # NOTE: PR 제출 전 release 게시 후 실제 SHA256으로 교체.
-  #   shasum -a 256 LocalPDF\ Studio_0.10.0_universal.dmg
-  sha256 "REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE_ASSET"
+  version "0.15.0"
+  sha256 "e4ce897bbd9cb326e56e77a81a435e7860884e2c03e7932ac5b89ac73edd0646"
 
   url "https://github.com/jeiel85/localpdf-studio/releases/download/v#{version}/LocalPDF.Studio_#{version}_universal.dmg",
       verified: "github.com/jeiel85/localpdf-studio/"

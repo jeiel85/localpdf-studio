@@ -32,13 +32,13 @@ cd packaging/snap
 # 빌드 (multipass VM에서 실행, 5-10분 소요)
 snapcraft
 
-# 결과: localpdf-studio_0.10.0_amd64.snap
+# 결과: localpdf-studio_<버전>_amd64.snap
 
 # 로그인 (1회)
 snapcraft login
 
 # stable 채널에 push + release
-snapcraft upload --release=stable localpdf-studio_0.10.0_amd64.snap
+snapcraft upload --release=stable localpdf-studio_<버전>_amd64.snap
 ```
 
 ### 4. 자동화 (GitHub Actions)

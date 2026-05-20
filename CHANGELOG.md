@@ -1,5 +1,27 @@
 # CHANGELOG.md
 
+## v0.16.0 - 2026-05-20
+
+패키지 매니저 제출 준비를 자동화하고 v0.15.0 릴리즈 산출물 기준 매니페스트를 최신화.
+
+### Added
+- **패키지 매니저 매니페스트 동기화 스크립트** (`scripts/windows/sync-package-manifests.ps1`): GitHub CLI로 릴리즈 asset digest를 조회해 winget, Chocolatey, Homebrew, Snap, AUR 제출 파일의 버전/URL/SHA-256을 일괄 갱신.
+
+### Changed
+- `packaging/winget`, `packaging/chocolatey`, `packaging/homebrew`, `packaging/snap`, `packaging/aur` 제출 파일을 v0.15.0 릴리즈 산출물 기준으로 갱신.
+- 패키지별 제출 README의 수동 SHA 계산 안내를 동기화 스크립트 중심으로 보강.
+- 앱 릴리즈 메타데이터를 v0.16.0으로 동기화.
+
+### Verification
+- `scripts/windows/sync-package-manifests.ps1 -Version 0.15.0`: GitHub Release asset digest 조회 및 매니페스트 갱신 성공.
+- `npm run typecheck`: 통과.
+- `npm run test`: 45/45 통과.
+- `npm run build`: 통과.
+- `cargo check`: 통과.
+- `cargo test`: 37/37 통과.
+
+---
+
 ## v0.15.0 - 2026-05-20
 
 오프라인 로컬 우선 PDF 개인정보 자동 패턴 탐지 및 마스킹 추천 (Auto-Redaction) 기능 구현 완료.

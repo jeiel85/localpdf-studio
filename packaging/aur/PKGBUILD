@@ -2,7 +2,7 @@
 
 pkgname=localpdf-studio-bin
 _pkgname=localpdf-studio
-pkgver=0.10.0
+pkgver=0.15.0
 pkgrel=1
 pkgdesc="Local-first desktop PDF viewer and utility suite (Tauri 2 + React)"
 arch=('x86_64')
@@ -18,11 +18,8 @@ optdepends=(
 provides=("$_pkgname")
 conflicts=("$_pkgname")
 
-source_x86_64=("$_pkgname-$pkgver-x86_64.deb::https://github.com/jeiel85/localpdf-studio/releases/download/v$pkgver/${_pkgname}_${pkgver}_amd64.deb")
-
-# NOTE: PR 제출 전 release 게시 후 실제 SHA256으로 교체.
-#   updpkgsums  (pacman-contrib 패키지 필요)
-sha256sums_x86_64=('REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE_ASSET')
+source_x86_64=("$_pkgname-$pkgver-x86_64.deb::https://github.com/jeiel85/localpdf-studio/releases/download/v$pkgver/LocalPDF.Studio_${pkgver}_amd64.deb")
+sha256sums_x86_64=('f7ed86ead545e5166f01f7738c85695b79fcd13161a39f29b44e7fffc845985b')
 
 package() {
   cd "$srcdir"

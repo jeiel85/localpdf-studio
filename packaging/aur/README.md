@@ -53,7 +53,7 @@ cp PKGBUILD .SRCINFO aur-localpdf-studio-bin/
 # 커밋 + 푸시
 cd aur-localpdf-studio-bin
 git add PKGBUILD .SRCINFO
-git commit -m "Initial commit: localpdf-studio-bin 0.10.0"
+git commit -m "Initial commit: localpdf-studio-bin <버전>"
 git push origin master
 ```
 

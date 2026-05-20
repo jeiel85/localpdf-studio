@@ -32,7 +32,7 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocola
 cd .\packaging\chocolatey
 choco pack
 
-# 결과: localpdf-studio.0.10.0.nupkg
+# 결과: localpdf-studio.<버전>.nupkg
 
 # 로컬 설치 테스트
 choco install localpdf-studio -s . -y --force
@@ -49,7 +49,7 @@ choco apikey --key <YOUR_API_KEY> --source https://push.chocolatey.org/
 # API 키는 https://community.chocolatey.org/account 에서 발급
 
 # 제출
-choco push localpdf-studio.0.10.0.nupkg --source https://push.chocolatey.org/
+choco push localpdf-studio.<버전>.nupkg --source https://push.chocolatey.org/
 ```
 
 ### 4. 검수
@@ -70,9 +70,8 @@ GitHub Actions에서 자동 push:
   run: |
     choco apikey --key ${{ secrets.CHOCO_API_KEY }} --source https://push.chocolatey.org/
     cd .\packaging\chocolatey
-    # SHA256 자동 갱신
-    $sha = (Get-FileHash ..\..\src-tauri\target\release\bundle\nsis\*setup.exe -Algorithm SHA256).Hash
-    (Get-Content tools\chocolateyInstall.ps1) -replace 'REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE_ASSET', $sha | Set-Content tools\chocolateyInstall.ps1
+    # 릴리즈 산출물 SHA256을 매니페스트에 동기화
+    powershell -ExecutionPolicy Bypass -File ..\..\scripts\windows\sync-package-manifests.ps1 -Version $env:GITHUB_REF_NAME.TrimStart('v')
     choco pack
     choco push *.nupkg --source https://push.chocolatey.org/
 ```
