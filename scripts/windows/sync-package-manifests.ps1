@@ -19,11 +19,16 @@ Set-Location $repoRoot
 function Get-AssetHash {
   param(
     [array]$Assets,
-    [string]$Name
+    [string]$Name,
+    [switch]$Optional
   )
 
   $asset = $Assets | Where-Object { $_.name -eq $Name } | Select-Object -First 1
   if (-not $asset) {
+    if ($Optional) {
+      Write-Host "  (optional) skip: $Name not present in release"
+      return $null
+    }
     throw "Release asset not found: $Name"
   }
   if (-not $asset.digest -or -not $asset.digest.StartsWith("sha256:")) {
@@ -87,8 +92,8 @@ $debAsset = "LocalPDF.Studio_${Version}_amd64.deb"
 $dmgAsset = "LocalPDF.Studio_${Version}_universal.dmg"
 
 $setupSha = Get-AssetHash -Assets $assets -Name $setupAsset
-$debSha = Get-AssetHash -Assets $assets -Name $debAsset
-$dmgSha = Get-AssetHash -Assets $assets -Name $dmgAsset
+$debSha = Get-AssetHash -Assets $assets -Name $debAsset -Optional
+$dmgSha = Get-AssetHash -Assets $assets -Name $dmgAsset -Optional
 
 $wingetVersionFiles = @(
   "packaging\winget\jeiel85.LocalPDFStudio.yaml",
@@ -114,19 +119,27 @@ $nuspecPath = "packaging\chocolatey\localpdf-studio.nuspec"
 Replace-InFile -Path $nuspecPath -Pattern "<version>[0-9]+\.[0-9]+\.[0-9]+</version>" -Replacement "<version>$Version</version>"
 Replace-InFile -Path $nuspecPath -Pattern "releases/tag/v[0-9]+\.[0-9]+\.[0-9]+" -Replacement "releases/tag/$ReleaseTag"
 
-$aurPath = "packaging\aur\PKGBUILD"
-Replace-InFile -Path $aurPath -Pattern "pkgver=[0-9]+\.[0-9]+\.[0-9]+" -Replacement "pkgver=$Version"
-Replace-InFile -Path $aurPath -Pattern "sha256sums_x86_64=\('.*'\)" -Replacement "sha256sums_x86_64=('$debSha')"
+if ($debSha) {
+  $aurPath = "packaging\aur\PKGBUILD"
+  Replace-InFile -Path $aurPath -Pattern "pkgver=[0-9]+\.[0-9]+\.[0-9]+" -Replacement "pkgver=$Version"
+  Replace-InFile -Path $aurPath -Pattern "sha256sums_x86_64=\('.*'\)" -Replacement "sha256sums_x86_64=('$debSha')"
 
-$homebrewPath = "packaging\homebrew\localpdf-studio.rb"
-Replace-InFile -Path $homebrewPath -Pattern 'version "[0-9]+\.[0-9]+\.[0-9]+"' -Replacement "version `"$Version`""
-Replace-InFile -Path $homebrewPath -Pattern 'sha256 ".+"' -Replacement "sha256 `"$dmgSha`""
+  $snapPath = "packaging\snap\snapcraft.yaml"
+  Replace-InFile -Path $snapPath -Pattern "version: [0-9]+\.[0-9]+\.[0-9]+" -Replacement "version: $Version"
+  Replace-InFile -Path $snapPath -Pattern "releases/download/v[0-9]+\.[0-9]+\.[0-9]+/[^`r`n]+" -Replacement "releases/download/$ReleaseTag/$debAsset"
+} else {
+  Write-Host "Skipping AUR / Snap update — no .deb asset in release."
+}
 
-$snapPath = "packaging\snap\snapcraft.yaml"
-Replace-InFile -Path $snapPath -Pattern "version: [0-9]+\.[0-9]+\.[0-9]+" -Replacement "version: $Version"
-Replace-InFile -Path $snapPath -Pattern "releases/download/v[0-9]+\.[0-9]+\.[0-9]+/[^`r`n]+" -Replacement "releases/download/$ReleaseTag/$debAsset"
+if ($dmgSha) {
+  $homebrewPath = "packaging\homebrew\localpdf-studio.rb"
+  Replace-InFile -Path $homebrewPath -Pattern 'version "[0-9]+\.[0-9]+\.[0-9]+"' -Replacement "version `"$Version`""
+  Replace-InFile -Path $homebrewPath -Pattern 'sha256 ".+"' -Replacement "sha256 `"$dmgSha`""
+} else {
+  Write-Host "Skipping Homebrew update — no DMG asset in release."
+}
 
 Write-Host "Package manifests synced for $ReleaseTag."
 Write-Host "NSIS sha256: $setupSha"
-Write-Host "DEB   sha256: $debSha"
-Write-Host "DMG   sha256: $dmgSha"
+if ($debSha) { Write-Host "DEB   sha256: $debSha" }
+if ($dmgSha) { Write-Host "DMG   sha256: $dmgSha" }

@@ -1,5 +1,11 @@
 # TASKS.md
 
+## v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리
+
+- [x] v0.17.0 GitHub Release 산출물 SHA-256으로 winget/Chocolatey 매니페스트 갱신
+- [x] `scripts/windows/sync-package-manifests.ps1`이 `.deb`/DMG 부재 시 AUR/Snap/Homebrew를 건너뛰도록 폴백 추가
+- [x] README 패키지 매니저 상태 표 v0.17.0 반영
+
 ## v0.17.0 - PDF Fill & Sign 풀세트 (자유 스탬프 + 손글씨/이미지 서명 + Flatten)
 
 - [x] `StampElement`, `SavedSignature`, `SignTool` 자료구조 정의 및 `SidebarTab`에 `sign` 키 확장 (`src/types.ts`)

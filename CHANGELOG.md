@@ -1,5 +1,21 @@
 # CHANGELOG.md
 
+## v0.17.1 - 2026-05-20
+
+v0.17.0 릴리즈 산출물 기준 winget·Chocolatey 매니페스트 동기화 및 매니페스트 sync 스크립트의 Linux/macOS 자산 폴백 처리.
+
+### Changed
+- `packaging/winget/*`, `packaging/chocolatey/*`를 v0.17.0 NSIS 설치 파일 URL과 SHA-256(`02d3f33e7f5defa1adc8f5691485d2b381bc19d452d96400c3308bd0619c23b2`) 기준으로 갱신.
+- `README.md` 패키지 매니저 상태 표를 v0.17.0 매니페스트 반영 상태로 업데이트.
+
+### Fixed
+- `scripts/windows/sync-package-manifests.ps1`이 `.deb`/DMG 산출물이 없을 때(현재 Windows 전용 빌드) 즉시 실패하던 동작을 폴백으로 변경. 부재 시 AUR/Snap/Homebrew 갱신을 건너뛰고 winget·Chocolatey만 동기화하도록 개선.
+
+### Verification
+- `scripts/windows/sync-package-manifests.ps1 -Version 0.17.0` 실행 성공.
+
+---
+
 ## v0.17.0 - 2026-05-20
 
 오프라인 로컬 우선 PDF Fill & Sign 풀세트 (자유 스탬프 + 손글씨/이미지 서명 + AcroForm Flatten) 구현 완료.

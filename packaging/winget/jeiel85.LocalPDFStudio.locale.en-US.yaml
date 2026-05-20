@@ -1,5 +1,5 @@
 PackageIdentifier: jeiel85.LocalPDFStudio
-PackageVersion: 0.15.0
+PackageVersion: 0.17.0
 PackageLocale: en-US
 Publisher: Aiden Park
 PublisherUrl: https://github.com/jeiel85
@@ -28,6 +28,6 @@ Tags:
   - merge
   - split
   - encryption
-ReleaseNotesUrl: https://github.com/jeiel85/localpdf-studio/releases/tag/v0.15.0
+ReleaseNotesUrl: https://github.com/jeiel85/localpdf-studio/releases/tag/v0.17.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-20 - v0.17.1 매니페스트 sync 스크립트 폴백 전략
+
+- 결정: `sync-package-manifests.ps1`이 GitHub Release에서 `.deb` 또는 DMG 자산을 찾지 못해도 즉시 실패하지 않고, 해당 자산이 필요한 매니페스트(AUR, Snap, Homebrew)만 건너뛰며 winget·Chocolatey는 정상 갱신하도록 변경한다.
+- 이유: v0.16.1에서 CI가 Windows 전용 빌드로 단순화된 뒤 v0.17.0 산출물에 Linux `.deb`·macOS DMG가 포함되지 않는다. 스크립트가 엄격한 자산 요구를 그대로 유지하면 모든 후속 릴리즈에서 매니페스트 sync가 실패하므로, 패키지 매니저 제출 흐름 전체가 멈춰버린다. 옵션 폴백을 도입해 Windows 매니페스트만이라도 자동 동기화되도록 한다.
+- 안전장치: Windows NSIS 자산은 여전히 필수(`Get-AssetHash` 호출에서 `-Optional` 미지정). 자산 부재 시 사용자에게 "skip" 메시지를 명시적으로 출력하여 의도하지 않은 누락을 인지할 수 있게 했다.
+- 한계: 추후 Linux/macOS 빌드가 재개되면 Snap/AUR/Homebrew 매니페스트는 v0.15.0 시점 SHA-256에서 갱신이 멈춘 상태이므로 별도 sync 실행이 필요하다. README의 상태 표가 이를 명시적으로 반영한다.
+
 ## 2026-05-20 - v0.17.0 Fill & Sign 아키텍처 결정
 
 - 결정: PDF 위에 자유 텍스트, 기호, 날짜, 손글씨/이미지 서명을 배치하는 Fill & Sign 도구를 pdf-lib + HTML5 캔버스 + localStorage 만으로 구성하여 100% 오프라인으로 처리한다. 스탬프 좌표는 RedactionArea와 동일하게 unrotated 72dpi PDF Point로 영속화하고, AcroForm 평탄화(`form.flatten()`) 여부는 폼 저장과 Fill & Sign 저장 양쪽에서 명시적 체크박스로 노출한다.

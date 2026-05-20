@@ -1,5 +1,19 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리)
+
+- 작업: v0.17.0 GitHub Release 산출물(NSIS x64 setup.exe) digest 기반으로 winget/Chocolatey 매니페스트를 갱신하고, Windows 전용 빌드에 맞춰 매니페스트 sync 스크립트가 `.deb`/DMG 부재를 폴백 처리하도록 보강.
+- 변경 파일:
+  - `scripts/windows/sync-package-manifests.ps1` — `Get-AssetHash`에 `-Optional` 스위치 추가. `.deb`/DMG 자산이 없으면 AUR/Snap/Homebrew 갱신을 자동으로 건너뛰고 winget/Chocolatey만 동기화.
+  - `packaging/winget/jeiel85.LocalPDFStudio*.yaml` — `PackageVersion`, `InstallerUrl`, `InstallerSha256`을 v0.17.0 기준으로 갱신.
+  - `packaging/chocolatey/localpdf-studio.nuspec`, `packaging/chocolatey/tools/chocolateyInstall.ps1` — `<version>`, `$version`, `$checksum64`를 v0.17.0 기준으로 갱신.
+  - `README.md` — 패키지 매니저 상태 표 (winget/Chocolatey: v0.17.0 반영 완료, Snap/AUR: v0.15.0 보존, Linux 빌드 재개 후 갱신 예정).
+  - `CHANGELOG.md`, `TASKS.md`, `DECISION_LOG.md` — v0.17.1 기록 정리.
+- 설계 결정:
+  - v0.16.1에서 CI가 Windows 전용 빌드로 단순화되며 Linux `.deb`와 macOS DMG가 더 이상 릴리즈에 포함되지 않게 됐다. 매니페스트 sync 스크립트는 이 변경을 명시적 옵션으로 흡수하여 (a) Windows 매니페스트는 항상 동기화하되 (b) 누락된 자산에 의존하는 매니페스트는 자동으로 건너뛰도록 변경했다. 이렇게 하면 Linux/macOS 빌드가 재개될 때 별도 스크립트 분기 없이 동일 명령으로 일괄 동기화가 가능하다.
+- 검증:
+  - `powershell -ExecutionPolicy Bypass -File scripts/windows/sync-package-manifests.ps1 -Version 0.17.0` 성공. NSIS sha256 `02d3f33e7f5defa1adc8f5691485d2b381bc19d452d96400c3308bd0619c23b2`.
+
 ## 2026-05-20 (v0.17.0 - PDF Fill & Sign 풀세트)
 
 - 작업: 페이지 위에 자유 텍스트/✓/✕/●/날짜 스탬프와 마우스로 그린 서명, 이미지 임포트 서명을 드래그/리사이즈/이동으로 배치하고, 옵션에 따라 AcroForm 필드까지 평탄화하여 편집 불가능한 정적 PDF로 저장하는 Fill & Sign 풀세트 구현.
