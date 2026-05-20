@@ -56,6 +56,7 @@ function PdfCanvasSingle({
   onFittedScale,
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pageNodeRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const textLayerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
@@ -96,6 +97,12 @@ function PdfCanvasSingle({
         fittedScaleRef.current?.(effectiveScale);
 
         const viewport = page.getViewport({ scale: effectiveScale, rotation });
+        // 텍스트 선택 → PDF 좌표 변환용 (textSelection.ts가 dataset 사용)
+        if (pageNodeRef.current) {
+          pageNodeRef.current.dataset.pageIndex = String(pageNumber);
+          pageNodeRef.current.dataset.baseWidth = String(baseViewport.width);
+          pageNodeRef.current.dataset.baseHeight = String(baseViewport.height);
+        }
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Canvas 2D context를 생성할 수 없습니다.');
@@ -158,7 +165,7 @@ function PdfCanvasSingle({
     <div className="canvas-wrap" ref={containerRef}>
       {loadProgress && <LoadingOverlay progress={loadProgress} />}
       {!loadProgress && message && <div className="canvas-message">{message}</div>}
-      <div className="canvas-page-layer">
+      <div ref={pageNodeRef} className="canvas-page-layer">
         <canvas ref={canvasRef} className="pdf-canvas" />
         <div ref={textLayerRef} className="textLayer" />
       </div>

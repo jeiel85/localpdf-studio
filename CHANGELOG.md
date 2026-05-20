@@ -1,5 +1,40 @@
 # CHANGELOG.md
 
+## v0.11.0 - 2026-05-20
+
+i18n 마무리 라운드 + 텍스트 선택 기반 하이라이트 MVP.
+
+### Added — 텍스트 선택 기반 PDF 하이라이트 (MVP)
+
+- 새 모듈 [`src/lib/textSelection.ts`](src/lib/textSelection.ts): `window.getSelection()`의 client rects를 페이지 노드의 `data-base-width`/`data-base-height` dataset 기반으로 PDF point 좌표로 변환
+- [`PdfCanvas`](src/components/PdfCanvas.tsx) (단일) + [`PdfContinuousView`](src/components/PdfContinuousView.tsx) (연속) 두 뷰 모두 페이지 컨테이너에 `data-page-index` + `data-base-width` + `data-base-height` 부착
+- [`App.tsx`](src/App.tsx): 글로벌 `mouseup` 리스너로 마지막 PDF 텍스트 선택을 캡처해 `lastSelection` 상태로 보존
+- [`AdvancedPanel`](src/components/AdvancedPanel.tsx) `HighlightForm`에 **"적용 방식" 선택** 추가:
+  - **텍스트 선택 영역 (정확한 위치)** — 캡처된 selection rect들에 정확히 색상 박스. 줄 단위 다중 영역 지원
+  - **페이지별 색상 띠 (전체 폭)** — 기존 v0.9.0 방식 보존
+- ko/en/ja 사전에 `adv.hl.mode*` / `selectionInfo` / `noSelection` 키 추가
+
+### Known limitations
+
+- 회전된 페이지 (rotation ≠ 0)에서는 PDF 좌표 변환이 어긋남 (baseWidth/Height가 unrotated 기준)
+- 페이지 경계를 가로지르는 selection은 첫 페이지의 rect만 적용
+- pdf-lib `drawRectangle` 기반이라 다른 PDF 뷰어의 "주석" 패널에는 표시되지 않음 (시각적 색상 박스만). 표준 Highlight Annotation API 마이그레이션은 차기 라운드
+
+### Added — i18n 전면 적용
+
+- 사용자 표시 문자열을 모두 `t()` 라우팅으로 전환. ko/en/ja 사전 일괄 확장 (300+ 키)
+- 적용 패널: SettingsPanel, PrintDialog, ShortcutHelp, StatusBar, UpdateNotification, RecentFilesPanel, OutlinePanel, ThumbnailPanel, MergePanel, SearchPanel, MetadataPanel, ToolsPanel, AdvancedPanel(전 11개 폼), BookmarksPanel, ComparePanel, FormFillPanel, PageEditorPanel
+- v0.10.0 deferred 항목인 AdvancedPanel/ToolsPanel/MetadataPanel 다국어 적용 마무리. 이로써 모든 UI 패널이 언어 스위처에 즉시 반응
+- `useLocale()` 훅을 각 패널에 연결해 언어 변경 시 즉시 리렌더 (구독 패턴 활용)
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `npm run build`: 통과 (메인 번들 179.72 kB / pdfjs 414.93 kB / pdf-lib 428.66 kB / react-vendor 192.55 kB)
+
+---
+
 ## v0.10.0 - 2026-05-20
 
 크로스플랫폼 배포 라운드. Mac/Linux 빌드 + 패키지 매니저 5종 + 다국어 랜딩.

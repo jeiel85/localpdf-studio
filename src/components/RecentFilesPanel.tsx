@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { RecentFileEntry } from '../types';
 import { getRecentFiles } from '../lib/tauriCommands';
+import { t, useLocale } from '../i18n/messages';
 
 export function RecentFilesPanel({
   onOpen,
@@ -9,6 +10,7 @@ export function RecentFilesPanel({
   onOpen: (path: string) => void;
   currentPath: string | null;
 }) {
+  useLocale();
   const [files, setFiles] = useState<RecentFileEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,11 +35,11 @@ export function RecentFilesPanel({
   }, [currentPath]);
 
   if (loading) {
-    return <p className="empty-text">최근 문서 불러오는 중...</p>;
+    return <p className="empty-text">{t('recent.loading')}</p>;
   }
 
   if (files.length === 0) {
-    return <p className="empty-text">최근에 열어본 PDF가 없습니다.</p>;
+    return <p className="empty-text">{t('recent.empty')}</p>;
   }
 
   return (

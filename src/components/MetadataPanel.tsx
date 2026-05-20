@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { PDFDocument } from 'pdf-lib';
 import { readFileBytes, saveBinaryFile } from '../lib/tauriCommands';
 import { maybeReveal } from '../lib/revealOutput';
+import { t, useLocale } from '../i18n/messages';
 
 interface MetadataFields {
   title: string;
@@ -30,6 +31,7 @@ export function MetadataPanel({
   file: { path: string; fileName: string } | null;
   onStatus: (msg: string) => void;
 }) {
+  useLocale();
   const [meta, setMeta] = useState<MetadataFields>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +70,7 @@ export function MetadataPanel({
           // ignore — 메타데이터 추가 검사 실패는 비치명적
         }
       } catch (err) {
-        onStatus(`메타데이터 로드 실패: ${(err as Error).message ?? err}`);
+        onStatus(t('meta.loadFailed', { message: (err as Error).message ?? String(err) }));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -86,12 +88,12 @@ export function MetadataPanel({
     if (!file) return;
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_metadata.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('meta.fileFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setSaving(true);
-    onStatus('메타데이터 저장 중...');
+    onStatus(t('meta.savingStatus'));
     try {
       const b64 = await readFileBytes(file.path);
       const bin = atob(b64);
@@ -114,59 +116,59 @@ export function MetadataPanel({
       }
       const outB64 = btoa(binary);
       await saveBinaryFile(outputPath, outB64);
-      onStatus(`메타데이터 저장 완료: ${outputPath}`);
+      onStatus(t('meta.saveDone', { path: outputPath }));
       void maybeReveal(outputPath);
     } catch (err) {
-      onStatus(`저장 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('meta.saveFailed', { message: (err as Error).message ?? String(err) }));
     } finally {
       setSaving(false);
     }
   }
 
   if (!file) {
-    return <p className="empty-text">PDF를 열면 메타데이터를 편집할 수 있습니다.</p>;
+    return <p className="empty-text">{t('meta.emptyClosed')}</p>;
   }
   if (loading) {
-    return <p className="empty-text">메타데이터 불러오는 중...</p>;
+    return <p className="empty-text">{t('meta.loading')}</p>;
   }
 
   return (
     <div className="metadata-panel">
       <section className="panel">
-        <h2>문서 정보</h2>
-        {version && <p className="muted">PDF 버전: {version}</p>}
+        <h2>{t('meta.docInfo')}</h2>
+        {version && <p className="muted">{t('meta.pdfVersion', { version })}</p>}
         <p className={hasSignature ? 'sig-badge signed' : 'sig-badge unsigned'}>
-          {hasSignature ? '✓ 디지털 서명 또는 서명 필드가 감지되었습니다' : '서명 없음'}
+          {hasSignature ? t('meta.signed') : t('meta.unsigned')}
         </p>
       </section>
       <section className="panel">
-        <h2>메타데이터 편집</h2>
+        <h2>{t('meta.editTitle')}</h2>
         <label className="form-label">
-          제목 (Title)
+          {t('meta.fTitle')}
           <input className="form-input" value={meta.title} onChange={(e) => patch('title', e.target.value)} />
         </label>
         <label className="form-label">
-          저자 (Author)
+          {t('meta.fAuthor')}
           <input className="form-input" value={meta.author} onChange={(e) => patch('author', e.target.value)} />
         </label>
         <label className="form-label">
-          주제 (Subject)
+          {t('meta.fSubject')}
           <input className="form-input" value={meta.subject} onChange={(e) => patch('subject', e.target.value)} />
         </label>
         <label className="form-label">
-          키워드 (쉼표 구분)
+          {t('meta.fKeywords')}
           <input className="form-input" value={meta.keywords} onChange={(e) => patch('keywords', e.target.value)} />
         </label>
         <label className="form-label">
-          생성 도구 (Creator)
+          {t('meta.fCreator')}
           <input className="form-input" value={meta.creator} onChange={(e) => patch('creator', e.target.value)} />
         </label>
         <label className="form-label">
-          제작 (Producer)
+          {t('meta.fProducer')}
           <input className="form-input" value={meta.producer} onChange={(e) => patch('producer', e.target.value)} />
         </label>
         <button className="primary" disabled={saving} onClick={handleSave}>
-          {saving ? '저장 중...' : '메타데이터 저장'}
+          {saving ? t('meta.savingBtn') : t('meta.saveBtn')}
         </button>
       </section>
     </div>

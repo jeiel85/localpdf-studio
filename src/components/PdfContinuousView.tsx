@@ -256,6 +256,12 @@ const ContinuousPage = memo(function ContinuousPage({
       const page = await document.getPage(pageIndex);
       if (shouldCancel() || !canvasRef.current) return null;
       const viewport = page.getViewport({ scale, rotation });
+      // 텍스트 선택 → PDF 좌표 변환용 (rotation=0 기준)
+      const baseViewport = page.getViewport({ scale: 1, rotation: 0 });
+      if (wrapRef.current) {
+        wrapRef.current.dataset.baseWidth = String(baseViewport.width);
+        wrapRef.current.dataset.baseHeight = String(baseViewport.height);
+      }
       const wf = Math.floor(viewport.width);
       const hf = Math.floor(viewport.height);
       setActualSize((prev) =>

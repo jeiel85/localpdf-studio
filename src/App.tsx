@@ -30,6 +30,7 @@ import { base64ToUint8Array } from './lib/base64';
 import { pdfjsLib } from './lib/pdfjs';
 import { printPdf, type PrintOptions } from './lib/printPdf';
 import { setRevealEnabled } from './lib/revealOutput';
+import { captureCurrentSelection, type PageSelection } from './lib/textSelection';
 import {
   addRecentFile,
   checkExternalTools,
@@ -74,6 +75,7 @@ export default function App() {
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [lastSelection, setLastSelection] = useState<PageSelection | null>(null);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -244,6 +246,19 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  // PDF 텍스트 선택을 글로벌하게 캡처해 두면, 사이드바 패널에서 즉시 사용 가능
+  useEffect(() => {
+    function onMouseUp() {
+      // selection이 셋업되도록 한 틱 기다림
+      setTimeout(() => {
+        const sel = captureCurrentSelection();
+        if (sel) setLastSelection(sel);
+      }, 0);
+    }
+    document.addEventListener('mouseup', onMouseUp);
+    return () => document.removeEventListener('mouseup', onMouseUp);
+  }, []);
 
   useEffect(() => {
     setRevealEnabled(settings.output.openFolderAfterJob);
@@ -670,6 +685,7 @@ export default function App() {
               document={activeDocument}
               file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
               onStatus={setStatus}
+              lastSelection={lastSelection}
             />
           </div>
         );

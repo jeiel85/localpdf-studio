@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { SearchResult } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
 export function SearchPanel({
   document,
@@ -13,6 +14,7 @@ export function SearchPanel({
   onPageSelect: (page: number) => void;
   onQueryChange?: (query: string) => void;
 }) {
+  useLocale();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -82,7 +84,7 @@ export function SearchPanel({
         }
       } catch (e) {
         if (searchId === searchRef.current) {
-          setError((e as Error).message ?? '검색 중 오류가 발생했습니다.');
+          setError((e as Error).message ?? t('search.error'));
         }
       } finally {
         if (searchId === searchRef.current) {
@@ -113,7 +115,7 @@ export function SearchPanel({
   }, [query, doSearch]);
 
   if (!document) {
-    return <p className="empty-text">PDF를 열면 텍스트 검색이 가능합니다.</p>;
+    return <p className="empty-text">{t('search.emptyClosed')}</p>;
   }
 
   return (
@@ -121,25 +123,27 @@ export function SearchPanel({
       <input
         type="text"
         className="search-input"
-        placeholder="텍스트 검색..."
+        placeholder={t('search.placeholder')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       {searching && (
         <div className="search-progress-row">
           <span className="empty-text">
-            검색 중... {progress ? `${progress.done}/${progress.total}` : ''}
+            {progress
+              ? t('search.progress', { done: progress.done, total: progress.total })
+              : t('search.progressNoTotal')}
           </span>
-          <button type="button" className="btn-small" onClick={cancelSearch}>취소</button>
+          <button type="button" className="btn-small" onClick={cancelSearch}>{t('search.cancelBtn')}</button>
         </div>
       )}
       {error && <p className="empty-text" style={{ color: '#f2c66a' }}>{error}</p>}
       {!searching && query.trim() && results.length === 0 && (
-        <p className="empty-text">검색 결과가 없습니다.</p>
+        <p className="empty-text">{t('search.noResults')}</p>
       )}
       {results.length > 0 && (
         <p className="empty-text" style={{ margin: '4px 0' }}>
-          {results.length}개 결과
+          {t('search.resultCount', { count: results.length })}
         </p>
       )}
       <div className="search-results">

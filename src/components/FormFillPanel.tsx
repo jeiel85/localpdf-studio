@@ -3,6 +3,7 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup } from 'pdf-lib';
 import { readFileBytes, saveBinaryFile } from '../lib/tauriCommands';
 import { maybeReveal } from '../lib/revealOutput';
+import { t, useLocale } from '../i18n/messages';
 
 interface FormFieldEntry {
   name: string;
@@ -18,6 +19,7 @@ export function FormFillPanel({
   file: { path: string; fileName: string } | null;
   onStatus: (msg: string) => void;
 }) {
+  useLocale();
   const [fields, setFields] = useState<FormFieldEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,7 +67,7 @@ export function FormFillPanel({
         });
         if (!cancelled) setFields(result);
       } catch (err) {
-        onStatus(`폼 필드 로드 실패: ${(err as Error).message ?? err}`);
+        onStatus(t('ff.loadFailed', { message: (err as Error).message ?? String(err) }));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -83,12 +85,12 @@ export function FormFillPanel({
     if (!file || !docBytes) return;
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_filled.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('ff.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setSaving(true);
-    onStatus('폼 값 저장 중...');
+    onStatus(t('ff.savingStatus'));
     try {
       const doc = await PDFDocument.load(docBytes, { ignoreEncryption: true });
       const form = doc.getForm();
@@ -118,29 +120,29 @@ export function FormFillPanel({
       }
       const outB64 = btoa(binary);
       await saveBinaryFile(outputPath, outB64);
-      onStatus(`폼 저장 완료: ${outputPath}`);
+      onStatus(t('ff.saveDone', { path: outputPath }));
       void maybeReveal(outputPath);
     } catch (err) {
-      onStatus(`저장 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('ff.saveFailed', { message: (err as Error).message ?? String(err) }));
     } finally {
       setSaving(false);
     }
   }
 
   if (!file) {
-    return <p className="empty-text">PDF를 열면 폼 필드를 편집할 수 있습니다.</p>;
+    return <p className="empty-text">{t('ff.emptyClosed')}</p>;
   }
   if (loading) {
-    return <p className="empty-text">폼 필드 검색 중...</p>;
+    return <p className="empty-text">{t('ff.loading')}</p>;
   }
   if (fields.length === 0) {
-    return <p className="empty-text">이 PDF에는 작성 가능한 폼 필드가 없습니다.</p>;
+    return <p className="empty-text">{t('ff.noFields')}</p>;
   }
 
   return (
     <div className="form-fill-panel">
       <section className="panel">
-        <h2>폼 필드 ({fields.length})</h2>
+        <h2>{t('ff.title', { count: fields.length })}</h2>
         {fields.map((f, idx) => (
           <label className="form-label" key={f.name + idx}>
             {f.name} <small className="muted">({f.kind})</small>
@@ -156,7 +158,7 @@ export function FormFillPanel({
                 value={f.value}
                 onChange={(e) => patch(idx, e.target.value)}
               >
-                <option value="">선택 안 함</option>
+                <option value="">{t('ff.noSelect')}</option>
                 {(f.options ?? []).map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
@@ -174,7 +176,7 @@ export function FormFillPanel({
           </label>
         ))}
         <button className="primary" disabled={saving} onClick={handleSave}>
-          {saving ? '저장 중...' : '폼 저장'}
+          {saving ? t('ff.savingBtn') : t('ff.saveBtn')}
         </button>
       </section>
     </div>

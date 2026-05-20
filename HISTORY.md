@@ -1,5 +1,43 @@
 # HISTORY.md
 
+## 2026-05-20 (Unreleased - 텍스트 선택 기반 하이라이트 MVP)
+
+- 작업: PDF.js 텍스트 레이어의 사용자 선택을 캡처해 PDF point 좌표로 변환 → pdf-lib drawRectangle로 정확한 위치에 색상 박스 출력
+- 변경 파일:
+  - `src/lib/textSelection.ts` (신규) — `captureCurrentSelection()` 헬퍼: selection client rects → page-relative px → PDF point (좌하단 원점). 페이지 노드를 `[data-page-index]`로 찾고 dataset의 baseWidth/baseHeight로 ratio 계산
+  - `src/components/PdfCanvas.tsx` — `canvas-page-layer`에 `pageNodeRef` + dataset(`pageIndex`/`baseWidth`/`baseHeight`) 부착
+  - `src/components/PdfContinuousView.tsx` — `ContinuousPage`의 `wrapRef`에 unrotated viewport 기반 dataset 부착
+  - `src/App.tsx` — 글로벌 `mouseup` 리스너 + `lastSelection` state, `AdvancedPanel`에 props 전달
+  - `src/components/AdvancedPanel.tsx` — `HighlightForm`에 `mode`("selection"/"band") + lastSelection 분기. selection 모드: `lastSelection.rects.forEach(drawRectangle)`
+  - `src/i18n/messages.ts` — `adv.hl.mode*` / `selectionInfo` / `noSelection` 3개 언어 추가
+- 설계 결정:
+  - selection 캡처는 패널 클릭 시점이 아닌 글로벌 mouseup으로 한 틱 지연 (setTimeout 0). 사용자가 선택 직후 어디를 클릭해도 마지막 선택이 보존
+  - 다중 줄 선택은 client rects 단위로 여러 사각형 그림 (한 줄 = 한 rect)
+  - 페이지 경계 가로지르는 선택은 첫 페이지 노드의 rect만 채택 (MVP)
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm test` 39/39 통과
+  - `npm run build` 통과 (메인 179.72 kB)
+- 알려진 한계 (CHANGELOG에 명시):
+  - 회전 페이지 좌표 보정 미적용
+  - 표준 Highlight Annotation 객체 대신 drawRectangle 사용 → 다른 PDF 뷰어의 "주석" 패널에 안 보임
+
+## 2026-05-20 (Unreleased - i18n 전면 적용)
+
+- 작업: 사용자 표시 문자열 전부를 `src/i18n/messages.ts`의 ko/en/ja 사전 + `t()` 헬퍼로 라우팅. 17개 패널/모달 적용
+- 변경 파일:
+  - `src/i18n/messages.ts` — ko/en/ja 사전에 SettingsPanel/PrintDialog/ShortcutHelp/StatusBar/UpdateNotification/RecentFilesPanel/OutlinePanel/ThumbnailPanel/MergePanel/SearchPanel/MetadataPanel/ToolsPanel/AdvancedPanel/BookmarksPanel/ComparePanel/FormFillPanel/PageEditorPanel용 키 일괄 추가 (300+ 키)
+  - `src/components/` 하위 17개 패널/모달 — `useLocale()` 훅 + `t()` 호출로 한국어 하드코딩 제거
+  - `src/components/UpdateNotification.tsx` — `availableBody`는 버전 강조 `<b>` 보존을 위해 `dangerouslySetInnerHTML` + HTML escape 헬퍼 사용
+  - `src/components/ToolsPanel.tsx` — 설치 가이드 `hint` 필드를 `hintKey`로 변경해 사전 키 라우팅
+- 검증:
+  - `npm run typecheck` 통과
+  - `npm test` 39/39 통과
+  - `npm run build` 통과
+- 결과:
+  - 언어 스위처에서 변경 즉시 모든 패널 라벨/메시지/플레이스홀더가 ko/en/ja 갱신
+  - v0.10.0 deferred로 표기됐던 AdvancedPanel/ToolsPanel/MetadataPanel 다국어 마무리
+
 ## 2026-05-19 (v0.7.0 - UX 완성도)
 
 - 작업: 라이트 테마, 시스템 테마 연동, 인쇄 기능 구현

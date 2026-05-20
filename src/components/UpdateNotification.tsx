@@ -1,6 +1,7 @@
 import type { Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { useState } from 'react';
+import { t, useLocale } from '../i18n/messages';
 
 export type UpdateStatus =
   | { kind: 'idle' }
@@ -20,6 +21,7 @@ export function UpdateNotification({
   onDismiss: () => void;
   onStatus: (message: string) => void;
 }) {
+  useLocale();
   const [busy, setBusy] = useState(false);
 
   if (status.kind === 'idle') return null;
@@ -42,11 +44,11 @@ export function UpdateNotification({
         }
       });
       onStatusChange({ kind: 'ready', update });
-      onStatus('업데이트 다운로드 완료. 재시작하면 적용됩니다.');
+      onStatus(t('update.downloadDone'));
     } catch (err) {
-      const message = (err as Error).message ?? '업데이트 다운로드 중 오류가 발생했습니다.';
+      const message = (err as Error).message ?? t('update.errDownload');
       onStatusChange({ kind: 'error', message });
-      onStatus(`업데이트 실패: ${message}`);
+      onStatus(t('update.failedPrefix', { message }));
     } finally {
       setBusy(false);
     }
@@ -55,24 +57,24 @@ export function UpdateNotification({
   async function handleInstallAndRestart() {
     if (status.kind !== 'ready') return;
     setBusy(true);
-    onStatus('업데이트 설치 중...');
+    onStatus(t('update.installing'));
     try {
       await status.update.install();
       await relaunch();
     } catch (err) {
-      const message = (err as Error).message ?? '업데이트 설치 중 오류가 발생했습니다.';
+      const message = (err as Error).message ?? t('update.errInstall');
       onStatusChange({ kind: 'error', message });
-      onStatus(`업데이트 실패: ${message}`);
+      onStatus(t('update.failedPrefix', { message }));
       setBusy(false);
     }
   }
 
   return (
-    <div className="update-toast" role="alertdialog" aria-label="업데이트 알림">
+    <div className="update-toast" role="alertdialog" aria-label={t('update.notificationLabel')}>
       <button
         type="button"
         className="update-toast-close"
-        aria-label="닫기"
+        aria-label={t('common.close')}
         onClick={onDismiss}
         disabled={status.kind === 'downloading'}
       >
@@ -90,18 +92,25 @@ export function UpdateNotification({
 function AvailableView({ update, busy, onDownload, onLater }: { update: Update; busy: boolean; onDownload: () => void; onLater: () => void }) {
   return (
     <>
-      <strong className="update-toast-title">업데이트 가능</strong>
-      <p className="update-toast-body">
-        LocalPDF Studio의 새 버전(<b>{update.version}</b>)을 설치할 수 있습니다.
-      </p>
+      <strong className="update-toast-title">{t('update.available')}</strong>
+      <p
+        className="update-toast-body"
+        dangerouslySetInnerHTML={{
+          __html: t('update.availableBody', { version: `<b>${escapeHtml(update.version)}</b>` }),
+        }}
+      />
       <div className="update-toast-actions">
         <button type="button" className="primary" disabled={busy} onClick={onDownload}>
-          지금 다운로드
+          {t('update.download')}
         </button>
-        <button type="button" disabled={busy} onClick={onLater}>나중에</button>
+        <button type="button" disabled={busy} onClick={onLater}>{t('update.later')}</button>
       </div>
     </>
   );
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
 }
 
 function DownloadingView({ loaded, total }: { loaded: number; total: number }) {
@@ -110,7 +119,7 @@ function DownloadingView({ loaded, total }: { loaded: number; total: number }) {
   const totalMB = total > 0 ? (total / (1024 * 1024)).toFixed(1) : null;
   return (
     <>
-      <strong className="update-toast-title">업데이트 다운로드 중…</strong>
+      <strong className="update-toast-title">{t('update.downloading')}</strong>
       <p className="update-toast-body">
         {totalMB ? `${loadedMB} MB / ${totalMB} MB (${percent}%)` : `${loadedMB} MB`}
       </p>
@@ -128,15 +137,15 @@ function DownloadingView({ loaded, total }: { loaded: number; total: number }) {
 function ReadyView({ update, busy, onRestart, onLater }: { update: Update; busy: boolean; onRestart: () => void; onLater: () => void }) {
   return (
     <>
-      <strong className="update-toast-title">다운로드 완료</strong>
+      <strong className="update-toast-title">{t('update.downloadComplete')}</strong>
       <p className="update-toast-body">
-        버전 {update.version} 준비 완료. 재시작하면 적용됩니다.
+        {t('update.readyBody', { version: update.version })}
       </p>
       <div className="update-toast-actions">
         <button type="button" className="primary" disabled={busy} onClick={onRestart}>
-          설치 및 다시 시작
+          {t('update.installRestart')}
         </button>
-        <button type="button" disabled={busy} onClick={onLater}>나중에</button>
+        <button type="button" disabled={busy} onClick={onLater}>{t('update.later')}</button>
       </div>
     </>
   );
@@ -145,10 +154,10 @@ function ReadyView({ update, busy, onRestart, onLater }: { update: Update; busy:
 function ErrorView({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
     <>
-      <strong className="update-toast-title">업데이트 오류</strong>
+      <strong className="update-toast-title">{t('update.error')}</strong>
       <p className="update-toast-body update-toast-error">{message}</p>
       <div className="update-toast-actions">
-        <button type="button" onClick={onDismiss}>닫기</button>
+        <button type="button" onClick={onDismiss}>{t('common.close')}</button>
       </div>
     </>
   );

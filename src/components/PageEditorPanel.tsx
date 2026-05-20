@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { deletePages, getAppDataPath, insertPages, reorderPages, rotatePagesIndividually } from '../lib/tauriCommands';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { t, useLocale } from '../i18n/messages';
 
 interface AutosaveState {
   pageOrder: number[];
@@ -39,6 +40,7 @@ export function PageEditorPanel({
   onPageSelect: (page: number) => void;
   onStatus: (msg: string) => void;
 }) {
+  useLocale();
   const [pages, setPages] = useState<PageEntry[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -61,9 +63,7 @@ export function PageEditorPanel({
           try {
             const data = JSON.parse(existing) as AutosaveState;
             if (data.pageOrder && data.pageOrder.length > 0 && pageCount > 0) {
-              const ok = window.confirm(
-                `이 PDF의 미저장 편집 상태(${data.savedAt})가 있습니다. 복구할까요?`,
-              );
+              const ok = window.confirm(t('pe.autosaveConfirm', { savedAt: data.savedAt }));
               if (ok) {
                 setPages(
                   data.pageOrder.map((pn) => ({
@@ -72,7 +72,7 @@ export function PageEditorPanel({
                     rotation: data.rotations[pn] ?? 0,
                   })),
                 );
-                onStatus('자동 백업에서 복구했습니다.');
+                onStatus(t('pe.autosaveRestored'));
               }
             }
           } catch {
@@ -225,13 +225,13 @@ export function PageEditorPanel({
 
   async function handleReorderApply() {
     if (!file || currentOrder.length === 0) {
-      onStatus('PDF 파일 정보가 없습니다.');
+      onStatus(t('pe.noFile'));
       return;
     }
 
     const isSameOrder = currentOrder.every((p, i) => p === i + 1);
     if (isSameOrder) {
-      onStatus('페이지 순서가 변경되지 않았습니다.');
+      onStatus(t('pe.sameOrder'));
       return;
     }
 
@@ -239,7 +239,7 @@ export function PageEditorPanel({
     const defaultPath = `${stem}_reordered.pdf`;
     const outPath = await save({
       defaultPath,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('pe.pdfFilter'), extensions: ['pdf'] }],
     });
     if (!outPath) return;
 
@@ -248,7 +248,7 @@ export function PageEditorPanel({
       const result = await reorderPages(file.path, outPath, currentOrder);
       onStatus(result);
     } catch (error) {
-      onStatus(`재정렬 실패: ${(error as Error).message ?? String(error)}`);
+      onStatus(t('pe.reorderFailed', { message: (error as Error).message ?? String(error) }));
     } finally {
       setRunning(false);
     }
@@ -256,17 +256,17 @@ export function PageEditorPanel({
 
   async function handleDeleteSelected() {
     if (!file) {
-      onStatus('PDF 파일 정보가 없습니다.');
+      onStatus(t('pe.noFile'));
       return;
     }
 
     if (selected.size === 0) {
-      onStatus('삭제할 페이지를 선택하세요.');
+      onStatus(t('pe.deleteSelect'));
       return;
     }
 
     if (selected.size >= pages.length) {
-      onStatus('모든 페이지를 삭제할 수 없습니다.');
+      onStatus(t('pe.deleteAllForbidden'));
       return;
     }
 
@@ -274,7 +274,7 @@ export function PageEditorPanel({
     const defaultPath = `${stem}_deleted.pdf`;
     const outPath = await save({
       defaultPath,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('pe.pdfFilter'), extensions: ['pdf'] }],
     });
     if (!outPath) return;
 
@@ -285,7 +285,7 @@ export function PageEditorPanel({
       const result = await deletePages(file.path, outPath, deleteList, pageCount);
       onStatus(result);
     } catch (error) {
-      onStatus(`삭제 실패: ${(error as Error).message ?? String(error)}`);
+      onStatus(t('pe.deleteFailed', { message: (error as Error).message ?? String(error) }));
     } finally {
       setRunning(false);
     }
@@ -293,7 +293,7 @@ export function PageEditorPanel({
 
   function rotateSelected(delta: number) {
     if (selected.size === 0) {
-      onStatus('회전할 페이지를 선택하세요.');
+      onStatus(t('pe.rotateSelect'));
       return;
     }
     setPages((prev) =>
@@ -307,30 +307,29 @@ export function PageEditorPanel({
 
   async function handleRotateApply() {
     if (!file) {
-      onStatus('PDF 파일 정보가 없습니다.');
+      onStatus(t('pe.noFile'));
       return;
     }
     const rotations: [number, number][] = pages
       .filter((p) => p.rotation !== 0)
       .map((p) => [p.pageNumber, p.rotation as 90 | 180 | 270]);
     if (rotations.length === 0) {
-      onStatus('회전된 페이지가 없습니다.');
+      onStatus(t('pe.noRotated'));
       return;
     }
     const stem = file.path.replace(/\.pdf$/i, '');
     const outPath = await save({
       defaultPath: `${stem}_rotated.pdf`,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('pe.pdfFilter'), extensions: ['pdf'] }],
     });
     if (!outPath) return;
     setRunning(true);
     try {
       const result = await rotatePagesIndividually(file.path, outPath, rotations);
       onStatus(result);
-      // 회전 상태 초기화
       setPages((prev) => prev.map((p) => ({ ...p, rotation: 0 })));
     } catch (error) {
-      onStatus(`회전 실패: ${(error as Error).message ?? String(error)}`);
+      onStatus(t('pe.rotateFailed', { message: (error as Error).message ?? String(error) }));
     } finally {
       setRunning(false);
     }
@@ -338,13 +337,13 @@ export function PageEditorPanel({
 
   async function handleInsertPdf() {
     if (!file) {
-      onStatus('PDF 파일 정보가 없습니다.');
+      onStatus(t('pe.noFile'));
       return;
     }
 
     const insertFile = await open({
       multiple: false,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('pe.pdfFilter'), extensions: ['pdf'] }],
     });
     if (!insertFile || typeof insertFile !== 'string') return;
 
@@ -354,7 +353,7 @@ export function PageEditorPanel({
     const defaultPath = `${stem}_inserted.pdf`;
     const outPath = await save({
       defaultPath,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('pe.pdfFilter'), extensions: ['pdf'] }],
     });
     if (!outPath) return;
 
@@ -363,7 +362,7 @@ export function PageEditorPanel({
       const result = await insertPages(file.path, insertFile, outPath, after, pageCount);
       onStatus(result);
     } catch (error) {
-      onStatus(`삽입 실패: ${(error as Error).message ?? String(error)}`);
+      onStatus(t('pe.insertFailed', { message: (error as Error).message ?? String(error) }));
     } finally {
       setRunning(false);
     }
@@ -413,7 +412,7 @@ export function PageEditorPanel({
   const isReordered = currentOrder.some((p, i) => p !== i + 1);
 
   if (!document || !file) {
-    return <p className="empty-text">PDF를 열면 페이지 편집이 가능합니다.</p>;
+    return <p className="empty-text">{t('pe.emptyClosed')}</p>;
   }
 
   return (
@@ -425,7 +424,7 @@ export function PageEditorPanel({
           disabled={running || !isReordered}
           onClick={handleReorderApply}
         >
-          재정렬 적용
+          {t('pe.applyReorder')}
         </button>
         <button
           type="button"
@@ -433,14 +432,14 @@ export function PageEditorPanel({
           disabled={running || selected.size === 0}
           onClick={handleDeleteSelected}
         >
-          선택 삭제 ({selected.size})
+          {t('pe.deleteSelected', { count: selected.size })}
         </button>
         <button
           type="button"
           className={`editor-btn ${running ? 'disabled' : ''}`}
           disabled={running || selected.size === 0}
           onClick={() => rotateSelected(90)}
-          title="선택 페이지 90° 시계방향 회전"
+          title={t('pe.rotateCw')}
         >
           ↻ 90°
         </button>
@@ -449,7 +448,7 @@ export function PageEditorPanel({
           className={`editor-btn ${running ? 'disabled' : ''}`}
           disabled={running || selected.size === 0}
           onClick={() => rotateSelected(-90)}
-          title="선택 페이지 90° 반시계 회전"
+          title={t('pe.rotateCcw')}
         >
           ↺ 90°
         </button>
@@ -459,7 +458,7 @@ export function PageEditorPanel({
           disabled={running || pages.every((p) => p.rotation === 0)}
           onClick={handleRotateApply}
         >
-          회전 적용
+          {t('pe.applyRotate')}
         </button>
         <button
           type="button"
@@ -467,7 +466,7 @@ export function PageEditorPanel({
           disabled={running}
           onClick={handleInsertPdf}
         >
-          PDF 삽입
+          {t('pe.insertPdf')}
         </button>
         <button
           type="button"
@@ -475,12 +474,12 @@ export function PageEditorPanel({
           disabled={running || !isReordered}
           onClick={handleResetOrder}
         >
-          순서 초기화
+          {t('pe.resetOrder')}
         </button>
       </div>
 
       <p className="editor-hint">
-        드래그하여 페이지 순서 변경 · 클릭으로 선택 (Ctrl+클릭 다중 선택)
+        {t('pe.dragHint')}
       </p>
 
       <div className="editor-grid">
@@ -506,7 +505,7 @@ export function PageEditorPanel({
               {entry.thumbnailUrl ? (
                 <img
                   src={entry.thumbnailUrl}
-                  alt={`페이지 ${entry.pageNumber}`}
+                  alt={t('pe.pageAlt', { page: entry.pageNumber })}
                   style={{ transform: `rotate(${entry.rotation}deg)`, transition: 'transform 0.2s' }}
                 />
               ) : (

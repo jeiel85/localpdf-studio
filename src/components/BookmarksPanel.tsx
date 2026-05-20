@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { t, useLocale } from '../i18n/messages';
 
 interface BookmarkEntry {
   page: number;
@@ -22,6 +23,7 @@ export function BookmarksPanel({
   onPageSelect: (page: number) => void;
   onStatus: (msg: string) => void;
 }) {
+  useLocale();
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
   const [appDataPath, setAppDataPath] = useState<string | null>(null);
   const [newLabel, setNewLabel] = useState('');
@@ -64,13 +66,13 @@ export function BookmarksPanel({
       data.byPath[file.path] = next;
       await invoke('save_text_file', { path: storePath, content: JSON.stringify(data, null, 2) });
     } catch (err) {
-      onStatus(`책갈피 저장 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('bm.saveFailed', { message: (err as Error).message ?? String(err) }));
     }
   }
 
   async function addBookmark() {
     if (!file) return;
-    const label = newLabel.trim() || `페이지 ${currentPage}`;
+    const label = newLabel.trim() || t('bm.defaultLabel', { page: currentPage });
     const next = [
       ...bookmarks,
       { page: currentPage, label, createdAt: new Date().toISOString() },
@@ -85,30 +87,30 @@ export function BookmarksPanel({
   }
 
   if (!file) {
-    return <p className="empty-text">PDF를 열면 책갈피를 추가할 수 있습니다.</p>;
+    return <p className="empty-text">{t('bm.emptyClosed')}</p>;
   }
 
   return (
     <div className="bookmarks-panel">
       <section className="panel">
-        <h2>책갈피 추가</h2>
+        <h2>{t('bm.addTitle')}</h2>
         <input
           className="form-input"
-          placeholder={`페이지 ${currentPage} 책갈피 이름 (선택)`}
+          placeholder={t('bm.placeholder', { page: currentPage })}
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
         />
         <button type="button" className="primary" onClick={addBookmark}>
-          현재 페이지 책갈피 추가
+          {t('bm.addBtn')}
         </button>
         <small className="form-hint">
-          앱 데이터 폴더에 PDF 경로 기준으로 저장됩니다 (PDF 자체 수정 안 함).
+          {t('bm.hint')}
         </small>
       </section>
       <section className="panel">
-        <h2>저장된 책갈피 ({bookmarks.length})</h2>
+        <h2>{t('bm.listTitle', { count: bookmarks.length })}</h2>
         {bookmarks.length === 0 ? (
-          <p className="empty-text">아직 책갈피가 없습니다.</p>
+          <p className="empty-text">{t('bm.empty')}</p>
         ) : (
           <div className="bookmark-list">
             {bookmarks.map((b, i) => (

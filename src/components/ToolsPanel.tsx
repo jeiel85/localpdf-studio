@@ -5,15 +5,16 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { checkExternalTools, installQpdfAuto, installTesseractAuto, checkElevation } from '../lib/tauriCommands';
 import { maybeReveal } from '../lib/revealOutput';
 import type { ExternalToolStatus, PdfFilePayload } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
-const TOOL_INSTALL_GUIDE: Record<string, { url: string; hint: string }> = {
+const TOOL_INSTALL_GUIDE: Record<string, { url: string; hintKey: string }> = {
   qpdf: {
     url: 'https://github.com/qpdf/qpdf/releases',
-    hint: 'qpdf-XX-mingw64.zip을 다운받아 압축 해제 후 bin 경로를 PATH에 추가하세요.',
+    hintKey: 'tools.qpdfHint',
   },
   tesseract: {
     url: 'https://github.com/UB-Mannheim/tesseract/wiki',
-    hint: 'Windows 설치 시 한국어(kor) 언어 데이터 포함을 선택하세요.',
+    hintKey: 'tools.tesseractHint',
   },
 };
 
@@ -30,6 +31,7 @@ export function ToolsPanel({
   onStatus: (message: string) => void;
   onToolsChange?: (next: ExternalToolStatus[]) => void;
 }) {
+  useLocale();
   const [activeAction, setActiveAction] = useState<ToolAction | null>(null);
   const [running, setRunning] = useState(false);
   const [rechecking, setRechecking] = useState(false);
@@ -38,16 +40,16 @@ export function ToolsPanel({
 
   async function recheckTools() {
     setRechecking(true);
-    onStatus('외부 도구 상태를 다시 확인합니다.');
+    onStatus(t('tools.recheckStatus'));
     try {
       const next = await checkExternalTools();
       onToolsChange?.(next);
-      const missing = next.filter((t) => !t.available).map((t) => t.displayName);
+      const missing = next.filter((tool) => !tool.available).map((tool) => tool.displayName);
       onStatus(missing.length === 0
-        ? '모든 외부 도구가 설치되어 있습니다.'
-        : `미설치: ${missing.join(', ')}`);
+        ? t('tools.allInstalled')
+        : t('tools.missing', { names: missing.join(', ') }));
     } catch (err) {
-      onStatus(`상태 확인 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('tools.recheckFailed', { message: (err as Error).message ?? String(err) }));
     } finally {
       setRechecking(false);
     }
@@ -57,7 +59,7 @@ export function ToolsPanel({
     try {
       await openUrl(url);
     } catch (err) {
-      onStatus(`링크 열기 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('tools.openLinkFailed', { message: (err as Error).message ?? String(err) }));
     }
   }
 
@@ -67,32 +69,28 @@ export function ToolsPanel({
 
     try {
       if (toolName === 'qpdf') {
-        onStatus('qpdf 다운로드 및 설치 중...');
+        onStatus(t('tools.qpdfInstalling'));
         const path = await installQpdfAuto();
-        onStatus(`qpdf 설치 완료: ${path}`);
+        onStatus(t('tools.qpdfInstalled', { path }));
       } else if (toolName === 'tesseract') {
         const elevated = await checkElevation();
         if (!elevated) {
-          const confirmed = await confirm(
-            'Tesseract 설치에는 관리자 권한이 필요합니다.\n' +
-            'Windows UAC(사용자 계정 컨트롤) 프롬프트가 표시되면 "예"를 클릭하세요.\n\n' +
-            '계속하시겠습니까?'
-          );
+          const confirmed = await confirm(t('tools.tesseractAdminConfirm'));
           if (!confirmed) {
             setInstalling(null);
             return;
           }
         }
-        onStatus('Tesseract 다운로드 및 설치 중... (관리자 권한 필요)');
+        onStatus(t('tools.tesseractInstalling'));
         const path = await installTesseractAuto();
-        onStatus(`Tesseract 설치 완료: ${path}`);
+        onStatus(t('tools.tesseractInstalled', { path }));
       }
 
       await recheckTools();
     } catch (err) {
       const msg = (err as Error).message ?? String(err);
       setInstallError(msg);
-      onStatus(`${toolName} 설치 실패: ${msg}`);
+      onStatus(t('tools.installFailed', { name: toolName, message: msg }));
     } finally {
       setInstalling(null);
     }
@@ -101,49 +99,49 @@ export function ToolsPanel({
   return (
     <div className="tools-panel">
       <section className="panel">
-        <h2>PDF 작업</h2>
+        <h2>{t('tools.pdfOps')}</h2>
         <div className="tool-actions">
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'encrypt' ? null : 'encrypt')}
           >
-            암호 설정
+            {t('tools.encryptBtn')}
           </button>
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'decrypt' ? null : 'decrypt')}
           >
-            암호 해제
+            {t('tools.decryptBtn')}
           </button>
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'extract' ? null : 'extract')}
           >
-            페이지 추출
+            {t('tools.extractBtn')}
           </button>
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'rotate' ? null : 'rotate')}
           >
-            페이지 회전 저장
+            {t('tools.rotateBtn')}
           </button>
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'compress' ? null : 'compress')}
           >
-            압축
+            {t('tools.compressBtn')}
           </button>
           <button
             type="button"
             disabled={!currentFile}
             onClick={() => setActiveAction(activeAction === 'metadata' ? null : 'metadata')}
           >
-            메타데이터 보기
+            {t('tools.metadataBtn')}
           </button>
         </div>
       </section>
@@ -162,13 +160,13 @@ export function ToolsPanel({
 
       <section className="panel">
         <div className="panel-header">
-          <h2>외부 도구</h2>
+          <h2>{t('tools.externalTitle')}</h2>
           <button type="button" className="btn-small" disabled={rechecking} onClick={recheckTools}>
-            {rechecking ? '확인 중…' : '다시 확인'}
+            {rechecking ? t('tools.recheckingBtn') : t('tools.recheckBtn')}
           </button>
         </div>
         {tools.length === 0 ? (
-          <p className="empty-text">도구 상태를 확인 중입니다.</p>
+          <p className="empty-text">{t('tools.checkingStatus')}</p>
         ) : (
           tools.map((tool) => {
             const guide = TOOL_INSTALL_GUIDE[tool.name];
@@ -180,14 +178,14 @@ export function ToolsPanel({
                     <strong>{tool.displayName}</strong>
                     {tool.available ? (
                       <>
-                        <small>{tool.version ?? '버전 정보 없음'}</small>
+                        <small>{tool.version ?? t('tools.noVersion')}</small>
                         <small className="tool-path">{tool.path}</small>
                       </>
                     ) : (
-                      <small className="tool-missing">설치되지 않음 — 아래 안내로 설치 후 다시 확인을 누르세요.</small>
+                      <small className="tool-missing">{t('tools.notInstalled')}</small>
                     )}
                     {tool.requiredFor.length > 0 && (
-                      <small className="tool-required-for">사용처: {tool.requiredFor.join(', ')}</small>
+                      <small className="tool-required-for">{t('tools.requiredFor', { list: tool.requiredFor.join(', ') })}</small>
                     )}
                   </div>
                 </div>
@@ -204,7 +202,7 @@ export function ToolsPanel({
                           disabled={installing !== null}
                           onClick={() => handleAutoInstall('qpdf')}
                         >
-                          {installing === 'qpdf' ? '다운로드 및 설치 중...' : '자동 설치'}
+                          {installing === 'qpdf' ? t('tools.installingBtn') : t('tools.autoInstall')}
                         </button>
                       ) : (
                         <button
@@ -213,7 +211,7 @@ export function ToolsPanel({
                           disabled={installing !== null}
                           onClick={() => handleAutoInstall('tesseract')}
                         >
-                          {installing === 'tesseract' ? '다운로드 및 설치 중...' : '관리자 권한으로 자동 설치'}
+                          {installing === 'tesseract' ? t('tools.installingBtn') : t('tools.adminAutoInstall')}
                         </button>
                       )}
                       <button
@@ -221,10 +219,10 @@ export function ToolsPanel({
                         disabled={installing !== null}
                         onClick={() => handleOpenUrl(guide.url)}
                       >
-                        수동 다운로드
+                        {t('tools.manualDownload')}
                       </button>
                     </div>
-                    <p className="tool-hint">{guide.hint}</p>
+                    <p className="tool-hint">{t(guide.hintKey)}</p>
                   </div>
                 )}
               </div>
@@ -239,7 +237,7 @@ export function ToolsPanel({
     if (!currentFile) return;
 
     setRunning(true);
-    onStatus(`${actionLabel(action)} 작업 중...`);
+    onStatus(t('tools.actionRunning', { action: actionLabel(action) }));
 
     try {
       switch (action) {
@@ -308,13 +306,13 @@ export function ToolsPanel({
           const result = await invoke<string>('read_pdf_metadata', {
             inputFile: currentFile.path,
           });
-          onStatus('메타데이터 확인 완료 (콘솔에서 확인)');
+          onStatus(t('tools.metadataDoneConsole'));
           console.log(JSON.parse(result));
           break;
         }
       }
     } catch (error) {
-      onStatus(`${actionLabel(action)} 실패: ${error}`);
+      onStatus(t('tools.actionFailed', { action: actionLabel(action), error: String(error) }));
     } finally {
       setRunning(false);
     }
@@ -324,19 +322,19 @@ export function ToolsPanel({
 async function saveOutput(defaultPath: string): Promise<string | null> {
   const selected = await save({
     defaultPath,
-    filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+    filters: [{ name: t('tools.fileFilter'), extensions: ['pdf'] }],
   });
   return typeof selected === 'string' ? selected : null;
 }
 
 function actionLabel(action: ToolAction): string {
   const labels: Record<ToolAction, string> = {
-    encrypt: '암호화',
-    decrypt: '복호화',
-    extract: '페이지 추출',
-    rotate: '페이지 회전',
-    compress: 'PDF 압축',
-    metadata: '메타데이터 읽기',
+    encrypt: t('tools.actionEncrypt'),
+    decrypt: t('tools.actionDecrypt'),
+    extract: t('tools.actionExtract'),
+    rotate: t('tools.actionRotate'),
+    compress: t('tools.actionCompress'),
+    metadata: t('tools.actionMetadata'),
   };
   return labels[action];
 }
@@ -390,31 +388,32 @@ function EncryptForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   const [userPass, setUserPass] = useState('');
   const [ownerPass, setOwnerPass] = useState('');
 
   return (
-    <FormPanel title="PDF 암호 설정" onClose={onClose}>
+    <FormPanel title={t('tools.formEncryptTitle')} onClose={onClose}>
       <label className="form-label">
-        사용자 암호 (문서 열기)
+        {t('tools.userPassLabel')}
         <input
           type="password"
           className="form-input"
           value={userPass}
           onChange={(e) => setUserPass(e.target.value)}
           disabled={running}
-          placeholder="문서를 열 때 필요한 암호"
+          placeholder={t('tools.userPassPlaceholder')}
         />
       </label>
       <label className="form-label">
-        소유자 암호 (권한 제어)
+        {t('tools.ownerPassLabel')}
         <input
           type="password"
           className="form-input"
           value={ownerPass}
           onChange={(e) => setOwnerPass(e.target.value)}
           disabled={running}
-          placeholder="인쇄/복사 제한용 암호 (사용자 암호와 다르게)"
+          placeholder={t('tools.ownerPassPlaceholder')}
         />
       </label>
       <button
@@ -423,7 +422,7 @@ function EncryptForm({
         disabled={!userPass || running}
         onClick={() => onStart({ userPassword: userPass, ownerPassword: ownerPass })}
       >
-        {running ? '처리 중...' : '암호화 실행'}
+        {running ? t('tools.processing') : t('tools.encryptRun')}
       </button>
     </FormPanel>
   );
@@ -438,19 +437,20 @@ function DecryptForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   const [password, setPassword] = useState('');
 
   return (
-    <FormPanel title="PDF 암호 해제" onClose={onClose}>
+    <FormPanel title={t('tools.formDecryptTitle')} onClose={onClose}>
       <label className="form-label">
-        문서 암호
+        {t('tools.docPassLabel')}
         <input
           type="password"
           className="form-input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={running}
-          placeholder="문서 암호를 입력하세요"
+          placeholder={t('tools.docPassPlaceholder')}
         />
       </label>
       <button
@@ -459,7 +459,7 @@ function DecryptForm({
         disabled={!password || running}
         onClick={() => onStart({ password })}
       >
-        {running ? '처리 중...' : '복호화 실행'}
+        {running ? t('tools.processing') : t('tools.decryptRun')}
       </button>
     </FormPanel>
   );
@@ -467,7 +467,6 @@ function DecryptForm({
 
 function ExtractForm({
   running,
-  pageCount,
   onStart,
   onClose,
 }: {
@@ -476,22 +475,23 @@ function ExtractForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   const [pageRange, setPageRange] = useState('');
 
   return (
-    <FormPanel title="페이지 추출" onClose={onClose}>
+    <FormPanel title={t('tools.formExtractTitle')} onClose={onClose}>
       <label className="form-label">
-        페이지 범위
+        {t('tools.pageRangeLabel')}
         <input
           type="text"
           className="form-input"
           value={pageRange}
           onChange={(e) => setPageRange(e.target.value)}
           disabled={running}
-          placeholder="예: 1-5, 1,3,5-7 (빈 칸=전체)"
+          placeholder={t('tools.extractPlaceholder')}
         />
         <small className="form-hint">
-          첫 페이지를 1로 하는 범위입니다. 예: 2-4 (2~4페이지), 1,3 (1,3페이지)
+          {t('tools.extractHint')}
         </small>
       </label>
       <button
@@ -500,7 +500,7 @@ function ExtractForm({
         disabled={running}
         onClick={() => onStart({ pageRange })}
       >
-        {running ? '처리 중...' : '페이지 추출'}
+        {running ? t('tools.processing') : t('tools.extractRun')}
       </button>
     </FormPanel>
   );
@@ -515,36 +515,37 @@ function RotateForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   const [angle, setAngle] = useState('90');
   const [pageRange, setPageRange] = useState('');
 
   return (
-    <FormPanel title="페이지 회전 저장" onClose={onClose}>
+    <FormPanel title={t('tools.formRotateTitle')} onClose={onClose}>
       <label className="form-label">
-        회전 각도
+        {t('tools.angleLabel')}
         <select
           className="form-input"
           value={angle}
           onChange={(e) => setAngle(e.target.value)}
           disabled={running}
         >
-          <option value="90">90° (시계방향)</option>
-          <option value="180">180°</option>
-          <option value="270">270° (반시계방향)</option>
+          <option value="90">{t('tools.angle90')}</option>
+          <option value="180">{t('tools.angle180')}</option>
+          <option value="270">{t('tools.angle270')}</option>
         </select>
       </label>
       <label className="form-label">
-        페이지 범위
+        {t('tools.pageRangeLabel')}
         <input
           type="text"
           className="form-input"
           value={pageRange}
           onChange={(e) => setPageRange(e.target.value)}
           disabled={running}
-          placeholder="예: 1-5 (빈 칸=전체)"
+          placeholder={t('tools.rotatePlaceholder')}
         />
         <small className="form-hint">
-          빈 칸으로 두면 전체 페이지에 적용됩니다.
+          {t('tools.rotateHint')}
         </small>
       </label>
       <button
@@ -553,7 +554,7 @@ function RotateForm({
         disabled={running}
         onClick={() => onStart({ angle, pageRange })}
       >
-        {running ? '처리 중...' : '회전 저장'}
+        {running ? t('tools.processing') : t('tools.rotateRun')}
       </button>
     </FormPanel>
   );
@@ -568,11 +569,11 @@ function CompressForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   return (
-    <FormPanel title="PDF 압축" onClose={onClose}>
+    <FormPanel title={t('tools.formCompressTitle')} onClose={onClose}>
       <p className="form-description">
-        qpdf의 linearize 및 object stream 최적화로 PDF를 압축합니다.
-        저장 경로를 선택하세요.
+        {t('tools.compressDesc')}
       </p>
       <button
         type="button"
@@ -580,7 +581,7 @@ function CompressForm({
         disabled={running}
         onClick={() => onStart({})}
       >
-        {running ? '처리 중...' : '압축 실행'}
+        {running ? t('tools.processing') : t('tools.compressRun')}
       </button>
     </FormPanel>
   );
@@ -595,11 +596,11 @@ function MetadataForm({
   onStart: (p: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  useLocale();
   return (
-    <FormPanel title="메타데이터 확인" onClose={onClose}>
+    <FormPanel title={t('tools.formMetadataTitle')} onClose={onClose}>
       <p className="form-description">
-        qpdf --json 명령으로 PDF 메타데이터를 JSON 형식으로 읽습니다.
-        결과는 콘솔(DevTools)에서 확인할 수 있습니다.
+        {t('tools.metadataDesc')}
       </p>
       <button
         type="button"
@@ -607,7 +608,7 @@ function MetadataForm({
         disabled={running}
         onClick={() => onStart({})}
       >
-        {running ? '읽는 중...' : '메타데이터 읽기'}
+        {running ? t('tools.metadataReading') : t('tools.metadataRun')}
       </button>
     </FormPanel>
   );

@@ -4,6 +4,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { t, useLocale } from '../i18n/messages';
+import type { PageSelection } from '../lib/textSelection';
 
 function uint8ToBase64(bytes: Uint8Array): string {
   const CHUNK = 0x8000;
@@ -39,11 +41,14 @@ export function AdvancedPanel({
   document,
   file,
   onStatus,
+  lastSelection,
 }: {
   document: PDFDocumentProxy | null;
   file: { path: string; fileName: string } | null;
   onStatus: (message: string) => void;
+  lastSelection?: PageSelection | null;
 }) {
+  useLocale();
   const [action, setAction] = useState<AdvancedAction>(null);
   const [running, setRunning] = useState(false);
   const [tesseractInfo, setTesseractInfo] = useState<{
@@ -59,44 +64,47 @@ export function AdvancedPanel({
   }, []);
 
   const actions = [
-    { key: 'ocr' as const, label: 'OCR 텍스트 추출', needDoc: true, needTesseract: true },
-    { key: 'ocr-searchable' as const, label: 'OCR → 검색 가능 PDF', needDoc: true, needTesseract: true },
-    { key: 'image-ocr' as const, label: '이미지 OCR (PNG/JPG → 텍스트)', needDoc: false, needTesseract: true },
-    { key: 'pdf-to-img' as const, label: 'PDF → 이미지 변환', needDoc: true, needTesseract: false },
-    { key: 'pdf-to-txt' as const, label: 'PDF → TXT 변환', needDoc: true, needTesseract: false },
-    { key: 'img-to-pdf' as const, label: '이미지 → PDF 변환', needDoc: false, needTesseract: false },
-    { key: 'watermark' as const, label: '워터마크 적용', needDoc: true, needTesseract: false },
-    { key: 'stamp' as const, label: '스탬프 추가', needDoc: true, needTesseract: false },
-    { key: 'compare' as const, label: '문서 비교 (TXT diff)', needDoc: true, needTesseract: false },
-    { key: 'highlight' as const, label: '주석 (페이지별 하이라이트)', needDoc: true, needTesseract: false },
-    { key: 'normalize' as const, label: 'PDF 정규화 (qpdf)', needDoc: true, needTesseract: false },
+    { key: 'ocr' as const, label: t('adv.btn.ocr'), needDoc: true, needTesseract: true },
+    { key: 'ocr-searchable' as const, label: t('adv.btn.ocrSearchable'), needDoc: true, needTesseract: true },
+    { key: 'image-ocr' as const, label: t('adv.btn.imageOcr'), needDoc: false, needTesseract: true },
+    { key: 'pdf-to-img' as const, label: t('adv.btn.pdfToImg'), needDoc: true, needTesseract: false },
+    { key: 'pdf-to-txt' as const, label: t('adv.btn.pdfToTxt'), needDoc: true, needTesseract: false },
+    { key: 'img-to-pdf' as const, label: t('adv.btn.imgToPdf'), needDoc: false, needTesseract: false },
+    { key: 'watermark' as const, label: t('adv.btn.watermark'), needDoc: true, needTesseract: false },
+    { key: 'stamp' as const, label: t('adv.btn.stamp'), needDoc: true, needTesseract: false },
+    { key: 'compare' as const, label: t('adv.btn.compare'), needDoc: true, needTesseract: false },
+    { key: 'highlight' as const, label: t('adv.btn.highlight'), needDoc: true, needTesseract: false },
+    { key: 'normalize' as const, label: t('adv.btn.normalize'), needDoc: true, needTesseract: false },
   ];
 
   return (
     <div className="advanced-panel">
       <section className="panel">
-        <h2>OCR 상태</h2>
+        <h2>{t('adv.ocrStatus')}</h2>
         {tesseractInfo ? (
           <div>
             <div className="tool-row">
               <span className={tesseractInfo.available ? 'dot ok' : 'dot warn'} />
               <div>
-                <strong>Tesseract OCR</strong>
+                <strong>{t('adv.tesseractOcr')}</strong>
                 <small>
                   {tesseractInfo.available
-                    ? `${tesseractInfo.version} · 언어: ${tesseractInfo.languages.join(', ') || '없음'}`
-                    : '설치 필요'}
+                    ? t('adv.tesseractInfo', {
+                        version: tesseractInfo.version,
+                        languages: tesseractInfo.languages.join(', ') || t('adv.noLang'),
+                      })
+                    : t('adv.installNeeded')}
                 </small>
               </div>
             </div>
           </div>
         ) : (
-          <p className="empty-text">확인 중...</p>
+          <p className="empty-text">{t('adv.checking')}</p>
         )}
       </section>
 
       <section className="panel">
-        <h2>고급 기능</h2>
+        <h2>{t('adv.advTitle')}</h2>
         <div className="tool-actions">
           {actions.map((a) => (
             <button
@@ -118,6 +126,7 @@ export function AdvancedPanel({
           file={file}
           running={running}
           tesseractInfo={tesseractInfo}
+          lastSelection={lastSelection ?? null}
           onStatus={onStatus}
           onComplete={() => {
             setRunning(false);
@@ -137,6 +146,7 @@ function ActionForm({
   file,
   running,
   tesseractInfo,
+  lastSelection,
   onStatus,
   onComplete,
   setRunning,
@@ -147,6 +157,7 @@ function ActionForm({
   file: { path: string; fileName: string } | null;
   running: boolean;
   tesseractInfo: { available: boolean; languages: string[] } | null;
+  lastSelection: PageSelection | null;
   onStatus: (msg: string) => void;
   onComplete: () => void;
   setRunning: (v: boolean) => void;
@@ -172,7 +183,7 @@ function ActionForm({
     case 'compare':
       return <CompareForm {...{ document, file, running, onStatus, onComplete, setRunning, onClose }} />;
     case 'highlight':
-      return <HighlightForm {...{ document, file, running, onStatus, onComplete, setRunning, onClose }} />;
+      return <HighlightForm {...{ document, file, running, lastSelection, onStatus, onComplete, setRunning, onClose }} />;
     case 'normalize':
       return <NormalizeForm {...{ file, running, onStatus, onComplete, setRunning, onClose }} />;
     default:
@@ -220,12 +231,12 @@ function OcrForm({
     if (!file) return;
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_ocr'),
-      filters: [{ name: '텍스트 파일', extensions: ['txt'] }],
+      filters: [{ name: t('adv.txtFilter'), extensions: ['txt'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('OCR 처리 중...');
+    onStatus(t('adv.ocr.running'));
     try {
       const result = await invoke<string>('run_ocr', {
         inputFile: file.path,
@@ -236,28 +247,28 @@ function OcrForm({
       onStatus(result);
       onComplete();
     } catch (e) {
-      onStatus(`OCR 실패: ${e}`);
+      onStatus(t('adv.ocr.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="OCR 텍스트 추출" onClose={onClose}>
+    <FormPanel title={t('adv.ocr.title')} onClose={onClose}>
       <label className="form-label">
-        언어
+        {t('adv.lang')}
         <input className="form-input" value={lang} onChange={(e) => setLang(e.target.value)}
           placeholder="kor+eng" disabled={running} />
         <small className="form-hint">
-          사용 가능: {tesseractInfo?.languages.join(', ') ?? '알 수 없음'}
+          {t('adv.langAvail', { list: tesseractInfo?.languages.join(', ') ?? t('adv.langUnknown') })}
         </small>
       </label>
       <label className="form-label">
-        DPI
+        {t('adv.ocr.dpi')}
         <input className="form-input" type="number" value={dpi} onChange={(e) => setDpi(e.target.value)}
           disabled={running} />
       </label>
       <button className="primary" disabled={!file || running} onClick={run}>
-        {running ? '처리 중...' : 'OCR 실행'}
+        {running ? t('adv.processing') : t('adv.ocr.run')}
       </button>
     </FormPanel>
   );
@@ -280,7 +291,7 @@ function PdfToImageForm({
   async function run() {
     if (!document || !file) return;
     setRunning(true);
-    onStatus('이미지 변환 중...');
+    onStatus(t('adv.pti.running'));
 
     try {
       const pages = parsePageRange(pageRange, document.numPages);
@@ -309,25 +320,25 @@ function PdfToImageForm({
 
         await invoke('save_binary_file', { path: outPath, base64Data: base64 });
         completed += 1;
-        onStatus(`페이지 ${completed}/${pages.length} 저장 완료`);
+        onStatus(t('adv.pti.savedProgress', { done: completed, total: pages.length }));
       }
-      onStatus(`이미지 변환 완료 (${pages.length}페이지)`);
+      onStatus(t('adv.pti.done', { count: pages.length }));
       onComplete();
     } catch (e) {
-      onStatus(`변환 실패: ${e}`);
+      onStatus(t('adv.pti.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="PDF → 이미지 변환" onClose={onClose}>
+    <FormPanel title={t('adv.pti.title')} onClose={onClose}>
       <label className="form-label">
-        페이지
+        {t('adv.pti.page')}
         <input className="form-input" value={pageRange} onChange={(e) => setPageRange(e.target.value)}
-          placeholder="1 (단일 페이지)" disabled={running} />
+          placeholder={t('adv.pti.pagePlaceholder')} disabled={running} />
       </label>
       <label className="form-label">
-        형식
+        {t('adv.pti.format')}
         <select className="form-input" value={format} onChange={(e) => setFormat(e.target.value)} disabled={running}>
           <option value="png">PNG</option>
           <option value="jpeg">JPEG</option>
@@ -335,7 +346,7 @@ function PdfToImageForm({
         </select>
       </label>
       <button className="primary" disabled={!document || running} onClick={run}>
-        {running ? '변환 중...' : '이미지로 저장'}
+        {running ? t('adv.pti.processing') : t('adv.pti.run')}
       </button>
     </FormPanel>
   );
@@ -357,12 +368,12 @@ function PdfToTextForm({
 
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '.txt'),
-      filters: [{ name: '텍스트 파일', extensions: ['txt'] }],
+      filters: [{ name: t('adv.txtFilter'), extensions: ['txt'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('텍스트 추출 중...');
+    onStatus(t('adv.ptt.running'));
 
     try {
       const lines: string[] = [];
@@ -372,24 +383,24 @@ function PdfToTextForm({
         const pageText = textContent.items
           .map((item: unknown) => (item as { str?: string }).str ?? '')
           .join(' ');
-        lines.push(`--- 페이지 ${i} ---`, pageText, '');
-        onStatus(`페이지 ${i}/${document.numPages} 추출 중...`);
+        lines.push(t('adv.ptt.pageHeader', { n: i }), pageText, '');
+        onStatus(t('adv.ptt.pageProgress', { done: i, total: document.numPages }));
       }
 
       await invoke('save_text_file', { path: outputPath, content: lines.join('\n') });
-      onStatus(`텍스트 추출 완료: ${outputPath}`);
+      onStatus(t('adv.ptt.done', { path: outputPath }));
       onComplete();
     } catch (e) {
-      onStatus(`추출 실패: ${e}`);
+      onStatus(t('adv.ptt.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="PDF → TXT 변환" onClose={onClose}>
-      <p className="form-description">현재 문서의 모든 페이지에서 텍스트를 추출하여 TXT 파일로 저장합니다.</p>
+    <FormPanel title={t('adv.ptt.title')} onClose={onClose}>
+      <p className="form-description">{t('adv.ptt.desc')}</p>
       <button className="primary" disabled={!document || running} onClick={run}>
-        {running ? '추출 중...' : 'TXT로 저장'}
+        {running ? t('adv.ptt.processing') : t('adv.ptt.run')}
       </button>
     </FormPanel>
   );
@@ -408,7 +419,7 @@ function ImageToPdfForm({
     const selected = await open({
       multiple: true,
       directory: false,
-      filters: [{ name: '이미지 파일', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }],
+      filters: [{ name: t('adv.imgFilter'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }],
     });
     if (!selected) return;
 
@@ -417,12 +428,12 @@ function ImageToPdfForm({
 
     const outputPath = await save({
       defaultPath: 'converted.pdf',
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('이미지 → PDF 변환 중...');
+    onStatus(t('adv.itp.running'));
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -431,7 +442,7 @@ function ImageToPdfForm({
         const imgPath = imagePaths[i];
         const ext = imgPath.split('.').pop()?.toLowerCase();
         if (ext !== 'png' && ext !== 'jpg' && ext !== 'jpeg') {
-          onStatus(`지원하지 않는 형식 건너뜀: ${imgPath}`);
+          onStatus(t('adv.itp.skipped', { path: imgPath }));
           continue;
         }
 
@@ -445,28 +456,27 @@ function ImageToPdfForm({
 
         const page = pdfDoc.addPage([image.width, image.height]);
         page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
-        onStatus(`이미지 ${i + 1}/${imagePaths.length} 추가 중...`);
+        onStatus(t('adv.itp.adding', { done: i + 1, total: imagePaths.length }));
       }
 
       const pdfBytes = await pdfDoc.save();
       const base64 = uint8ToBase64(pdfBytes);
       await invoke('save_binary_file', { path: outputPath, base64Data: base64 });
-      onStatus(`이미지 → PDF 변환 완료: ${outputPath}`);
+      onStatus(t('adv.itp.done', { path: outputPath }));
       onComplete();
     } catch (e) {
-      onStatus(`변환 실패: ${e}`);
+      onStatus(t('adv.itp.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="이미지 → PDF 변환" onClose={onClose}>
+    <FormPanel title={t('adv.itp.title')} onClose={onClose}>
       <p className="form-description">
-        여러 이미지를 선택하여 하나의 PDF로 변환합니다. 각 이미지가 PDF의 한 페이지가 됩니다.
-        지원: PNG, JPEG, WebP
+        {t('adv.itp.desc')}
       </p>
       <button className="primary" disabled={running} onClick={run}>
-        {running ? '변환 중...' : '이미지 선택 후 변환'}
+        {running ? t('adv.itp.processing') : t('adv.itp.run')}
       </button>
     </FormPanel>
   );
@@ -489,18 +499,18 @@ function WatermarkForm({
     const overlayFile = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: 'PDF 파일', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter2'), extensions: ['pdf'] }],
     });
     if (typeof overlayFile !== 'string') return;
 
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, isStamp ? '_stamped.pdf' : '_watermarked.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus(isStamp ? '스탬프 적용 중...' : '워터마크 적용 중...');
+    onStatus(isStamp ? t('adv.wm.runningStamp') : t('adv.wm.runningWm'));
 
     try {
       const cmd = isStamp ? 'apply_stamp' : 'apply_watermark';
@@ -512,21 +522,19 @@ function WatermarkForm({
       onStatus(result);
       onComplete();
     } catch (e) {
-      onStatus(`실패: ${e}`);
+      onStatus(t('adv.wm.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
-  const label = isStamp ? '스탬프 추가' : '워터마크 적용';
-  const desc = isStamp
-    ? 'PDF 파일을 선택하여 각 페이지 아래에 스탬프로 추가합니다.'
-    : 'PDF 파일을 선택하여 각 페이지 위에 워터마크로 덮습니다.';
+  const label = isStamp ? t('adv.wm.titleStamp') : t('adv.wm.titleWm');
+  const desc = isStamp ? t('adv.wm.descStamp') : t('adv.wm.descWm');
 
   return (
     <FormPanel title={label} onClose={onClose}>
       <p className="form-description">{desc}</p>
       <button className="primary" disabled={!file || running} onClick={run}>
-        {running ? '처리 중...' : isStamp ? '스탬프 PDF 선택' : '워터마크 PDF 선택'}
+        {running ? t('adv.processing') : isStamp ? t('adv.wm.runStamp') : t('adv.wm.runWm')}
       </button>
     </FormPanel>
   );
@@ -549,12 +557,12 @@ function CompareForm({
     const selected = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof selected !== 'string') return;
 
     setRunning(true);
-    onStatus('문서 비교 중...');
+    onStatus(t('adv.cmp.running'));
 
     try {
       const text1 = await extractAllText(document);
@@ -575,138 +583,186 @@ function CompareForm({
       const diff = computeDiff(text1, text2);
       const outputPath = file.path.replace(/\.pdf$/i, '_diff.txt');
       const diffText = [
-        `비교: ${file.fileName} ↔ ${selected.split(/[/\\]/).pop()}`,
+        t('adv.cmp.header', { a: file.fileName, b: selected.split(/[/\\]/).pop() ?? '' }),
         '',
-        '--- 차이점 ---',
+        t('adv.cmp.diffLabel'),
         diff.diffLines.join('\n'),
         '',
-        `추가된 줄: ${diff.added}, 제거된 줄: ${diff.removed}`,
+        t('adv.cmp.footer', { added: diff.added, removed: diff.removed }),
       ].join('\n');
 
       await invoke('save_text_file', { path: outputPath, content: diffText });
-      onStatus(`비교 완료: ${outputPath}`);
+      onStatus(t('adv.cmp.done', { path: outputPath }));
       onComplete();
     } catch (e) {
-      onStatus(`비교 실패: ${e}`);
+      onStatus(t('adv.cmp.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="문서 비교" onClose={onClose}>
+    <FormPanel title={t('adv.cmp.title')} onClose={onClose}>
       <p className="form-description">
-        다른 PDF를 선택해 현재 문서와 텍스트 내용을 비교합니다. 차이점은 TXT 파일로 저장됩니다.
+        {t('adv.cmp.desc')}
       </p>
       <button className="primary" disabled={!document || running} onClick={run}>
-        {running ? '비교 중...' : '비교할 PDF 선택'}
+        {running ? t('adv.cmp.processing') : t('adv.cmp.run')}
       </button>
     </FormPanel>
   );
 }
 
 function HighlightForm({
-  document, file, running, onStatus, onComplete, setRunning, onClose,
+  document, file, running, lastSelection, onStatus, onComplete, setRunning, onClose,
 }: {
   document: PDFDocumentProxy | null;
   file: { path: string; fileName: string } | null;
   running: boolean;
+  lastSelection: PageSelection | null;
   onStatus: (msg: string) => void;
   onComplete: () => void;
   setRunning: (v: boolean) => void;
   onClose: () => void;
 }) {
+  const [mode, setMode] = useState<'band' | 'selection'>('selection');
   const [pageList, setPageList] = useState('1');
   const [color, setColor] = useState<'yellow' | 'green' | 'pink' | 'blue'>('yellow');
   const [position, setPosition] = useState<'top' | 'middle' | 'bottom'>('top');
 
+  const colorMap = {
+    yellow: { r: 1, g: 0.95, b: 0.3 },
+    green: { r: 0.5, g: 0.95, b: 0.5 },
+    pink: { r: 1, g: 0.6, b: 0.85 },
+    blue: { r: 0.55, g: 0.78, b: 1 },
+  };
+
   async function run() {
     if (!document || !file) return;
+    if (mode === 'selection' && (!lastSelection || lastSelection.rects.length === 0)) {
+      onStatus(t('adv.hl.noSelection'));
+      return;
+    }
+
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_highlighted.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('하이라이트 적용 중...');
+    onStatus(t('adv.hl.running'));
     try {
-      const pages = parsePageRange(pageList, document.numPages);
-      if (pages.length === 0) {
-        throw new Error('하이라이트할 페이지가 없습니다.');
-      }
       const b64 = await invoke<string>('read_file_bytes', { path: file.path });
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const colorMap = {
-        yellow: { r: 1, g: 0.95, b: 0.3 },
-        green: { r: 0.5, g: 0.95, b: 0.5 },
-        pink: { r: 1, g: 0.6, b: 0.85 },
-        blue: { r: 0.55, g: 0.78, b: 1 },
-      };
       const rgb = colorMap[color];
       const docPages = doc.getPages();
-      for (const pageNum of pages) {
-        const page = docPages[pageNum - 1];
-        if (!page) continue;
-        const { width, height } = page.getSize();
-        const bandHeight = height * 0.06;
-        const y =
-          position === 'top'
-            ? height - bandHeight - 20
-            : position === 'middle'
-              ? (height - bandHeight) / 2
-              : 20;
-        page.drawRectangle({
-          x: 20,
-          y,
-          width: width - 40,
-          height: bandHeight,
-          color: { type: 'RGB', red: rgb.r, green: rgb.g, blue: rgb.b } as never,
-          opacity: 0.35,
-        });
+
+      if (mode === 'selection' && lastSelection) {
+        const page = docPages[lastSelection.pageNumber - 1];
+        if (!page) throw new Error(t('adv.hl.noPages'));
+        for (const r of lastSelection.rects) {
+          // 텍스트 줄 위로 약간 여유 (pdf-lib y는 사각형 아래 모서리)
+          page.drawRectangle({
+            x: r.x,
+            y: r.y,
+            width: r.width,
+            height: r.height,
+            color: { type: 'RGB', red: rgb.r, green: rgb.g, blue: rgb.b } as never,
+            opacity: 0.4,
+          });
+        }
+      } else {
+        const pages = parsePageRange(pageList, document.numPages);
+        if (pages.length === 0) {
+          throw new Error(t('adv.hl.noPages'));
+        }
+        for (const pageNum of pages) {
+          const page = docPages[pageNum - 1];
+          if (!page) continue;
+          const { width, height } = page.getSize();
+          const bandHeight = height * 0.06;
+          const y =
+            position === 'top'
+              ? height - bandHeight - 20
+              : position === 'middle'
+                ? (height - bandHeight) / 2
+                : 20;
+          page.drawRectangle({
+            x: 20,
+            y,
+            width: width - 40,
+            height: bandHeight,
+            color: { type: 'RGB', red: rgb.r, green: rgb.g, blue: rgb.b } as never,
+            opacity: 0.35,
+          });
+        }
       }
+
       const out = await doc.save();
       const outB64 = uint8ToBase64(out);
       await invoke('save_binary_file', { path: outputPath, base64Data: outB64 });
-      onStatus(`하이라이트 적용 완료: ${outputPath}`);
+      onStatus(t('adv.hl.done', { path: outputPath }));
       onComplete();
     } catch (e) {
-      onStatus(`하이라이트 실패: ${e}`);
+      onStatus(t('adv.hl.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
+  const selectionPreview =
+    lastSelection && lastSelection.text
+      ? t('adv.hl.selectionInfo', {
+          text: lastSelection.text.length > 40 ? `${lastSelection.text.slice(0, 40)}…` : lastSelection.text,
+          page: lastSelection.pageNumber,
+          count: lastSelection.rects.length,
+        })
+      : t('adv.hl.noSelection');
+
   return (
-    <FormPanel title="페이지별 하이라이트" onClose={onClose}>
+    <FormPanel title={t('adv.hl.title')} onClose={onClose}>
       <p className="form-description">
-        지정한 페이지에 색상 띠를 추가합니다. 빠른 메모/강조 용도이며 본격적인 텍스트 주석은 추후 지원 예정입니다.
+        {t('adv.hl.desc')}
       </p>
       <label className="form-label">
-        대상 페이지
-        <input className="form-input" value={pageList} onChange={(e) => setPageList(e.target.value)}
-          placeholder="예: 1-3, 5" disabled={running} />
-      </label>
-      <label className="form-label">
-        색상
-        <select className="form-input" value={color} onChange={(e) => setColor(e.target.value as never)} disabled={running}>
-          <option value="yellow">노랑</option>
-          <option value="green">초록</option>
-          <option value="pink">분홍</option>
-          <option value="blue">파랑</option>
+        {t('adv.hl.mode')}
+        <select className="form-input" value={mode} onChange={(e) => setMode(e.target.value as 'band' | 'selection')} disabled={running}>
+          <option value="selection">{t('adv.hl.modeSelection')}</option>
+          <option value="band">{t('adv.hl.modeBand')}</option>
         </select>
       </label>
+      {mode === 'selection' ? (
+        <small className="form-hint">{selectionPreview}</small>
+      ) : (
+        <>
+          <label className="form-label">
+            {t('adv.hl.targetPages')}
+            <input className="form-input" value={pageList} onChange={(e) => setPageList(e.target.value)}
+              placeholder={t('adv.hl.targetPlaceholder')} disabled={running} />
+          </label>
+          <label className="form-label">
+            {t('adv.hl.position')}
+            <select className="form-input" value={position} onChange={(e) => setPosition(e.target.value as never)} disabled={running}>
+              <option value="top">{t('adv.hl.top')}</option>
+              <option value="middle">{t('adv.hl.middle')}</option>
+              <option value="bottom">{t('adv.hl.bottom')}</option>
+            </select>
+          </label>
+        </>
+      )}
       <label className="form-label">
-        위치
-        <select className="form-input" value={position} onChange={(e) => setPosition(e.target.value as never)} disabled={running}>
-          <option value="top">상단</option>
-          <option value="middle">중앙</option>
-          <option value="bottom">하단</option>
+        {t('adv.hl.color')}
+        <select className="form-input" value={color} onChange={(e) => setColor(e.target.value as never)} disabled={running}>
+          <option value="yellow">{t('adv.hl.yellow')}</option>
+          <option value="green">{t('adv.hl.green')}</option>
+          <option value="pink">{t('adv.hl.pink')}</option>
+          <option value="blue">{t('adv.hl.blue')}</option>
         </select>
       </label>
       <button className="primary" disabled={!document || running} onClick={run}>
-        {running ? '처리 중...' : '하이라이트 적용'}
+        {running ? t('adv.processing') : t('adv.hl.run')}
       </button>
     </FormPanel>
   );
@@ -726,12 +782,12 @@ function NormalizeForm({
     if (!file) return;
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_normalized.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('PDF 정규화 중...');
+    onStatus(t('adv.norm.running'));
     try {
       const result = await invoke<string>('normalize_pdf', {
         inputFile: file.path,
@@ -740,19 +796,18 @@ function NormalizeForm({
       onStatus(result);
       onComplete();
     } catch (e) {
-      onStatus(`정규화 실패: ${e}`);
+      onStatus(t('adv.norm.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="PDF 정규화" onClose={onClose}>
+    <FormPanel title={t('adv.norm.title')} onClose={onClose}>
       <p className="form-description">
-        qpdf로 linearize + object stream + 미참조 리소스 제거를 수행합니다.
-        완전한 PDF/A 변환은 Ghostscript 별도 도구가 필요합니다.
+        {t('adv.norm.desc')}
       </p>
       <button className="primary" disabled={!file || running} onClick={run}>
-        {running ? '처리 중...' : '정규화 실행'}
+        {running ? t('adv.processing') : t('adv.norm.run')}
       </button>
     </FormPanel>
   );
@@ -777,19 +832,19 @@ function SearchablePdfForm({
     if (!document || !file) return;
     const outputPath = await save({
       defaultPath: file.path.replace(/\.pdf$/i, '_searchable.pdf'),
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('PDF 페이지를 이미지로 렌더링 중...');
+    onStatus(t('adv.sp.renderingStart'));
 
     const tempImagePaths: string[] = [];
     try {
       const scale = Math.max(1, parseInt(dpi, 10) / 72);
       const baseTemp = file.path.replace(/\.pdf$/i, '_lpdf_ocr_tmp');
       for (let i = 1; i <= document.numPages; i++) {
-        onStatus(`렌더링 ${i}/${document.numPages}...`);
+        onStatus(t('adv.sp.renderProgress', { done: i, total: document.numPages }));
         const blob = await pdfRenderQueue.enqueue<Blob>(async (shouldCancel) => {
           if (shouldCancel()) return null as unknown as Blob;
           const page = await document.getPage(i);
@@ -813,7 +868,7 @@ function SearchablePdfForm({
         tempImagePaths.push(imgPath);
       }
 
-      onStatus('Tesseract로 검색 가능 PDF 생성 중...');
+      onStatus(t('adv.sp.combining'));
       const result = await invoke<string>('run_ocr_searchable_pdf', {
         imagePaths: tempImagePaths,
         outputPdf: outputPath,
@@ -822,7 +877,7 @@ function SearchablePdfForm({
       onStatus(result);
       onComplete();
     } catch (e) {
-      onStatus(`Searchable PDF 실패: ${e}`);
+      onStatus(t('adv.sp.failed', { error: String(e) }));
       setRunning(false);
     } finally {
       // 임시 이미지 정리
@@ -837,27 +892,26 @@ function SearchablePdfForm({
   }
 
   return (
-    <FormPanel title="OCR → 검색 가능 PDF" onClose={onClose}>
+    <FormPanel title={t('adv.sp.title')} onClose={onClose}>
       <p className="form-description">
-        PDF 페이지를 이미지로 렌더링 후 Tesseract로 텍스트 레이어를 합성한 PDF를 생성합니다.
-        스캔 문서를 검색 가능한 PDF로 변환할 때 사용하세요.
+        {t('adv.sp.desc')}
       </p>
       <label className="form-label">
-        언어
+        {t('adv.lang')}
         <input className="form-input" value={lang} onChange={(e) => setLang(e.target.value)}
           placeholder="kor+eng" disabled={running} />
         <small className="form-hint">
-          사용 가능: {tesseractInfo?.languages.join(', ') ?? '알 수 없음'}
+          {t('adv.langAvail', { list: tesseractInfo?.languages.join(', ') ?? t('adv.langUnknown') })}
         </small>
       </label>
       <label className="form-label">
-        DPI (해상도)
+        {t('adv.sp.dpi')}
         <input className="form-input" type="number" value={dpi} onChange={(e) => setDpi(e.target.value)}
           disabled={running} />
-        <small className="form-hint">200~400 권장. 높을수록 정확도 향상 (속도 저하)</small>
+        <small className="form-hint">{t('adv.sp.dpiHint')}</small>
       </label>
       <button className="primary" disabled={!document || running} onClick={run}>
-        {running ? '처리 중...' : '검색 가능 PDF 생성'}
+        {running ? t('adv.processing') : t('adv.sp.run')}
       </button>
     </FormPanel>
   );
@@ -879,18 +933,18 @@ function ImageOcrForm({
     const selected = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff'] }],
+      filters: [{ name: t('adv.imgFilter2'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff'] }],
     });
     if (typeof selected !== 'string') return;
 
     const outputPath = await save({
       defaultPath: selected.replace(/\.[^.]+$/i, '_ocr.txt'),
-      filters: [{ name: '텍스트 파일', extensions: ['txt'] }],
+      filters: [{ name: t('adv.txtFilter'), extensions: ['txt'] }],
     });
     if (typeof outputPath !== 'string') return;
 
     setRunning(true);
-    onStatus('이미지 OCR 중...');
+    onStatus(t('adv.io.running'));
     try {
       const result = await invoke<string>('run_ocr', {
         inputFile: selected,
@@ -901,26 +955,26 @@ function ImageOcrForm({
       onStatus(result);
       onComplete();
     } catch (e) {
-      onStatus(`이미지 OCR 실패: ${e}`);
+      onStatus(t('adv.io.failed', { error: String(e) }));
       setRunning(false);
     }
   }
 
   return (
-    <FormPanel title="이미지 OCR" onClose={onClose}>
+    <FormPanel title={t('adv.io.title')} onClose={onClose}>
       <p className="form-description">
-        단일 이미지 파일(PNG/JPG/WEBP/BMP/TIFF)에서 텍스트를 추출하여 TXT로 저장합니다.
+        {t('adv.io.desc')}
       </p>
       <label className="form-label">
-        언어
+        {t('adv.lang')}
         <input className="form-input" value={lang} onChange={(e) => setLang(e.target.value)}
           placeholder="kor+eng" disabled={running} />
         <small className="form-hint">
-          사용 가능: {tesseractInfo?.languages.join(', ') ?? '알 수 없음'}
+          {t('adv.langAvail', { list: tesseractInfo?.languages.join(', ') ?? t('adv.langUnknown') })}
         </small>
       </label>
       <button className="primary" disabled={running} onClick={run}>
-        {running ? '처리 중...' : '이미지 선택 후 OCR'}
+        {running ? t('adv.processing') : t('adv.io.run')}
       </button>
     </FormPanel>
   );

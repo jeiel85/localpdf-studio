@@ -5,6 +5,7 @@ import { pdfjsLib } from '../lib/pdfjs';
 import { base64ToUint8Array } from '../lib/base64';
 import { loadPdfBase64 } from '../lib/tauriCommands';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { t, useLocale } from '../i18n/messages';
 
 export function ComparePanel({
   currentFile,
@@ -13,6 +14,7 @@ export function ComparePanel({
   currentFile: { path: string; fileName: string } | null;
   onStatus: (msg: string) => void;
 }) {
+  useLocale();
   const [leftDoc, setLeftDoc] = useState<PDFDocumentProxy | null>(null);
   const [rightDoc, setRightDoc] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
@@ -60,7 +62,7 @@ export function ComparePanel({
     const selected = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('cmp.pdfFilter'), extensions: ['pdf'] }],
     });
     if (typeof selected !== 'string') return;
     setLoading(true);
@@ -78,9 +80,9 @@ export function ComparePanel({
       setRightDoc(doc);
       setPage(1);
       setDiffPages(new Set());
-      onStatus(`비교 대상 로드 완료: ${selected.split(/[/\\]/).pop()}`);
+      onStatus(t('cmp.targetLoaded', { name: selected.split(/[/\\]/).pop() ?? '' }));
     } catch (err) {
-      onStatus(`로드 실패: ${(err as Error).message ?? err}`);
+      onStatus(t('cmp.loadFailed', { message: (err as Error).message ?? String(err) }));
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export function ComparePanel({
   async function computeTextDiff() {
     if (!leftDoc || !rightDoc) return;
     setLoading(true);
-    onStatus('페이지별 텍스트 차이 분석 중...');
+    onStatus(t('cmp.diffing'));
     try {
       const pages = Math.max(leftDoc.numPages, rightDoc.numPages);
       const differences = new Set<number>();
@@ -99,7 +101,7 @@ export function ComparePanel({
         if (l !== r) differences.add(i);
       }
       setDiffPages(differences);
-      onStatus(`차이 분석 완료: ${differences.size}개 페이지가 다릅니다.`);
+      onStatus(t('cmp.diffDone', { count: differences.size }));
     } finally {
       setLoading(false);
     }
@@ -113,35 +115,35 @@ export function ComparePanel({
   }, [leftDoc, rightDoc, page]);
 
   if (!currentFile) {
-    return <p className="empty-text">PDF를 열면 분할 뷰 비교를 시작할 수 있습니다.</p>;
+    return <p className="empty-text">{t('cmp.emptyClosed')}</p>;
   }
 
   return (
     <div className="compare-panel">
       <section className="panel">
-        <h2>분할 뷰 비교</h2>
-        <p className="muted">{currentFile.fileName} ↔ {rightDoc ? '비교 대상 로드됨' : '비교 대상 미선택'}</p>
+        <h2>{t('cmp.title')}</h2>
+        <p className="muted">{currentFile.fileName} ↔ {rightDoc ? t('cmp.targetLoadedLbl') : t('cmp.targetMissing')}</p>
         <div className="compare-actions">
           <button type="button" onClick={pickRight} disabled={loading}>
-            비교 대상 선택...
+            {t('cmp.pickTarget')}
           </button>
           <button type="button" onClick={computeTextDiff} disabled={!rightDoc || loading}>
-            차이 분석
+            {t('cmp.runDiff')}
           </button>
         </div>
         {leftDoc && rightDoc && (
           <div className="compare-paginator">
-            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}>이전</button>
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))}>{t('cmp.prev')}</button>
             <span>
-              페이지 {page} / {Math.max(leftDoc.numPages, rightDoc.numPages)}
-              {diffPages.has(page) && <span className="diff-badge">차이 있음</span>}
+              {t('cmp.pageOf', { page, total: Math.max(leftDoc.numPages, rightDoc.numPages) })}
+              {diffPages.has(page) && <span className="diff-badge">{t('cmp.diffBadge')}</span>}
             </span>
-            <button type="button" onClick={() => setPage((p) => Math.min(Math.max(leftDoc.numPages, rightDoc.numPages), p + 1))}>다음</button>
+            <button type="button" onClick={() => setPage((p) => Math.min(Math.max(leftDoc.numPages, rightDoc.numPages), p + 1))}>{t('cmp.next')}</button>
           </div>
         )}
         {rightDoc && diffPages.size > 0 && (
           <div className="diff-page-list">
-            <small className="form-hint">차이 페이지:</small>
+            <small className="form-hint">{t('cmp.diffPagesLabel')}</small>
             {Array.from(diffPages).sort((a, b) => a - b).map((p) => (
               <button key={p} type="button" className="diff-page-chip" onClick={() => setPage(p)}>
                 {p}
@@ -152,11 +154,11 @@ export function ComparePanel({
       </section>
       <section className="panel compare-canvases">
         <div className="compare-pane">
-          <small className="muted">왼쪽: {currentFile.fileName}</small>
+          <small className="muted">{t('cmp.leftLbl', { name: currentFile.fileName })}</small>
           <canvas ref={leftCanvas} className="pdf-canvas" />
         </div>
         <div className="compare-pane">
-          <small className="muted">오른쪽: 비교 대상</small>
+          <small className="muted">{t('cmp.rightLbl')}</small>
           <canvas ref={rightCanvas} className="pdf-canvas" />
         </div>
       </section>

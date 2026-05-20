@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import type { PdfFilePayload } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
 export function MergePanel({
   currentFile,
@@ -10,6 +11,7 @@ export function MergePanel({
   currentFile: PdfFilePayload | null;
   onStatus: (message: string) => void;
 }) {
+  useLocale();
   const [inputFiles, setInputFiles] = useState<string[]>([]);
   const [outputPath, setOutputPath] = useState('');
   const [running, setRunning] = useState(false);
@@ -18,7 +20,7 @@ export function MergePanel({
     const selected = await open({
       multiple: true,
       directory: false,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('merge.fileFilter'), extensions: ['pdf'] }],
     });
 
     if (!selected) return;
@@ -41,7 +43,7 @@ export function MergePanel({
 
     const selected = await save({
       defaultPath: defaultName,
-      filters: [{ name: 'PDF 문서', extensions: ['pdf'] }],
+      filters: [{ name: t('merge.fileFilter'), extensions: ['pdf'] }],
     });
 
     if (typeof selected === 'string') {
@@ -51,28 +53,26 @@ export function MergePanel({
 
   async function handleMerge() {
     if (inputFiles.length < 2) {
-      onStatus('병합할 PDF 파일을 2개 이상 선택하세요.');
+      onStatus(t('merge.needTwo'));
       return;
     }
 
     if (!outputPath) {
-      onStatus('저장할 파일 경로를 선택하세요.');
+      onStatus(t('merge.needOutput'));
       return;
     }
 
     setRunning(true);
-    onStatus('PDF 병합 중...');
+    onStatus(t('merge.running'));
 
     try {
       const result = await invoke<{ outputPath: string; inputCount: number }>('merge_pdfs', {
         inputFiles,
         outputPath,
       });
-      onStatus(
-        `병합 완료: ${result.inputCount}개 파일 → ${result.outputPath}`,
-      );
+      onStatus(t('merge.done', { count: result.inputCount, output: result.outputPath }));
     } catch (error) {
-      onStatus(`병합 실패: ${error}`);
+      onStatus(t('merge.failed', { error: String(error) }));
     } finally {
       setRunning(false);
     }
@@ -81,13 +81,13 @@ export function MergePanel({
   return (
     <div className="merge-panel">
       <section className="panel">
-        <h2>병합할 PDF 파일</h2>
+        <h2>{t('merge.title')}</h2>
         <button type="button" onClick={handleAddFiles} disabled={running}>
-          PDF 파일 추가...
+          {t('merge.addBtn')}
         </button>
         {inputFiles.length > 0 && (
           <div className="merge-file-list">
-            <p className="empty-text">{inputFiles.length}개 파일 선택됨</p>
+            <p className="empty-text">{t('merge.selectedCount', { count: inputFiles.length })}</p>
             {inputFiles.map((path) => (
               <div key={path} className="merge-file-row">
                 <span className="merge-file-name" title={path}>
@@ -112,15 +112,15 @@ export function MergePanel({
             onClick={() => setInputFiles((prev) => [...prev, currentFile.path])}
             disabled={running}
           >
-            현재 문서 추가
+            {t('merge.addCurrent')}
           </button>
         )}
       </section>
 
       <section className="panel">
-        <h2>저장 위치</h2>
+        <h2>{t('merge.outputTitle')}</h2>
         <button type="button" onClick={handleSelectOutput} disabled={running}>
-          저장 경로 선택...
+          {t('merge.outputBtn')}
         </button>
         {outputPath && (
           <small title={outputPath} className="output-path">
@@ -135,7 +135,7 @@ export function MergePanel({
         disabled={inputFiles.length < 2 || !outputPath || running}
         onClick={handleMerge}
       >
-        {running ? '병합 중...' : `PDF 병합 실행 (${inputFiles.length}개)`}
+        {running ? t('merge.runningBtn') : t('merge.runBtn', { count: inputFiles.length })}
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { OutlineItem } from '../types';
+import { t, useLocale } from '../i18n/messages';
 
 function extractOutlineItems(outline: unknown[]): OutlineItem[] {
   return outline.map((item: unknown) => {
@@ -49,6 +50,7 @@ export function OutlinePanel({
   document: PDFDocumentProxy | null;
   onPageSelect: (page: number) => void;
 }) {
+  useLocale();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -95,15 +97,15 @@ export function OutlinePanel({
   }, [document]);
 
   if (!document) {
-    return <p className="empty-text">PDF를 열면 목차가 표시됩니다.</p>;
+    return <p className="empty-text">{t('outline.emptyClosed')}</p>;
   }
 
   if (loading) {
-    return <p className="empty-text">목차 불러오는 중...</p>;
+    return <p className="empty-text">{t('outline.loading')}</p>;
   }
 
   if (outline.length === 0) {
-    return <p className="empty-text">목차가 없는 문서입니다.</p>;
+    return <p className="empty-text">{t('outline.none')}</p>;
   }
 
   function toggleExpand(key: string) {
@@ -148,7 +150,7 @@ export function OutlinePanel({
                 if (item.pageNumber) onPageSelect(item.pageNumber);
               }}
             >
-              {item.title || '(제목 없음)'}
+              {item.title || t('outline.untitled')}
             </span>
             {item.pageNumber && <span className="outline-page">{item.pageNumber}</span>}
           </div>

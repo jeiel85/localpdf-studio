@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfRenderQueue } from '../lib/renderQueue';
+import { t, useLocale } from '../i18n/messages';
 
 interface ThumbnailItem {
   pageNumber: number;
@@ -18,6 +19,7 @@ export function ThumbnailPanel({
   currentPage: number;
   onPageSelect: (page: number) => void;
 }) {
+  useLocale();
   const [thumbnails, setThumbnails] = useState<ThumbnailItem[]>([]);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -78,22 +80,22 @@ export function ThumbnailPanel({
   }, [currentPage]);
 
   if (!document) {
-    return <p className="empty-text">PDF를 열면 썸네일이 표시됩니다.</p>;
+    return <p className="empty-text">{t('thumb.emptyClosed')}</p>;
   }
 
   return (
     <div ref={containerRef} className="thumbnail-list">
-      {loading && thumbnails.length === 0 && <p className="empty-text">썸네일 생성 중...</p>}
-      {thumbnails.map((t) => (
+      {loading && thumbnails.length === 0 && <p className="empty-text">{t('thumb.loading')}</p>}
+      {thumbnails.map((thumb) => (
         <div
-          key={t.pageNumber}
-          data-page={t.pageNumber}
-          className={`thumbnail-item ${t.pageNumber === currentPage ? 'active' : ''}`}
-          onClick={() => onPageSelect(t.pageNumber)}
+          key={thumb.pageNumber}
+          data-page={thumb.pageNumber}
+          className={`thumbnail-item ${thumb.pageNumber === currentPage ? 'active' : ''}`}
+          onClick={() => onPageSelect(thumb.pageNumber)}
         >
-          <span className="thumbnail-label">{t.pageNumber}</span>
-          {t.dataUrl ? (
-            <img src={t.dataUrl} alt={`페이지 ${t.pageNumber}`} />
+          <span className="thumbnail-label">{thumb.pageNumber}</span>
+          {thumb.dataUrl ? (
+            <img src={thumb.dataUrl} alt={t('thumb.pageAlt', { page: thumb.pageNumber })} />
           ) : (
             <div className="thumbnail-placeholder">?</div>
           )}
