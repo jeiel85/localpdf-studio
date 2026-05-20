@@ -24,6 +24,7 @@ export function FormFillPanel({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [docBytes, setDocBytes] = useState<Uint8Array | null>(null);
+  const [flatten, setFlatten] = useState(false);
 
   useEffect(() => {
     if (!file) return;
@@ -112,6 +113,13 @@ export function FormFillPanel({
           // 단일 필드 실패는 비치명적
         }
       }
+      if (flatten) {
+        try {
+          form.flatten();
+        } catch {
+          // flatten 실패는 비치명적: 일반 저장으로 폴백
+        }
+      }
       const out = await doc.save();
       let binary = '';
       const CHUNK = 0x8000;
@@ -175,6 +183,15 @@ export function FormFillPanel({
             )}
           </label>
         ))}
+        <label className="form-label inline">
+          <input
+            type="checkbox"
+            checked={flatten}
+            onChange={(e) => setFlatten(e.target.checked)}
+          />
+          <span>{t('ff.flattenLabel')}</span>
+        </label>
+        <p className="muted small">{t('ff.flattenHint')}</p>
         <button className="primary" disabled={saving} onClick={handleSave}>
           {saving ? t('ff.savingBtn') : t('ff.saveBtn')}
         </button>

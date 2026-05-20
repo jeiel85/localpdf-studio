@@ -2,8 +2,9 @@ import { memo, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { pdfjsLib } from '../lib/pdfjs';
-import type { FitMode, PageLayout, RenderQuality, RedactionArea } from '../types';
+import type { FitMode, PageLayout, RenderQuality, RedactionArea, StampElement, SignTool, SavedSignature } from '../types';
 import { PdfContinuousView } from './PdfContinuousView';
+import { StampPageOverlay } from './StampPageOverlay';
 import { pdfRectToCssRect } from '../lib/textSelection';
 
 export type PdfCanvasProps = {
@@ -22,6 +23,17 @@ export type PdfCanvasProps = {
   onAddRedaction?: (r: RedactionArea) => void;
   onRemoveRedaction?: (id: string) => void;
   redactModeEnabled?: boolean;
+  stamps?: StampElement[];
+  selectedTool?: SignTool | null;
+  savedSignatures?: SavedSignature[];
+  signModeEnabled?: boolean;
+  defaultStampFontSize?: number;
+  defaultStampColor?: string;
+  selectedStampId?: string | null;
+  onSelectStamp?: (id: string | null) => void;
+  onAddStamp?: (s: StampElement) => void;
+  onUpdateStamp?: (id: string, patch: Partial<StampElement>) => void;
+  onRemoveStamp?: (id: string) => void;
 };
 
 
@@ -64,6 +76,17 @@ function PdfCanvasSingle({
   onAddRedaction,
   onRemoveRedaction,
   redactModeEnabled,
+  stamps,
+  selectedTool,
+  savedSignatures,
+  signModeEnabled,
+  defaultStampFontSize,
+  defaultStampColor,
+  selectedStampId,
+  onSelectStamp,
+  onAddStamp,
+  onUpdateStamp,
+  onRemoveStamp,
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pageNodeRef = useRef<HTMLDivElement | null>(null);
@@ -189,6 +212,24 @@ function PdfCanvasSingle({
             onAddRedaction={onAddRedaction}
             onRemoveRedaction={onRemoveRedaction}
             redactModeEnabled={!!redactModeEnabled}
+          />
+        )}
+        {onAddStamp && onUpdateStamp && onRemoveStamp && onSelectStamp && (
+          <StampPageOverlay
+            pageNumber={pageNumber}
+            scale={scale}
+            rotation={rotation}
+            stamps={stamps ?? []}
+            selectedTool={selectedTool ?? null}
+            savedSignatures={savedSignatures ?? []}
+            signModeEnabled={!!signModeEnabled}
+            defaultFontSize={defaultStampFontSize ?? 14}
+            defaultColor={defaultStampColor ?? '#1f1f1f'}
+            selectedStampId={selectedStampId ?? null}
+            onSelect={onSelectStamp}
+            onAddStamp={onAddStamp}
+            onUpdateStamp={onUpdateStamp}
+            onRemoveStamp={onRemoveStamp}
           />
         )}
       </div>

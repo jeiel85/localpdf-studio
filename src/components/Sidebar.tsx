@@ -23,6 +23,7 @@ export function Sidebar({
     { key: 'editor', labelKey: 'sidebar.editor' },
     { key: 'metadata', labelKey: 'sidebar.metadata' },
     { key: 'form', labelKey: 'sidebar.form' },
+    { key: 'sign', labelKey: 'sidebar.sign' },
     { key: 'bookmarks', labelKey: 'sidebar.bookmarks' },
     { key: 'compare', labelKey: 'sidebar.compare' },
     { key: 'settings', labelKey: 'sidebar.settings' },

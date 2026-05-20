@@ -1,5 +1,33 @@
 # CHANGELOG.md
 
+## v0.17.0 - 2026-05-20
+
+오프라인 로컬 우선 PDF Fill & Sign 풀세트 (자유 스탬프 + 손글씨/이미지 서명 + AcroForm Flatten) 구현 완료.
+
+### Added — Fill & Sign 풀세트
+- **자유 스탬프 도구** ([`src/components/StampPageOverlay.tsx`](src/components/StampPageOverlay.tsx)): 텍스트, ✓, ✕, ●, 날짜 5종 도구를 페이지 위 어디에든 클릭/드래그로 배치. 모서리 핸들 리사이즈, 드래그 이동, ✕ 삭제 버튼 및 unrotated 72dpi PDF Point 좌표 영속화로 줌·회전 변화에도 정확히 밀착.
+- **손글씨 서명 모달** ([`src/components/SignatureDrawDialog.tsx`](src/components/SignatureDrawDialog.tsx)): 마우스·스타일러스·터치 포인터 이벤트를 통합 지원하는 HTML5 캔버스 위에 자유 곡선 서명을 그리고 PNG dataURL로 반환. 펜 색·두께 조절, undo/clear 지원.
+- **이미지 서명 임포트** ([`src/components/SignPanel.tsx`](src/components/SignPanel.tsx)): PNG/JPG 이미지 파일을 임포트하여 서명으로 등록. **흰 배경 자동 투명화 알고리즘** (`removeWhiteBackgroundFromDataUrl`, RGB 임계값 235 기반)으로 별도 편집 없이 깔끔하게 사용.
+- **서명 라이브러리** ([`SignPanel.tsx`](src/components/SignPanel.tsx)): 그린 서명과 임포트한 서명을 `localStorage` (`localpdf.savedSignatures.v1` 키)에 영속 저장. 카드 미리보기, 사용 버튼, 삭제 지원.
+- **Fill & Sign 저장 파이프라인** ([`src/lib/fillSign.ts`](src/lib/fillSign.ts)): pdf-lib `drawText`/`drawImage`로 스탬프를 페이지에 임베드한 뒤, 옵션에 따라 `form.flatten()`으로 AcroForm 필드까지 평탄화하여 편집 불가능한 정적 PDF로 저장.
+- **AcroForm 폼 평탄화 옵션** ([`src/components/FormFillPanel.tsx`](src/components/FormFillPanel.tsx)): 기존 폼 저장 흐름에 "저장 시 폼 평탄화" 체크박스를 추가하여 한 번에 채우고 잠글 수 있게 함.
+
+### Added — UI/UX 확장
+- **새 사이드바 탭 `Fill & Sign`** ([`src/components/Sidebar.tsx`](src/components/Sidebar.tsx)): 도구 팔레트(텍스트/✓/✕/●/날짜/서명), 스타일 컨트롤(글자 크기, 색, 텍스트 내용), 서명 라이브러리, 배치된 항목 목록, 저장 영역을 단일 패널에 통합.
+- **다국어 리소스 확장** ([`src/i18n/messages.ts`](src/i18n/messages.ts)): ko/en/ja에 `sign.*` 50여 개 키와 `ff.flatten*` 키 일괄 추가.
+- **스탬프 오버레이 스타일** ([`src/styles.css`](src/styles.css)): 선택 상태 강조, 호버 트랜지션, 모서리 리사이즈 핸들, 서명 라이브러리 카드, 도구 그리드, 서명 모달 백드롭/모달 패널 스타일.
+
+### Changed
+- `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`의 앱 버전을 v0.17.0으로 재동기화.
+
+### Verification
+- `npm run typecheck`: 통과 (TypeScript Zero-Error)
+- `npm run test`: 전체 55/55 통과 (Vitest, Fill & Sign 신규 10개 케이스 포함)
+- `npm run build`: 통과 (Vite production build)
+- `cargo check`: 통과
+
+---
+
 ## v0.16.2 - 2026-05-20
 
 v0.16.1 태그 배포 중 발견된 태그/앱 버전 불일치를 바로잡고 릴리즈 검증을 강화.

@@ -1,5 +1,34 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.17.0 - PDF Fill & Sign 풀세트)
+
+- 작업: 페이지 위에 자유 텍스트/✓/✕/●/날짜 스탬프와 마우스로 그린 서명, 이미지 임포트 서명을 드래그/리사이즈/이동으로 배치하고, 옵션에 따라 AcroForm 필드까지 평탄화하여 편집 불가능한 정적 PDF로 저장하는 Fill & Sign 풀세트 구현.
+- 변경 파일:
+  - `src/types.ts` — `StampType`, `StampElement`, `SavedSignature`, `SignTool` 자료구조 추가 및 `SidebarTab`에 `sign` 키 확장.
+  - `src/lib/fillSign.ts` [NEW] — pdf-lib `drawText`/`drawImage` 기반 스탬프 임베딩, `form.flatten()` 평탄화, 흰 배경 자동 투명화 (`removeWhiteBackgroundFromDataUrl`, RGB ≥235 임계), dataURL ↔ Uint8Array 헬퍼, 진행률 콜백 파이프라인.
+  - `src/lib/fillSign.test.ts` [NEW] — Vitest 10케이스: 텍스트 스탬프 임베딩, 이미지(drawnSig) 스탬프 임베딩, AcroForm 평탄화 검증, AcroForm 보존 검증, 진행률 콜백 검증, 기호 fallback (✓/✕/●/오늘 날짜), dataURL 파서 등.
+  - `src/components/StampPageOverlay.tsx` [NEW] — RedactPageOverlay와 같은 패턴으로 페이지 레이어에 마운트되어 클릭/드래그 배치, 모서리 핸들 리사이즈, 박스 드래그 이동, ✕ 삭제 버튼을 제공하는 오버레이. 0/90/180/270도 회전 모두에 대해 CSS ↔ unrotated PDF Point 양방향 좌표 변환.
+  - `src/components/SignatureDrawDialog.tsx` [NEW] — 마우스·스타일러스·터치 PointerEvent 통합 HTML5 캔버스 서명 모달. 펜 색·두께, undo/clear, dataURL 출력.
+  - `src/components/SignPanel.tsx` [NEW] — Fill & Sign 사이드바: 도구 팔레트, 스타일 컨트롤, 서명 라이브러리(`localStorage` 영속화), 배치된 항목 목록, AcroForm 평탄화 옵션, 저장 버튼.
+  - `src/components/FormFillPanel.tsx` — "저장 시 폼 평탄화" 체크박스 추가.
+  - `src/components/PdfCanvas.tsx` / `src/components/PdfContinuousView.tsx` — StampPageOverlay 마운트 및 Props 전파.
+  - `src/App.tsx` — `stamps`, `signModeEnabled`, `selectedSignTool`, `savedSignatures`, `selectedStampId`, `stampFontSize`, `stampColor` 최상위 상태와 `sign` 탭 case 추가, PDF 로드 시 리셋 연동.
+  - `src/components/Sidebar.tsx` — `sign` 탭 등록.
+  - `src/i18n/messages.ts` — ko/en/ja에 `sign.*` 50여 개 키와 `ff.flatten*` 키 일괄 추가.
+  - `src/styles.css` — 스탬프 박스/리사이즈 핸들/도구 그리드/서명 라이브러리 카드/모달 백드롭 스타일.
+  - `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` — 버전 `0.16.1` → `0.17.0` 동기화.
+  - `README.md`, `docs/index.html`, `docs/en.html`, `docs/ja.html` — Fill & Sign 기능 소개 추가 및 버전 갱신.
+- 설계 결정:
+  - 100% 로컬 오프라인 원칙을 유지하기 위해 pdf-lib + HTML5 캔버스 + localStorage 만으로 서명/스탬프 파이프라인을 구성하고, 외부 네트워크나 OS Keychain 의존을 도입하지 않음.
+  - 좌표는 RedactionArea와 동일하게 unrotated 72dpi PDF Point로 영속화하고, 표시 단계에서만 회전/줌을 적용해 다른 모드(마스킹/하이라이트)와 좌표계를 통일.
+  - AcroForm 평탄화 여부는 폼 저장(FormFillPanel)과 Fill & Sign 저장 양쪽 모두에서 명시적 체크박스로 노출해 사용자가 PDF를 잠글 시점을 직접 제어하게 함.
+  - 이미지 서명은 흰색에 가까운 픽셀(RGB ≥235)을 알파 0으로 치환해 별도 편집 없이 배경 제거된 서명을 사용할 수 있도록 함. 임계값은 코드 상수로 노출하여 추후 조정 여지를 둠.
+- 검증:
+  - `npm run typecheck` 통과 (TypeScript Zero-Error)
+  - `npm run test` 55/55 통과 (Fill & Sign 신규 10개 케이스 포함)
+  - `npm run build` 통과 (Vite production build)
+  - `cargo check` 통과
+
 ## 2026-05-20 (v0.16.2 - 태그/앱 버전 불일치 수정)
 
 - 작업: v0.16.1 태그 배포 중 태그 버전과 앱 메타데이터 버전이 일치하지 않아 `latest.json` 생성 단계가 실패한 문제를 수정.

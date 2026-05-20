@@ -1,5 +1,21 @@
 # TASKS.md
 
+## v0.17.0 - PDF Fill & Sign 풀세트 (자유 스탬프 + 손글씨/이미지 서명 + Flatten)
+
+- [x] `StampElement`, `SavedSignature`, `SignTool` 자료구조 정의 및 `SidebarTab`에 `sign` 키 확장 (`src/types.ts`)
+- [x] 마우스·스타일러스·터치 PointerEvent 통합 HTML5 캔버스 서명 모달 컴포넌트 (`src/components/SignatureDrawDialog.tsx`)
+- [x] 드래그 배치 / 모서리 핸들 리사이즈 / 박스 이동 / ✕ 삭제를 지원하는 `StampPageOverlay` 신규 작성 (`src/components/StampPageOverlay.tsx`)
+- [x] 도구 팔레트, 스타일 컨트롤, 서명 라이브러리(`localStorage` 영속화), 배치 항목 목록, AcroForm 평탄화 옵션을 통합한 `SignPanel` 작성 (`src/components/SignPanel.tsx`)
+- [x] pdf-lib `drawText`/`drawImage` 임베딩과 `form.flatten()` 평탄화, 흰 배경 자동 투명화(`removeWhiteBackgroundFromDataUrl`) 코어 라이브러리 (`src/lib/fillSign.ts`)
+- [x] PdfCanvas / PdfContinuousView에 StampPageOverlay 통합 및 Props 전파
+- [x] App.tsx 최상위 상태(stamps/signMode/selectedTool/savedSignatures 등)와 `sign` 사이드바 case 연결
+- [x] FormFillPanel에 "저장 시 폼 평탄화" 체크박스 옵션 추가
+- [x] ko/en/ja 다국어 메시지(`sign.*`, `ff.flatten*`) 50여 개 키 일괄 추가
+- [x] 스탬프 박스/리사이즈 핸들/도구 그리드/서명 카드/모달 백드롭 스타일 (`src/styles.css`)
+- [x] `fillSign` 라이브러리 단위 테스트 10개 추가 (`src/lib/fillSign.test.ts`)
+- [x] v0.17.0 릴리즈 메타데이터 동기화 (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `README.md`, `docs/index.html`, `docs/en.html`, `docs/ja.html`)
+- [x] `npm run typecheck` / `npm run test` / `npm run build` / `cargo check` 통과 확인
+
 ## v0.16.2 - 태그/앱 버전 불일치 수정
 
 - [x] v0.16.1 실패 원인 확인: 태그 버전과 앱 메타데이터 버전 불일치

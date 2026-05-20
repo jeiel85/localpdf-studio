@@ -1,9 +1,10 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { applyHighlight, computeFitScale, LoadingOverlay, renderQualityToScale, RedactPageOverlay, type PdfCanvasProps } from './PdfCanvas';
+import { StampPageOverlay } from './StampPageOverlay';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { pdfjsLib } from '../lib/pdfjs';
-import type { RenderQuality, RedactionArea } from '../types';
+import type { RenderQuality, RedactionArea, StampElement, SignTool, SavedSignature } from '../types';
 
 type PageDim = { width: number; height: number };
 
@@ -25,6 +26,17 @@ export function PdfContinuousView({
   onAddRedaction,
   onRemoveRedaction,
   redactModeEnabled,
+  stamps,
+  selectedTool,
+  savedSignatures,
+  signModeEnabled,
+  defaultStampFontSize,
+  defaultStampColor,
+  selectedStampId,
+  onSelectStamp,
+  onAddStamp,
+  onUpdateStamp,
+  onRemoveStamp,
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [firstDim, setFirstDim] = useState<PageDim | null>(null);
@@ -188,6 +200,17 @@ export function PdfContinuousView({
             onAddRedaction={onAddRedaction}
             onRemoveRedaction={onRemoveRedaction}
             redactModeEnabled={redactModeEnabled}
+            stamps={stamps}
+            selectedTool={selectedTool}
+            savedSignatures={savedSignatures}
+            signModeEnabled={signModeEnabled}
+            defaultStampFontSize={defaultStampFontSize}
+            defaultStampColor={defaultStampColor}
+            selectedStampId={selectedStampId}
+            onSelectStamp={onSelectStamp}
+            onAddStamp={onAddStamp}
+            onUpdateStamp={onUpdateStamp}
+            onRemoveStamp={onRemoveStamp}
           />
         ))}
     </div>
@@ -209,6 +232,17 @@ type ContinuousPageProps = {
   onAddRedaction?: (r: RedactionArea) => void;
   onRemoveRedaction?: (id: string) => void;
   redactModeEnabled?: boolean;
+  stamps?: StampElement[];
+  selectedTool?: SignTool | null;
+  savedSignatures?: SavedSignature[];
+  signModeEnabled?: boolean;
+  defaultStampFontSize?: number;
+  defaultStampColor?: string;
+  selectedStampId?: string | null;
+  onSelectStamp?: (id: string | null) => void;
+  onAddStamp?: (s: StampElement) => void;
+  onUpdateStamp?: (id: string, patch: Partial<StampElement>) => void;
+  onRemoveStamp?: (id: string) => void;
 };
 
 const ContinuousPage = memo(function ContinuousPage({
@@ -226,6 +260,17 @@ const ContinuousPage = memo(function ContinuousPage({
   onAddRedaction,
   onRemoveRedaction,
   redactModeEnabled,
+  stamps,
+  selectedTool,
+  savedSignatures,
+  signModeEnabled,
+  defaultStampFontSize,
+  defaultStampColor,
+  selectedStampId,
+  onSelectStamp,
+  onAddStamp,
+  onUpdateStamp,
+  onRemoveStamp,
 }: ContinuousPageProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -382,6 +427,24 @@ const ContinuousPage = memo(function ContinuousPage({
             onAddRedaction={onAddRedaction}
             onRemoveRedaction={onRemoveRedaction}
             redactModeEnabled={!!redactModeEnabled}
+          />
+        )}
+        {onAddStamp && onUpdateStamp && onRemoveStamp && onSelectStamp && (
+          <StampPageOverlay
+            pageNumber={pageIndex}
+            scale={scale}
+            rotation={rotation}
+            stamps={stamps ?? []}
+            selectedTool={selectedTool ?? null}
+            savedSignatures={savedSignatures ?? []}
+            signModeEnabled={!!signModeEnabled}
+            defaultFontSize={defaultStampFontSize ?? 14}
+            defaultColor={defaultStampColor ?? '#1f1f1f'}
+            selectedStampId={selectedStampId ?? null}
+            onSelect={onSelectStamp}
+            onAddStamp={onAddStamp}
+            onUpdateStamp={onUpdateStamp}
+            onRemoveStamp={onRemoveStamp}
           />
         )}
       </div>

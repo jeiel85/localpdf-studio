@@ -1346,3 +1346,250 @@ button.primary { border-color: var(--accent); background: var(--accent-bg); }
   background-color: #d9363e !important;
 }
 
+/* ==========================================================================
+   Fill & Sign (v0.17.0)
+   ========================================================================== */
+
+/* 사인 모드 활성화 시 textLayer/annotationLayer 클릭 방지 */
+.canvas-page-layer:has(.stamp-page-overlay.active) .textLayer,
+.canvas-page-layer:has(.stamp-page-overlay.active) .annotationLayer {
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+.stamp-box {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stamp-box.selected {
+  box-shadow: 0 0 0 1px rgba(91, 157, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.stamp-box.editable:hover:not(.selected) {
+  border-color: rgba(91, 157, 255, 0.85) !important;
+}
+
+.stamp-delete-btn {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+}
+
+.stamp-delete-btn:hover {
+  transform: scale(1.18);
+  background-color: #ff7875 !important;
+}
+
+.stamp-delete-btn:active {
+  transform: scale(0.9);
+}
+
+/* SignPanel layout */
+.sign-panel .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--panel-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  margin-bottom: 10px;
+}
+
+.sign-panel .panel h2,
+.sign-panel .panel h3 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.sign-panel .panel .muted.small {
+  font-size: 11px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.sign-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sign-tool-btn {
+  padding: 8px 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sign-tool-btn:hover {
+  background: rgba(91, 157, 255, 0.08);
+  border-color: rgba(91, 157, 255, 0.4);
+}
+
+.sign-tool-btn.active {
+  background: rgba(91, 157, 255, 0.18);
+  border-color: var(--accent, #5b9dff);
+  color: var(--accent, #5b9dff);
+  font-weight: 600;
+}
+
+.sign-signatures-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sign-signature-card {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sign-signature-card.active {
+  border-color: var(--accent, #5b9dff);
+  background: rgba(91, 157, 255, 0.08);
+}
+
+.sign-signature-preview {
+  width: 96px;
+  height: 36px;
+  object-fit: contain;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.06) 0% 25%, transparent 0% 50%) 50% / 12px 12px;
+  border-radius: 4px;
+}
+
+.sign-signature-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sign-signature-meta strong {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sign-signature-meta small {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.sign-signature-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sign-signature-actions button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.sign-signature-creators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sign-stamps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.sign-stamps-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.sign-stamps-list li.active {
+  background: rgba(91, 157, 255, 0.12);
+}
+
+/* SignatureDrawDialog */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+}
+
+.modal-panel.signature-modal {
+  background: var(--panel-bg-elevated, #1f2330);
+  color: inherit;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+  width: calc(100vw - 40px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.signature-draw-area {
+  background: white;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.signature-canvas {
+  display: block;
+  width: 100%;
+  height: 240px;
+  background: white;
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.modal-actions .spacer {
+  flex: 1;
+}
+
+.form-label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}

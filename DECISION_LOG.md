@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-20 - v0.17.0 Fill & Sign 아키텍처 결정
+
+- 결정: PDF 위에 자유 텍스트, 기호, 날짜, 손글씨/이미지 서명을 배치하는 Fill & Sign 도구를 pdf-lib + HTML5 캔버스 + localStorage 만으로 구성하여 100% 오프라인으로 처리한다. 스탬프 좌표는 RedactionArea와 동일하게 unrotated 72dpi PDF Point로 영속화하고, AcroForm 평탄화(`form.flatten()`) 여부는 폼 저장과 Fill & Sign 저장 양쪽에서 명시적 체크박스로 노출한다.
+- 이유: 외부 서명 SaaS나 OS Keychain 의존은 LocalPDF Studio의 로컬 우선 원칙에 위배된다. pdf-lib의 `drawText`/`drawImage`로 충분히 시각적 서명을 임베드할 수 있고, 평탄화는 표준 AcroForm API로 호환성 손실 없이 가능하다. 좌표계는 줌·회전·연속/단일 레이아웃에서 동일하게 동작해야 하므로 마스킹·하이라이트와 같이 unrotated PDF Point로 통일하는 것이 유지보수 측면에서 최적이다.
+- 안전장치: 이미지 서명은 흰색에 가까운 픽셀(RGB ≥235)을 자동으로 알파 0으로 치환해 별도 편집 없이 깔끔하게 사용할 수 있도록 했으며, 사용자가 이 동작을 끌 수 있는 체크박스를 둔다. 서명 라이브러리는 localStorage에 저장하되 키를 `localpdf.savedSignatures.v1`로 두어 향후 마이그레이션에 대비한다. AcroForm 평탄화는 기본값을 명시적으로 표시해 사용자가 의도와 다른 영구 변경을 일으키지 않도록 한다.
+- 한계: 디지털 서명(PKCS#7) 자체는 도입하지 않고 시각적 서명에 한정한다. 디지털 서명은 OS Keychain/PKI 인증서·시간 도장 서버 통신을 동반하므로 본 릴리즈 범위에서 제외했다. 향후 별도 트랙으로 검토한다.
+
 ## 2026-05-20 - v0.16.1 GitHub Release 배포 규칙
 
 - 결정: 릴리즈는 `v*` 태그 푸시로만 시작하고, Windows build job이 산출물을 artifact로 업로드한 뒤 단일 release job이 GitHub Release를 생성한다.

@@ -9,6 +9,7 @@ import { AppShell } from './components/AppShell';
 import { BookmarksPanel } from './components/BookmarksPanel';
 import { ComparePanel } from './components/ComparePanel';
 import { FormFillPanel } from './components/FormFillPanel';
+import { SignPanel } from './components/SignPanel';
 import { MergePanel } from './components/MergePanel';
 import { MetadataPanel } from './components/MetadataPanel';
 import { OutlinePanel } from './components/OutlinePanel';
@@ -42,7 +43,7 @@ import {
   runPdfOperation,
   saveTabState,
 } from './lib/tauriCommands';
-import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState, type RedactionArea } from './types';
+import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState, type RedactionArea, type StampElement, type SignTool, type SavedSignature } from './types';
 
 const DEFAULT_VIEWER: ViewerState = {
   currentPage: 1,
@@ -78,6 +79,22 @@ export default function App() {
   const [lastSelection, setLastSelection] = useState<PageSelection[] | null>(null);
   const [redactions, setRedactions] = useState<RedactionArea[]>([]);
   const [redactModeEnabled, setRedactModeEnabled] = useState(false);
+  const [stamps, setStamps] = useState<StampElement[]>([]);
+  const [signModeEnabled, setSignModeEnabled] = useState(false);
+  const [selectedSignTool, setSelectedSignTool] = useState<SignTool | null>(null);
+  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>(() => {
+    try {
+      const raw = localStorage.getItem('localpdf.savedSignatures.v1');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedStampId, setSelectedStampId] = useState<string | null>(null);
+  const [stampFontSize, setStampFontSize] = useState(14);
+  const [stampColor, setStampColor] = useState('#1f1f1f');
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -104,6 +121,10 @@ export default function App() {
       setLoadProgress({ loaded: 0, total: 0 });
       setRedactions([]);
       setRedactModeEnabled(false);
+      setStamps([]);
+      setSignModeEnabled(false);
+      setSelectedSignTool(null);
+      setSelectedStampId(null);
 
       try {
         const payload = await loadPdfBase64(path);
@@ -730,6 +751,29 @@ export default function App() {
             />
           </div>
         );
+      case 'sign':
+        return (
+          <div className="sidebar-inner">
+            <h2>Fill &amp; Sign</h2>
+            <SignPanel
+              file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
+              stamps={stamps}
+              setStamps={setStamps}
+              signModeEnabled={signModeEnabled}
+              setSignModeEnabled={setSignModeEnabled}
+              selectedTool={selectedSignTool}
+              setSelectedTool={setSelectedSignTool}
+              savedSignatures={savedSignatures}
+              setSavedSignatures={setSavedSignatures}
+              defaultFontSize={stampFontSize}
+              setDefaultFontSize={setStampFontSize}
+              defaultColor={stampColor}
+              setDefaultColor={setStampColor}
+              selectedStampId={selectedStampId}
+              onStatus={setStatus}
+            />
+          </div>
+        );
       case 'bookmarks':
         return (
           <div className="sidebar-inner">
@@ -838,6 +882,19 @@ export default function App() {
         onAddRedaction={(r) => setRedactions((prev) => [...prev, r])}
         onRemoveRedaction={(id) => setRedactions((prev) => prev.filter((x) => x.id !== id))}
         redactModeEnabled={redactModeEnabled}
+        stamps={stamps}
+        selectedTool={selectedSignTool}
+        savedSignatures={savedSignatures}
+        signModeEnabled={signModeEnabled}
+        defaultStampFontSize={stampFontSize}
+        defaultStampColor={stampColor}
+        selectedStampId={selectedStampId}
+        onSelectStamp={setSelectedStampId}
+        onAddStamp={(s) => setStamps((prev) => [...prev, s])}
+        onUpdateStamp={(id, patch) =>
+          setStamps((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+        }
+        onRemoveStamp={(id) => setStamps((prev) => prev.filter((x) => x.id !== id))}
       />
       <UpdateNotification
         status={updateStatus}
