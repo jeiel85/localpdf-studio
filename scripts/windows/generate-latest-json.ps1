@@ -25,7 +25,7 @@ if (-not (Test-Path $sigFile)) {
 $signature = Get-Content $sigFile -Raw
 $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $repo = "jeiel85/localpdf-studio"
-$assetName = Split-Path $setupExePath -Leaf
+$assetName = "LocalPDF.Studio_${versionClean}_x64-setup.exe"
 $assetNameEncoded = [uri]::EscapeDataString($assetName)
 $downloadUrl = "https://github.com/$repo/releases/download/v$versionClean/$assetNameEncoded"
 

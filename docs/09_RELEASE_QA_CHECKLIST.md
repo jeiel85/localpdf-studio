@@ -11,6 +11,7 @@
 - [x] `scripts/windows/validate-winget-manifests.ps1`
 - [x] `scripts/windows/publish-chocolatey.ps1 -SkipPush`
 - [x] `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`
+- [x] `latest.json` updater URL이 실제 GitHub Release asset을 가리키는지 검증
 
 ## 태그 릴리즈 산출물
 
@@ -30,13 +31,18 @@ macOS/Linux 산출물은 v0.17.2 태그 빌드에서 복구 검증됐다.
 - [x] winget 매니페스트 로컬 검증
 - [x] winget PR 제출: <https://github.com/microsoft/winget-pkgs/pull/377220>
 - [x] Chocolatey `.nupkg` 생성
+- [x] Homebrew tap 게시: <https://github.com/jeiel85/homebrew-tap>
 - [ ] Chocolatey community push
+- [ ] Snap Store push
+- [ ] AUR push
 
-Chocolatey push는 `CHOCO_API_KEY`가 필요하다. 키가 있는 환경에서는 다음 명령으로 제출한다.
+남은 3개는 외부 계정 인증이 필요하다. Chocolatey push는 `CHOCO_API_KEY`가 필요하다. 키가 있는 환경에서는 다음 명령으로 제출한다.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/windows/publish-chocolatey.ps1
 ```
+
+Snap Store는 Snapcraft 로그인, AUR은 aur.archlinux.org SSH 계정/키가 필요하다.
 
 ## 수동 앱 QA
 

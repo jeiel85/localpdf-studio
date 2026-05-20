@@ -12,6 +12,7 @@
 - 결정: 패키지 매니저 제출은 수동 안내만 두지 않고 `validate-winget-manifests.ps1`, `submit-winget.ps1`, `publish-chocolatey.ps1`로 재현 가능한 명령화한다. 릴리즈 워크플로는 Windows 단독에서 Windows/macOS/Linux matrix로 되돌리고, CI에서 winget 검증과 Chocolatey pack을 기본 검증에 포함한다.
 - 이유: winget 검증은 README가 같은 디렉터리에 있으면 YAML scanner 오류로 실패할 수 있고, Chocolatey push는 API key 유무에 따라 로컬 결과가 달라진다. 검증/제출 단계를 스크립트로 분리하면 실제 제출 권한이 없는 환경에서도 패키지 품질을 확인할 수 있고, 키가 있는 환경에서는 같은 명령으로 push까지 이어갈 수 있다.
 - 안전장치: winget 제출 스크립트는 YAML만 임시 디렉터리에 복사해 검증/제출하고, Chocolatey 스크립트는 `-SkipPush`로 패키지만 생성할 수 있다. `verify-release-assets.ps1`은 필수 산출물 누락과 digest 누락을 즉시 실패 처리한다.
+- 추가 안전장치: `verify-release-assets.ps1`은 `latest.json`의 Windows updater URL이 실제 Release asset 이름과 일치하는지도 확인한다. Tauri 로컬 번들 파일명과 GitHub Release asset 파일명이 다를 수 있어 updater URL 검증을 별도 단계로 둔다.
 - 한계: Chocolatey community push는 `CHOCO_API_KEY`가 없으면 진행할 수 없다. macOS DMG와 Linux 패키지는 v0.17.2 태그 빌드에서 처음 복구 검증되므로, CI 실패 시 플랫폼별 의존성을 추가 조정해야 한다.
 
 ## 2026-05-20 - v0.17.1 매니페스트 sync 스크립트 폴백 전략

@@ -10,6 +10,8 @@
 - [x] 릴리즈 워크플로 macOS/Linux 빌드 job 복구
 - [x] 릴리즈 산출물 검증 스크립트 추가
 - [x] v0.17.2 릴리즈 산출물 SHA-256으로 winget/Chocolatey/Homebrew/Snap/AUR 매니페스트 갱신
+- [x] Homebrew tap 저장소 생성 및 v0.17.2 Cask 게시
+- [x] v0.17.2 `latest.json` updater URL 수정 및 검증
 - [x] QA 체크리스트 최신화
 
 ## v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리

@@ -47,6 +47,29 @@ foreach ($asset in $release.assets) {
   }
 }
 
+$latestAsset = $release.assets | Where-Object { $_.name -eq "latest.json" } | Select-Object -First 1
+if ($latestAsset) {
+  $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("localpdf-release-verify-" + [guid]::NewGuid().ToString("N"))
+  New-Item -ItemType Directory -Path $tempDir | Out-Null
+  try {
+    gh release download $tag --repo $Repository --pattern latest.json --dir $tempDir --clobber | Out-Null
+    $latestPath = Join-Path $tempDir "latest.json"
+    $latest = Get-Content $latestPath -Raw | ConvertFrom-Json
+    $windowsUrl = $latest.platforms.'windows-x86_64'.url
+    if (-not $windowsUrl) {
+      throw "latest.json does not contain windows-x86_64 URL."
+    }
+    $latestAssetName = [uri]::UnescapeDataString(($windowsUrl -split '/')[-1])
+    if ($latestAssetName -notin $assetNames) {
+      throw "latest.json points to a missing release asset: $latestAssetName"
+    }
+  } finally {
+    if (Test-Path $tempDir) {
+      Remove-Item -Recurse -Force $tempDir
+    }
+  }
+}
+
 Write-Host "Release asset verification passed for $tag."
 Write-Host "Published at: $($release.publishedAt)"
 Write-Host "Assets: $($assetNames.Count)"

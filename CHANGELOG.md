@@ -24,6 +24,8 @@
 ### Distribution
 - `wingetcreate submit`으로 v0.17.2 winget PR 제출 완료: https://github.com/microsoft/winget-pkgs/pull/377220
 - v0.17.2 릴리즈 산출물 SHA-256으로 winget, Chocolatey, Homebrew, Snap, AUR 매니페스트 동기화 완료.
+- Homebrew tap 저장소(`jeiel85/homebrew-tap`) 생성 및 v0.17.2 Cask 게시 완료.
+- v0.17.2 `latest.json`의 updater URL을 실제 GitHub Release asset 이름(`LocalPDF.Studio_0.17.2_x64-setup.exe`)으로 수정.
 - Chocolatey v0.17.2 `.nupkg` 생성 검증 완료. 실제 community push는 로컬/CI에 `CHOCO_API_KEY`가 없어 보류.
 
 ### Verification
@@ -35,6 +37,7 @@
 - `scripts/windows/publish-chocolatey.ps1 -SkipPush`: 통과.
 - `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`: 통과.
 - `scripts/windows/sync-package-manifests.ps1 -Version 0.17.2`: 통과.
+- `latest.json` updater URL과 릴리즈 asset 일치 검증 통과.
 
 ---
 
