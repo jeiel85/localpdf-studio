@@ -668,7 +668,7 @@ pub fn apply_stamp(
 #[tauri::command]
 pub fn save_text_file(path: String, content: String) -> Result<String, String> {
     let file_path = validate_output_path(&path)?;
-    fs::write(&file_path, &content).map_err(|e| format!("파일 저장 실패: {e}"))?;
+    atomic_write(&file_path, content.as_bytes()).map_err(|e| format!("파일 저장 실패: {e}"))?;
     Ok(file_path.to_string_lossy().to_string())
 }
 
@@ -678,7 +678,7 @@ pub fn save_binary_file(path: String, base64_data: String) -> Result<String, Str
     let bytes = general_purpose::STANDARD
         .decode(base64_data.as_bytes())
         .map_err(|e| format!("base64 디코딩 실패: {e}"))?;
-    fs::write(&file_path, &bytes).map_err(|e| format!("파일 저장 실패: {e}"))?;
+    atomic_write(&file_path, &bytes).map_err(|e| format!("파일 저장 실패: {e}"))?;
     Ok(file_path.to_string_lossy().to_string())
 }
 
@@ -686,10 +686,13 @@ const MAX_READ_BYTES_BYTES: u64 = 512 * 1024 * 1024;
 
 #[tauri::command]
 pub fn read_text_file_if_exists(path: String) -> Result<String, String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
+    let Some(p) = validate_existing_file_path_if_exists(
+        &path,
+        &["json", "txt"],
+        "텍스트/JSON 파일만 읽을 수 있습니다.",
+    )? else {
         return Ok(String::new());
-    }
+    };
     let metadata = fs::metadata(&p).map_err(|e| format!("파일 정보 읽기 실패: {e}"))?;
     if metadata.len() > 8 * 1024 * 1024 {
         return Err("텍스트 파일이 너무 큽니다 (최대 8MB).".to_string());
@@ -699,9 +702,14 @@ pub fn read_text_file_if_exists(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn delete_file_if_exists(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if p.exists() && p.is_file() {
-        let _ = fs::remove_file(&p);
+    if let Some(p) = validate_existing_file_path_if_exists(
+        &path,
+        &[
+            "png", "jpg", "jpeg", "webp", "bmp", "gif", "tif", "tiff", "txt", "json",
+        ],
+        "지원하지 않는 파일 형식은 삭제할 수 없습니다.",
+    )? {
+        fs::remove_file(&p).map_err(|e| format!("파일 삭제 실패: {e}"))?;
     }
     Ok(())
 }
@@ -906,6 +914,24 @@ const FORBIDDEN_OUTPUT_EXTENSIONS: &[&str] = &[
     "msi", "msp", "scr", "com", "cpl", "lnk", "reg", "inf",
 ];
 
+fn blocked_system_roots() -> Vec<PathBuf> {
+    ["WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMFILES(X86)"]
+        .iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .map(PathBuf::from)
+        .filter_map(|p| p.canonicalize().ok())
+        .collect()
+}
+
+fn ensure_not_system_dir(path: &Path) -> Result<(), String> {
+    for root in blocked_system_roots() {
+        if path.starts_with(&root) {
+            return Err("시스템 디렉터리에는 접근할 수 없습니다.".to_string());
+        }
+    }
+    Ok(())
+}
+
 fn validate_output_path(path: &str) -> Result<PathBuf, String> {
     if path.trim().is_empty() {
         return Err("출력 경로가 비어 있습니다.".to_string());
@@ -930,22 +956,49 @@ fn validate_output_path(path: &str) -> Result<PathBuf, String> {
         .canonicalize()
         .map_err(|e| format!("출력 경로가 올바르지 않습니다: {e}"))?;
 
-    let blocked_roots: Vec<PathBuf> = ["WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMFILES(X86)"]
-        .iter()
-        .filter_map(|key| std::env::var(key).ok())
-        .map(PathBuf::from)
-        .filter_map(|p| p.canonicalize().ok())
-        .collect();
-    for root in &blocked_roots {
-        if canonical_parent.starts_with(root) {
-            return Err("시스템 디렉터리에는 저장할 수 없습니다.".to_string());
-        }
-    }
+    ensure_not_system_dir(&canonical_parent)
+        .map_err(|_| "시스템 디렉터리에는 저장할 수 없습니다.".to_string())?;
 
     let file_name = raw
         .file_name()
         .ok_or_else(|| "파일 이름이 없습니다.".to_string())?;
     Ok(canonical_parent.join(file_name))
+}
+
+fn validate_existing_file_path_if_exists(
+    path: &str,
+    allowed_extensions: &[&str],
+    extension_error: &str,
+) -> Result<Option<PathBuf>, String> {
+    if path.trim().is_empty() {
+        return Err("파일 경로가 비어 있습니다.".to_string());
+    }
+    let raw = PathBuf::from(path);
+    let ext = raw
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if !allowed_extensions.contains(&ext.as_str())
+        || FORBIDDEN_OUTPUT_EXTENSIONS.contains(&ext.as_str())
+    {
+        return Err(extension_error.to_string());
+    }
+    if !raw.exists() {
+        return Ok(None);
+    }
+
+    let canonical = raw
+        .canonicalize()
+        .map_err(|e| format!("파일 경로가 올바르지 않습니다: {e}"))?;
+    let metadata = fs::metadata(&canonical).map_err(|e| format!("파일 정보 읽기 실패: {e}"))?;
+    if !metadata.is_file() {
+        return Err("파일이 아닙니다.".to_string());
+    }
+    if let Some(parent) = canonical.parent() {
+        ensure_not_system_dir(parent)?;
+    }
+    Ok(Some(canonical))
 }
 
 fn validate_output_dir(dir: &str) -> Result<PathBuf, String> {
@@ -959,17 +1012,8 @@ fn validate_output_dir(dir: &str) -> Result<PathBuf, String> {
         .canonicalize()
         .map_err(|e| format!("출력 디렉터리 경로 오류: {e}"))?;
 
-    let blocked_roots: Vec<PathBuf> = ["WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMFILES(X86)"]
-        .iter()
-        .filter_map(|key| std::env::var(key).ok())
-        .map(PathBuf::from)
-        .filter_map(|p| p.canonicalize().ok())
-        .collect();
-    for root in &blocked_roots {
-        if canonical.starts_with(root) {
-            return Err("시스템 디렉터리에는 저장할 수 없습니다.".to_string());
-        }
-    }
+    ensure_not_system_dir(&canonical)
+        .map_err(|_| "시스템 디렉터리에는 저장할 수 없습니다.".to_string())?;
     Ok(canonical)
 }
 
@@ -1056,10 +1100,80 @@ fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
     ));
     fs::write(&tmp, content).map_err(|e| format!("임시 파일 쓰기 실패: {e}"))?;
     if path.exists() {
-        let _ = fs::remove_file(path);
+        let backup = parent.join(format!(
+            ".{file_name}.{}.bak",
+            uuid::Uuid::new_v4().simple()
+        ));
+        fs::rename(path, &backup).map_err(|e| {
+            let _ = fs::remove_file(&tmp);
+            format!("기존 파일 백업 실패: {e}")
+        })?;
+        if let Err(e) = fs::rename(&tmp, path) {
+            let _ = fs::rename(&backup, path);
+            let _ = fs::remove_file(&tmp);
+            return Err(format!("파일 교체 실패: {e}"));
+        }
+        let _ = fs::remove_file(&backup);
+        return Ok(());
     }
     fs::rename(&tmp, path).map_err(|e| {
         let _ = fs::remove_file(&tmp);
         format!("파일 교체 실패: {e}")
     })
+}
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let dir = std::env::temp_dir().join(format!("localpdf_commands_{name}_{nanos}"));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn save_text_file_replaces_existing_content() {
+        let dir = temp_dir("atomic_text");
+        let path = dir.join("bookmarks.json");
+        fs::write(&path, "old").unwrap();
+
+        let saved = save_text_file(
+            path.to_string_lossy().to_string(),
+            "{\"ok\":true}".to_string(),
+        )
+        .unwrap();
+
+        assert!(PathBuf::from(saved).exists());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "{\"ok\":true}");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn read_text_file_rejects_unsupported_extension() {
+        let dir = temp_dir("read_ext");
+        let path = dir.join("secret.env");
+        fs::write(&path, "TOKEN=1").unwrap();
+
+        let result = read_text_file_if_exists(path.to_string_lossy().to_string());
+
+        assert!(matches!(result, Err(message) if message.contains("텍스트/JSON")));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn delete_file_rejects_protected_extension_without_removing_file() {
+        let dir = temp_dir("delete_ext");
+        let path = dir.join("tool.exe");
+        fs::write(&path, "binary").unwrap();
+
+        let result = delete_file_if_exists(path.to_string_lossy().to_string());
+
+        assert!(matches!(result, Err(message) if message.contains("지원하지 않는 파일 형식")));
+        assert!(path.exists());
+        fs::remove_dir_all(&dir).ok();
+    }
 }

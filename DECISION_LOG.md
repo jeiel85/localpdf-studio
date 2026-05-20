@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-20 - 파일 command 안전성 보강
+
+- 결정: 프론트에서 직접 호출 가능한 범용 파일 command는 저장, 읽기, 삭제 각각의 용도에 맞춰 허용 범위를 명시적으로 제한한다. 저장은 임시 파일 작성 후 교체 흐름으로 통일하고, 텍스트 읽기는 `.json`/`.txt`, 임시 삭제는 이미지 파일과 `.json`/`.txt`만 허용한다.
+- 이유: `save_text_file`, `save_binary_file`, `read_text_file_if_exists`, `delete_file_if_exists`는 여러 UI 기능에서 재사용되는 편의 command라서 한 곳의 검증 누락이 전체 앱의 로컬 파일 안전성에 영향을 준다. 특히 삭제 command는 임시 이미지 정리 용도이므로 보호 확장자와 시스템 디렉터리를 명시적으로 배제하는 것이 맞다.
+- 안전장치: 기존 파일 교체 중 실패하면 백업 파일을 원래 경로로 되돌리고, 읽기/삭제는 허용 확장자 검사와 시스템 디렉터리 차단을 통과한 기존 일반 파일만 처리한다.
+- 한계: Windows의 진짜 원자적 replace API를 직접 호출하지는 않는다. 표준 라이브러리 기반 백업-교체-복원 흐름으로 원본 보존을 우선했다.
+
 ## 2026-05-20 - v0.17.1 매니페스트 sync 스크립트 폴백 전략
 
 - 결정: `sync-package-manifests.ps1`이 GitHub Release에서 `.deb` 또는 DMG 자산을 찾지 못해도 즉시 실패하지 않고, 해당 자산이 필요한 매니페스트(AUR, Snap, Homebrew)만 건너뛰며 winget·Chocolatey는 정상 갱신하도록 변경한다.

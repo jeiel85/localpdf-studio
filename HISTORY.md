@@ -1,5 +1,18 @@
 # HISTORY.md
 
+## 2026-05-20 (Unreleased - 파일 command 안전성 보강)
+
+- 작업: 프론트에서 호출 가능한 로컬 파일 저장/읽기/삭제 command의 실패 시 원본 보존과 임의 파일 접근 차단을 보강.
+- 변경 파일:
+  - `src-tauri/src/commands.rs` — `save_text_file`, `save_binary_file`을 `atomic_write` 기반으로 전환하고, 기존 파일 교체 실패 시 백업 파일을 원래 경로로 복원하도록 개선.
+  - `src-tauri/src/commands.rs` — `read_text_file_if_exists`는 `.json`/`.txt`만 읽도록 제한하고, `delete_file_if_exists`는 이미지 임시 파일과 `.txt`/`.json`만 삭제하도록 제한.
+  - `src-tauri/src/commands.rs` — 출력/읽기/삭제 경로의 시스템 디렉터리 차단 로직을 공통 helper로 정리하고 Rust 단위 테스트 3개 추가.
+  - `README.md`, `CHANGELOG.md`, `TASKS.md`, `DECISION_LOG.md` — 파일 command 안전성 보강 기록 반영.
+- 검증:
+  - `npm run typecheck` 통과.
+  - `npm run test` 55/55 통과.
+  - `cargo test` 40/40 통과.
+
 ## 2026-05-20 (v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리)
 
 - 작업: v0.17.0 GitHub Release 산출물(NSIS x64 setup.exe) digest 기반으로 winget/Chocolatey 매니페스트를 갱신하고, Windows 전용 빌드에 맞춰 매니페스트 sync 스크립트가 `.deb`/DMG 부재를 폴백 처리하도록 보강.

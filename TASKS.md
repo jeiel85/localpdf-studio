@@ -1,5 +1,11 @@
 # TASKS.md
 
+## Unreleased - 파일 command 안전성 보강
+
+- [x] `save_text_file` / `save_binary_file` 직접 쓰기를 임시 파일 기반 교체 저장으로 변경
+- [x] `read_text_file_if_exists` 허용 확장자와 시스템 디렉터리 접근 검증 추가
+- [x] `delete_file_if_exists` 임시 파일 삭제 용도에 맞게 허용 확장자 제한 및 보호 확장자 삭제 차단
+
 ## v0.17.1 - 패키지 매니페스트 동기화 + 폴백 처리
 
 - [x] v0.17.0 GitHub Release 산출물 SHA-256으로 winget/Chocolatey 매니페스트 갱신

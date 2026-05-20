@@ -1,5 +1,21 @@
 # CHANGELOG.md
 
+## Unreleased - 2026-05-20
+
+파일 저장/읽기/삭제 command의 로컬 파일 안전성 보강.
+
+### Security
+- `save_text_file`, `save_binary_file`을 직접 `fs::write` 대신 임시 파일 생성 후 교체하는 저장 경로로 통일.
+- `read_text_file_if_exists`는 `.json`/`.txt`만 허용하고 시스템 디렉터리 접근을 차단하도록 제한.
+- `delete_file_if_exists`는 이미지 임시 파일과 `.txt`/`.json`만 삭제할 수 있게 하여 보호 확장자 임의 삭제를 차단.
+
+### Verification
+- `npm run typecheck`: 통과.
+- `npm run test`: 55/55 통과.
+- `cargo test`: 40/40 통과.
+
+---
+
 ## v0.17.1 - 2026-05-20
 
 v0.17.0 릴리즈 산출물 기준 winget·Chocolatey 매니페스트 동기화 및 매니페스트 sync 스크립트의 Linux/macOS 자산 폴백 처리.
