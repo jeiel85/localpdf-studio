@@ -261,6 +261,7 @@ const ContinuousPage = memo(function ContinuousPage({
       if (wrapRef.current) {
         wrapRef.current.dataset.baseWidth = String(baseViewport.width);
         wrapRef.current.dataset.baseHeight = String(baseViewport.height);
+        wrapRef.current.dataset.pageRotation = String((page.rotate + rotation) % 360);
       }
       const wf = Math.floor(viewport.width);
       const hf = Math.floor(viewport.height);

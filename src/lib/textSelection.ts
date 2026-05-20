@@ -23,6 +23,7 @@ interface PageNodeInfo {
   pageNumber: number;
   baseWidth: number;
   baseHeight: number;
+  pageRotation: number;
 }
 
 function findPageNode(target: Node | null): PageNodeInfo | null {
@@ -37,8 +38,9 @@ function findPageNode(target: Node | null): PageNodeInfo | null {
       const pageNumber = parseInt(el.dataset.pageIndex, 10);
       const baseWidth = parseFloat(el.dataset.baseWidth ?? '0');
       const baseHeight = parseFloat(el.dataset.baseHeight ?? '0');
+      const pageRotation = parseInt(el.dataset.pageRotation ?? '0', 10);
       if (pageNumber > 0 && baseWidth > 0 && baseHeight > 0) {
-        return { node: el, pageNumber, baseWidth, baseHeight };
+        return { node: el, pageNumber, baseWidth, baseHeight, pageRotation };
       }
     }
     el = el.parentElement;
@@ -51,6 +53,7 @@ function rectToPdfPoint(
   pageRect: DOMRect,
   baseWidth: number,
   baseHeight: number,
+  pageRotation: number,
 ): SelectionRect {
   // 페이지 노드 내부의 CSS 픽셀 좌표
   const relLeft = rect.left - pageRect.left;
@@ -58,10 +61,10 @@ function rectToPdfPoint(
   const relWidth = rect.width;
   const relHeight = rect.height;
 
-  // canvas 표시 너비/높이 = baseWidth/baseHeight * effectiveScale
-  // → effectiveScale = pageRect.width / baseWidth
-  const scaleX = pageRect.width > 0 ? pageRect.width / baseWidth : 1;
-  const scaleY = pageRect.height > 0 ? pageRect.height / baseHeight : 1;
+  // 90도 또는 270도 회전 시 뷰포트의 너비/높이가 바뀌므로 대응 스케일 계산
+  const isRotated90or270 = pageRotation === 90 || pageRotation === 270;
+  const scaleX = pageRect.width > 0 ? pageRect.width / (isRotated90or270 ? baseHeight : baseWidth) : 1;
+  const scaleY = pageRect.height > 0 ? pageRect.height / (isRotated90or270 ? baseWidth : baseHeight) : 1;
 
   // 클램프: 페이지 영역 밖으로 나간 선택은 페이지 안쪽으로 제한
   const cssLeft = Math.max(0, Math.min(pageRect.width, relLeft));
@@ -69,11 +72,45 @@ function rectToPdfPoint(
   const cssTop = Math.max(0, Math.min(pageRect.height, relTop));
   const cssBottom = Math.max(0, Math.min(pageRect.height, relTop + relHeight));
 
-  const pdfX = cssLeft / scaleX;
-  const pdfWidth = (cssRight - cssLeft) / scaleX;
-  // PDF y축은 좌하단 원점이라 baseHeight에서 빼야 함
-  const pdfY = (pageRect.height - cssBottom) / scaleY;
-  const pdfHeight = (cssBottom - cssTop) / scaleY;
+  // 스케일 해제된 1.0 비율의 뷰포트 좌표 (회전된 상태)
+  const wLeft = cssLeft / scaleX;
+  const wRight = cssRight / scaleX;
+  const wTop = cssTop / scaleY;
+  const wBottom = cssBottom / scaleY;
+
+  let pdfX = 0;
+  let pdfY = 0;
+  let pdfWidth = 0;
+  let pdfHeight = 0;
+
+  // 회전 각도별 PDF Point 역산 공식 적용 (Point 원점은 unrotated 페이지의 좌하단)
+  switch (pageRotation) {
+    case 90:
+      pdfX = wTop;
+      pdfWidth = wBottom - wTop;
+      pdfY = baseHeight - wRight;
+      pdfHeight = wRight - wLeft;
+      break;
+    case 180:
+      pdfX = baseWidth - wRight;
+      pdfWidth = wRight - wLeft;
+      pdfY = wTop;
+      pdfHeight = wBottom - wTop;
+      break;
+    case 270:
+      pdfX = baseWidth - wBottom;
+      pdfWidth = wBottom - wTop;
+      pdfY = wLeft;
+      pdfHeight = wRight - wLeft;
+      break;
+    case 0:
+    default:
+      pdfX = wLeft;
+      pdfWidth = wRight - wLeft;
+      pdfY = baseHeight - wBottom;
+      pdfHeight = wBottom - wTop;
+      break;
+  }
 
   return { x: pdfX, y: pdfY, width: pdfWidth, height: pdfHeight };
 }
@@ -107,7 +144,7 @@ export function captureCurrentSelection(): PageSelection | null {
       const overlapsHorizontal = cr.right > pageRect.left && cr.left < pageRect.right;
       const overlapsVertical = cr.bottom > pageRect.top && cr.top < pageRect.bottom;
       if (!overlapsHorizontal || !overlapsVertical) continue;
-      const pdfRect = rectToPdfPoint(cr, pageRect, info.baseWidth, info.baseHeight);
+      const pdfRect = rectToPdfPoint(cr, pageRect, info.baseWidth, info.baseHeight, info.pageRotation);
       if (pdfRect.width > 0.5 && pdfRect.height > 0.5) rects.push(pdfRect);
     }
   }

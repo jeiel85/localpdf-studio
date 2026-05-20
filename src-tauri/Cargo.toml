@@ -1,6 +1,6 @@
 [package]
 name = "localpdf-studio"
-version = "0.11.0"
+version = "0.12.0"
 description = "Local-first desktop PDF studio"
 authors = ["Aiden Park <jeiel85@gmail.com>"]
 edition = "2021"

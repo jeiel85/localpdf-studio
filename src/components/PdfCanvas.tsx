@@ -84,13 +84,14 @@ function PdfCanvasSingle({
         const page = await document.getPage(pageNumber);
         if (shouldCancel() || !canvasRef.current || !containerRef.current) return null;
 
-        const baseViewport = page.getViewport({ scale: 1, rotation });
+        const unrotatedViewport = page.getViewport({ scale: 1, rotation: 0 });
+        const rotatedBaseViewport = page.getViewport({ scale: 1, rotation });
         const container = containerRef.current;
         const effectiveScale = computeFitScale({
           fitMode,
           customScale: scale,
-          baseWidth: baseViewport.width,
-          baseHeight: baseViewport.height,
+          baseWidth: rotatedBaseViewport.width,
+          baseHeight: rotatedBaseViewport.height,
           containerWidth: container.clientWidth - 60,
           containerHeight: container.clientHeight - 60,
         });
@@ -100,8 +101,9 @@ function PdfCanvasSingle({
         // 텍스트 선택 → PDF 좌표 변환용 (textSelection.ts가 dataset 사용)
         if (pageNodeRef.current) {
           pageNodeRef.current.dataset.pageIndex = String(pageNumber);
-          pageNodeRef.current.dataset.baseWidth = String(baseViewport.width);
-          pageNodeRef.current.dataset.baseHeight = String(baseViewport.height);
+          pageNodeRef.current.dataset.baseWidth = String(unrotatedViewport.width);
+          pageNodeRef.current.dataset.baseHeight = String(unrotatedViewport.height);
+          pageNodeRef.current.dataset.pageRotation = String((page.rotate + rotation) % 360);
         }
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');

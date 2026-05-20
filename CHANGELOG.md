@@ -1,5 +1,24 @@
 # CHANGELOG.md
 
+## v0.12.0 - 2026-05-20
+
+텍스트 선택 기반 하이라이트 기능 페이지 회전 좌표계 보정 완료.
+
+### Added — 하이라이트 회전 보정
+
+- **페이지 회전 좌표계 변환 공식 도입** ([`src/lib/textSelection.ts`](src/lib/textSelection.ts)): PDF.js의 `page.rotate`와 뷰어의 `rotation` 각도가 최종 합산된 `pageRotation`(0도, 90도, 180도, 270도)에 맞춰, 텍스트 선택 픽셀 좌표를 회전하지 않은 PDF 원본 Point(좌하단 원점) 좌표로 정확하게 매핑하는 수학적 역산 공식 구현
+- [`PdfCanvas`](src/components/PdfCanvas.tsx) (단일): unrotated viewport(`rotation: 0`) 기준으로 `baseWidth`/`baseHeight`를 전달하도록 구조를 일치시키고, 최종 합산 각도인 `pageRotation`을 dataset에 추가 전송. `effectiveScale` 계산 시에는 뷰어의 `rotation`을 고려하도록 수정
+- [`PdfContinuousView`](src/components/PdfContinuousView.tsx) (연속): `ContinuousPage` 내부 `wrapRef` dataset에 최종 합산 각도 `pageRotation`을 추가 전달
+
+### Verification
+
+- `npm run typecheck`: 통과
+- `npm test`: 39/39 통과 (7개 파일)
+- `cargo check`: `src-tauri` 내에서 정상 통과
+- `cargo test`: 37/37 통과 (Tauri Rust 단위 테스트)
+
+---
+
 ## v0.11.0 - 2026-05-20
 
 i18n 마무리 라운드 + 텍스트 선택 기반 하이라이트 MVP.

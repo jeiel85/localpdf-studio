@@ -1,16 +1,14 @@
 # HISTORY.md
 
-## 2026-05-20 (Unreleased - 텍스트 선택 기반 하이라이트 MVP)
+## 2026-05-20 (Unreleased - 텍스트 선택 기반 하이라이트 고도화)
 
-- 작업: PDF.js 텍스트 레이어의 사용자 선택을 캡처해 PDF point 좌표로 변환 → pdf-lib drawRectangle로 정확한 위치에 색상 박스 출력
+- 작업: PDF 페이지 회전 각도(원본 페이지 회전 + 뷰어 회전)에 대한 수학적 역변환 공식을 적용하여 0, 90, 180, 270도 모든 회전 상태에서 텍스트 하이라이트 좌표를 정확하게 보정.
 - 변경 파일:
-  - `src/lib/textSelection.ts` (신규) — `captureCurrentSelection()` 헬퍼: selection client rects → page-relative px → PDF point (좌하단 원점). 페이지 노드를 `[data-page-index]`로 찾고 dataset의 baseWidth/baseHeight로 ratio 계산
-  - `src/components/PdfCanvas.tsx` — `canvas-page-layer`에 `pageNodeRef` + dataset(`pageIndex`/`baseWidth`/`baseHeight`) 부착
-  - `src/components/PdfContinuousView.tsx` — `ContinuousPage`의 `wrapRef`에 unrotated viewport 기반 dataset 부착
-  - `src/App.tsx` — 글로벌 `mouseup` 리스너 + `lastSelection` state, `AdvancedPanel`에 props 전달
-  - `src/components/AdvancedPanel.tsx` — `HighlightForm`에 `mode`("selection"/"band") + lastSelection 분기. selection 모드: `lastSelection.rects.forEach(drawRectangle)`
-  - `src/i18n/messages.ts` — `adv.hl.mode*` / `selectionInfo` / `noSelection` 3개 언어 추가
+  - `src/lib/textSelection.ts` — `findPageNode`에 `pageRotation` 데이터셋 추가 파싱, `rectToPdfPoint` 내에 0, 90, 180, 270도 역변환 공식을 Switch-case로 구현. 스케일 계산 시 회전 여부에 따라 unrotated 규격(`baseWidth`/`baseHeight`)의 종횡 분기 처리.
+  - `src/components/PdfCanvas.tsx` — unrotated viewport(`rotation:0`) 기준으로 `baseWidth`/`baseHeight`를 고정 전달하도록 일치시키고, `(page.rotate + rotation) % 360` 각도를 `pageRotation` dataset으로 전달. `effectiveScale`은 rotated viewport를 사용해 계산하도록 안전하게 수정.
+  - `src/components/PdfContinuousView.tsx` — `ContinuousPage` 내부 `wrapRef` dataset에 최종 합산 각도인 `pageRotation` 추가 전달.
 - 설계 결정:
+  - PDF.js의 `page.rotate`와 UI의 `rotation` 각도를 합산한 최종 뷰포트 각도를 계산해 HTML 좌표계에서 PDF Point(좌하단 원점, unrotated 0도 기준) 좌표계로 복원하는 정확한 대칭 변환 공식을 도입함.
   - selection 캡처는 패널 클릭 시점이 아닌 글로벌 mouseup으로 한 틱 지연 (setTimeout 0). 사용자가 선택 직후 어디를 클릭해도 마지막 선택이 보존
   - 다중 줄 선택은 client rects 단위로 여러 사각형 그림 (한 줄 = 한 rect)
   - 페이지 경계 가로지르는 선택은 첫 페이지 노드의 rect만 채택 (MVP)
