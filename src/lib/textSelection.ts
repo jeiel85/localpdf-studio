@@ -190,3 +190,59 @@ export function captureCurrentSelection(): PageSelection[] | null {
   result.sort((a, b) => a.pageNumber - b.pageNumber);
   return result;
 }
+
+export interface CssRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export function pdfRectToCssRect(
+  pdfRect: SelectionRect,
+  baseWidth: number,
+  baseHeight: number,
+  pageRotation: number,
+  pageWidth: number,
+  pageHeight: number,
+): CssRect {
+  const isRotated90or270 = pageRotation === 90 || pageRotation === 270;
+  const scaleX = pageWidth > 0 ? pageWidth / (isRotated90or270 ? baseHeight : baseWidth) : 1;
+  const scaleY = pageHeight > 0 ? pageHeight / (isRotated90or270 ? baseWidth : baseHeight) : 1;
+
+  let left = 0;
+  let top = 0;
+  let width = 0;
+  let height = 0;
+
+  switch (pageRotation) {
+    case 90:
+      left = (baseHeight - pdfRect.y - pdfRect.height) * scaleX;
+      top = pdfRect.x * scaleY;
+      width = pdfRect.height * scaleX;
+      height = pdfRect.width * scaleY;
+      break;
+    case 180:
+      left = (baseWidth - pdfRect.x - pdfRect.width) * scaleX;
+      top = pdfRect.y * scaleY;
+      width = pdfRect.width * scaleX;
+      height = pdfRect.height * scaleY;
+      break;
+    case 270:
+      left = pdfRect.y * scaleX;
+      top = (baseWidth - pdfRect.x - pdfRect.width) * scaleY;
+      width = pdfRect.height * scaleX;
+      height = pdfRect.width * scaleY;
+      break;
+    case 0:
+    default:
+      left = pdfRect.x * scaleX;
+      top = (baseHeight - pdfRect.y - pdfRect.height) * scaleY;
+      width = pdfRect.width * scaleX;
+      height = pdfRect.height * scaleY;
+      break;
+  }
+
+  return { left, top, width, height };
+}
+

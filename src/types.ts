@@ -162,3 +162,13 @@ export type TabState = {
   tabs: PersistedTab[];
   activeIndex: number | null;
 };
+
+export interface RedactionArea {
+  id: string;
+  pageNumber: number;
+  x: number;      // PDF unrotated point space
+  y: number;      // PDF unrotated point space
+  width: number;  // PDF unrotated point space
+  height: number; // PDF unrotated point space
+}
+

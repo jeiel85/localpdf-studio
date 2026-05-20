@@ -1,5 +1,28 @@
 # CHANGELOG.md
 
+## v0.14.0 - 2026-05-20
+
+오프라인 로컬 우선 PDF 개인정보 보안 마스킹 (개인정보 보호 블랙아웃) 기능 구현 완료.
+
+### Added — PDF 개인정보 보안 마스킹 (블랙아웃) 기능
+
+- **마스킹 드래그 캡처 및 화면 매핑** ([`src/components/PdfCanvas.tsx`](src/components/PdfCanvas.tsx) & [`src/components/PdfContinuousView.tsx`](src/components/PdfContinuousView.tsx)): 단일 및 연속 뷰어의 각 페이지 내부에 `RedactPageOverlay` 컴포넌트를 설계하여 드래그 좌표 캡처 구현.
+  - **좌표 보정 및 역산**: 줌 배율(`scale`) 및 회전 각도(`rotation`)에 관계없이 드래그한 좌표를 unrotated 72dpi PDF Point 좌표로 완벽하게 복원하여 저장하고, 렌더링 시에는 실시간 보정 계산을 통해 위치 일치성을 보장.
+  - **드래프트 및 UI**: 빗금 무늬의 붉은 반투명 블랙아웃 상자로 드래프트 상태 시각화. 개별 상자 삭제를 위해 호버 시 scale up 트랜지션이 적용되는 ✕(삭제) 버튼 컴포넌트 장착.
+- **오프라인 보안 마스킹 엔진** ([`src/lib/redaction.ts`](src/lib/redaction.ts)): `pdf-lib`과 HTML5 캔버스를 로컬 결합하여 처리하는 순수 클라이언트사이드 오프라인 마스킹 엔진 설계 및 구현.
+  - **영구 래스터화 마스킹 (Secure Rasterization)**: 마스킹할 페이지를 원본 크기 300DPI 고해상도로 캔버스에 렌더링하고, 마스킹 영역을 검은색으로 하드 페인팅한 후 png 바이트로 로드. 기존 페이지를 지우고 고해상도 이미지가 통째로 그려진 신규 페이지를 삽입(`insertPage`)한 다음 구 페이지를 삭제(`removePage`)하는 원자적 교체 전략을 구현하여 기존 텍스트 레이어 및 메타데이터 원천 영구 파괴 보장.
+  - **벡터 마스킹**: pdf-lib `drawRectangle` API를 통해 PDF 최상위 레이어에 고속으로 검은색 사각형 영역을 페인팅하는 방식 지원.
+- **UI 및 다국어 스위처 연동** ([`src/components/AdvancedPanel.tsx`](src/components/AdvancedPanel.tsx)): `RedactForm` 컴포넌트 추가 및 고급 기능 액션에 `redact` 연동. 마스킹 방식 라디오(래스터/벡터), 지정 목록 요약, 다국어 메시지(`src/i18n/messages.ts` 내 ko/en/ja 키 일괄 탑재) 및 파일 저장 API 연동.
+- **드래그 조작성 및 스타일 보완** ([`src/styles.css`](src/styles.css)): 마스킹 모드 켜짐 상태 시 브라우저 텍스트 드래그 간섭을 원천 배제하기 위해 CSS `:has` 가상 선택자로 `.textLayer`와 `.annotationLayer` 무력화 처리, 드래프트 오버레이 박스 및 삭제 버튼에 세련된 애니메이션 적용.
+- **단위 테스트 구축** ([`src/lib/redaction.test.ts`](src/lib/redaction.test.ts)): `applyRedactions` 비즈니스 마스킹 엔진에 대한 벡터 방식 검증 및 래스터 방식(canvas 및 drawImage flow 모킹) 검증 테스트 케이스 2종 작성 완료.
+
+### Verification
+
+- `npm run typecheck`: 통과 (TypeScript 무오류)
+- `npm test`: 41/41 통과 (Vitest 100% 성공)
+
+---
+
 ## v0.13.0 - 2026-05-20
 
 다중 페이지 드래그 선택 하이라이트 지원 및 국제 표준 PDF Highlight 주석(Annotation) 규격 연동 완료.

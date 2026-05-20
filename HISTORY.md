@@ -1,5 +1,25 @@
 # HISTORY.md
 
+## 2026-05-20 (v0.14.0 - PDF 개인정보 보안 마스킹 및 오프라인 블랙아웃 엔진)
+
+- 작업: PDF 페이지 내 다중 마스킹 영역 지정 및 개별 삭제 UI 구현, 영구 래스터화(Secure Rasterization)와 일반 벡터 마스킹 두 가지 기법을 제공하는 순수 클라이언트사이드 오프라인 마스킹 엔진 구현.
+- 변경 파일:
+  - `src/types.ts` — `RedactionArea` 자료구조 정의 추가.
+  - `src/App.tsx` — 최상위 뷰어 상태로 `redactions` 배열 및 마스킹 활성 상태(`redactModeEnabled`) 추가 및 Props 바인딩, 새 PDF 로드 시 리셋 연동, types의 RedactionArea 임포트.
+  - `src/components/AdvancedPanel.tsx` — `RedactForm` 컴포넌트 추가 및 고급 기능 액션에 `redact` 매핑. 마스킹 방식 라디오(래스터/벡터), 지정 영역 요약 목록, 다국어 문구 적용, 저장 연동.
+  - `src/components/PdfCanvas.tsx` 및 `src/components/PdfContinuousView.tsx` — 단일/연속 뷰어의 각 페이지 내에 `RedactPageOverlay` 드래그 영역 캡처 컴포넌트 마운트 및 연동.
+  - `src/lib/redaction.ts` — [NEW] pdf-lib와 HTML5 캔버스를 연동하여 고해상도(300DPI) 래스터화 교체 전략 및 일반 벡터 마스킹을 오프라인에서 안전하게 적용하는 비즈니스 마스킹 핵심 모듈 구현.
+  - `src/styles.css` — 마스킹 모드 켜짐 상태 시 `.textLayer`와 `.annotationLayer` 텍스트 드래그 무력화 CSS 및 드래프트 오버레이 박스와 삭제 버튼의 세련된 호버, 클릭 애니메이션 추가.
+  - `src/i18n/messages.ts` — ko/en/ja 언어 사전에 마스킹 툴 전용 번역 키셋 일괄 탑재.
+  - `src/lib/redaction.test.ts` — [NEW] 벡터/래스터 방식에 대한 Mock 기반 통합 단위 테스트 케이스 2종 작성.
+- 설계 결정:
+  - 영구 래스터화 마스킹 시 메타데이터나 히든 텍스트의 유출을 원천 방지하기 위해, 원본 크기로 300DPI 고해상도 렌더링된 캔버스 이미지 위에 블랙아웃을 영구 페인팅한 후 신규 빈 페이지 삽입(`insertPage`)하여 이미지를 드로잉한 뒤 구 페이지를 완전히 제거(`removePage`)하는 원자적 교체 전략을 채택함.
+  - 화면 드래그로 캡처한 DOM 좌표를 PDF 원본 unrotated 72dpi Point 좌표로 역산 보정하여 영속화하고, 뷰어 줌/회전 대응을 위해 렌더링 시에만 실시간으로 정방향 변환하여 일치성을 극대화함.
+  - 마스킹 모드 활성화 시 CSS의 최신 `:has` 가상 선택자를 활용하여 `.textLayer`의 드래그나 포인터 이벤트를 완전히 억제함으로써 드래그 조작 엉킴 현상을 근절함.
+- 검증:
+  - `npm run typecheck` 통과 (TypeScript 무오류)
+  - `npm test` 41/41 통과 (Vitest 단위 테스트 100% 성공)
+
 ## 2026-05-20 (v0.13.0 - 다중 페이지 하이라이트 및 표준 주석 연동)
 
 - 작업: 사용자가 마우스 드래그로 두 개 이상의 페이지를 가로지르며 텍스트를 선택했을 때의 드래그 좌표 그룹화 지원(과제 A) 및 국제 표준 PDF Highlight 주석 명세에 부합하는 주석 데이터 임베딩 구현(과제 B).

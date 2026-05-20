@@ -42,7 +42,7 @@ import {
   runPdfOperation,
   saveTabState,
 } from './lib/tauriCommands';
-import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState } from './types';
+import { DEFAULT_SETTINGS, type AppInfo, type AppSettings, type DocTab, type ExternalToolStatus, type SidebarTab, type ViewerState, type RedactionArea } from './types';
 
 const DEFAULT_VIEWER: ViewerState = {
   currentPage: 1,
@@ -76,6 +76,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [lastSelection, setLastSelection] = useState<PageSelection[] | null>(null);
+  const [redactions, setRedactions] = useState<RedactionArea[]>([]);
+  const [redactModeEnabled, setRedactModeEnabled] = useState(false);
 
   const documentsRef = useRef<Map<string, PDFDocumentProxy>>(new Map());
   const lastOpenPathRef = useRef<string | null>(null);
@@ -100,6 +102,8 @@ export default function App() {
       const tabId = nextTabId();
       setStatus('PDF 파일을 읽는 중...');
       setLoadProgress({ loaded: 0, total: 0 });
+      setRedactions([]);
+      setRedactModeEnabled(false);
 
       try {
         const payload = await loadPdfBase64(path);
@@ -686,6 +690,10 @@ export default function App() {
               file={activeDocTab?.file ? { path: activeDocTab.file.path, fileName: activeDocTab.file.fileName } : null}
               onStatus={setStatus}
               lastSelection={lastSelection}
+              redactions={redactions}
+              setRedactions={setRedactions}
+              redactModeEnabled={redactModeEnabled}
+              setRedactModeEnabled={setRedactModeEnabled}
             />
           </div>
         );
@@ -826,6 +834,10 @@ export default function App() {
         highlightQuery={searchQuery}
         onPageChange={handlePageChange}
         onFittedScale={handleFittedScale}
+        redactions={redactions}
+        onAddRedaction={(r) => setRedactions((prev) => [...prev, r])}
+        onRemoveRedaction={(id) => setRedactions((prev) => prev.filter((x) => x.id !== id))}
+        redactModeEnabled={redactModeEnabled}
       />
       <UpdateNotification
         status={updateStatus}

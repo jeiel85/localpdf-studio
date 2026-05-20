@@ -1,9 +1,9 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { applyHighlight, computeFitScale, LoadingOverlay, renderQualityToScale, type PdfCanvasProps } from './PdfCanvas';
+import { applyHighlight, computeFitScale, LoadingOverlay, renderQualityToScale, RedactPageOverlay, type PdfCanvasProps } from './PdfCanvas';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { pdfjsLib } from '../lib/pdfjs';
-import type { RenderQuality } from '../types';
+import type { RenderQuality, RedactionArea } from '../types';
 
 type PageDim = { width: number; height: number };
 
@@ -21,6 +21,10 @@ export function PdfContinuousView({
   highlightQuery,
   onPageChange,
   onFittedScale,
+  redactions,
+  onAddRedaction,
+  onRemoveRedaction,
+  redactModeEnabled,
 }: PdfCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [firstDim, setFirstDim] = useState<PageDim | null>(null);
@@ -180,6 +184,10 @@ export function PdfContinuousView({
             container={containerRef.current}
             isScrolling={isScrolling}
             highlightQuery={highlightQuery ?? ''}
+            redactions={redactions}
+            onAddRedaction={onAddRedaction}
+            onRemoveRedaction={onRemoveRedaction}
+            redactModeEnabled={redactModeEnabled}
           />
         ))}
     </div>
@@ -197,6 +205,10 @@ type ContinuousPageProps = {
   container: HTMLDivElement | null;
   isScrolling: boolean;
   highlightQuery: string;
+  redactions?: RedactionArea[];
+  onAddRedaction?: (r: RedactionArea) => void;
+  onRemoveRedaction?: (id: string) => void;
+  redactModeEnabled?: boolean;
 };
 
 const ContinuousPage = memo(function ContinuousPage({
@@ -210,6 +222,10 @@ const ContinuousPage = memo(function ContinuousPage({
   container,
   isScrolling,
   highlightQuery,
+  redactions,
+  onAddRedaction,
+  onRemoveRedaction,
+  redactModeEnabled,
 }: ContinuousPageProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -357,6 +373,17 @@ const ContinuousPage = memo(function ContinuousPage({
       <div className="canvas-page-layer">
         <canvas ref={canvasRef} className="pdf-canvas" />
         <div ref={textLayerRef} className="textLayer" />
+        {onAddRedaction && onRemoveRedaction && (
+          <RedactPageOverlay
+            pageNumber={pageIndex}
+            scale={scale}
+            rotation={rotation}
+            redactions={redactions ?? []}
+            onAddRedaction={onAddRedaction}
+            onRemoveRedaction={onRemoveRedaction}
+            redactModeEnabled={!!redactModeEnabled}
+          />
+        )}
       </div>
       {!rendered && <span className="continuous-page-number">페이지 {pageIndex}</span>}
     </div>

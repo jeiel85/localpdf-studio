@@ -6,6 +6,7 @@ import { PDFDocument, PDFName, PDFArray, PDFNumber, PDFString } from 'pdf-lib';
 import { pdfRenderQueue } from '../lib/renderQueue';
 import { t, useLocale } from '../i18n/messages';
 import type { PageSelection } from '../lib/textSelection';
+import { applyRedactions } from '../lib/redaction';
 
 function uint8ToBase64(bytes: Uint8Array): string {
   const CHUNK = 0x8000;
@@ -23,6 +24,8 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+import type { RedactionArea } from '../types';
+
 type AdvancedAction =
   | 'ocr'
   | 'ocr-searchable'
@@ -35,6 +38,7 @@ type AdvancedAction =
   | 'compare'
   | 'highlight'
   | 'normalize'
+  | 'redact'
   | null;
 
 export function AdvancedPanel({
@@ -42,11 +46,19 @@ export function AdvancedPanel({
   file,
   onStatus,
   lastSelection,
+  redactions,
+  setRedactions,
+  redactModeEnabled,
+  setRedactModeEnabled,
 }: {
   document: PDFDocumentProxy | null;
   file: { path: string; fileName: string } | null;
   onStatus: (message: string) => void;
   lastSelection?: PageSelection[] | null;
+  redactions?: RedactionArea[];
+  setRedactions?: React.Dispatch<React.SetStateAction<RedactionArea[]>>;
+  redactModeEnabled?: boolean;
+  setRedactModeEnabled?: (v: boolean) => void;
 }) {
   useLocale();
   const [action, setAction] = useState<AdvancedAction>(null);
@@ -75,6 +87,7 @@ export function AdvancedPanel({
     { key: 'compare' as const, label: t('adv.btn.compare'), needDoc: true, needTesseract: false },
     { key: 'highlight' as const, label: t('adv.btn.highlight'), needDoc: true, needTesseract: false },
     { key: 'normalize' as const, label: t('adv.btn.normalize'), needDoc: true, needTesseract: false },
+    { key: 'redact' as const, label: t('adv.btn.redact'), needDoc: true, needTesseract: false },
   ];
 
   return (
@@ -110,6 +123,7 @@ export function AdvancedPanel({
             <button
               key={a.key}
               type="button"
+              className={action === a.key ? 'active' : ''}
               disabled={(a.needDoc && !document) || (a.needTesseract && !tesseractInfo?.available) || running}
               onClick={() => setAction(action === a.key ? null : a.key)}
             >
@@ -134,6 +148,10 @@ export function AdvancedPanel({
           }}
           setRunning={setRunning}
           onClose={() => setAction(null)}
+          redactions={redactions}
+          setRedactions={setRedactions}
+          redactModeEnabled={redactModeEnabled}
+          setRedactModeEnabled={setRedactModeEnabled}
         />
       )}
     </div>
@@ -151,6 +169,10 @@ function ActionForm({
   onComplete,
   setRunning,
   onClose,
+  redactions,
+  setRedactions,
+  redactModeEnabled,
+  setRedactModeEnabled,
 }: {
   action: AdvancedAction;
   document: PDFDocumentProxy | null;
@@ -162,6 +184,10 @@ function ActionForm({
   onComplete: () => void;
   setRunning: (v: boolean) => void;
   onClose: () => void;
+  redactions?: RedactionArea[];
+  setRedactions?: React.Dispatch<React.SetStateAction<RedactionArea[]>>;
+  redactModeEnabled?: boolean;
+  setRedactModeEnabled?: (v: boolean) => void;
 }) {
   switch (action) {
     case 'ocr':
@@ -186,6 +212,24 @@ function ActionForm({
       return <HighlightForm {...{ document, file, running, lastSelection, onStatus, onComplete, setRunning, onClose }} />;
     case 'normalize':
       return <NormalizeForm {...{ file, running, onStatus, onComplete, setRunning, onClose }} />;
+    case 'redact':
+      return (
+        <RedactForm
+          {...{
+            document,
+            file,
+            running,
+            onStatus,
+            onComplete,
+            setRunning,
+            onClose,
+            redactions: redactions ?? [],
+            setRedactions,
+            redactModeEnabled: !!redactModeEnabled,
+            setRedactModeEnabled,
+          }}
+        />
+      );
     default:
       return null;
   }
@@ -1103,4 +1147,190 @@ function parsePageRange(range: string, maxPage: number): number[] {
     }
   }
   return [...new Set(pages)].sort((a, b) => a - b);
+}
+
+function RedactForm({
+  document,
+  file,
+  running,
+  onStatus,
+  onComplete,
+  setRunning,
+  onClose,
+  redactions,
+  setRedactions,
+  redactModeEnabled,
+  setRedactModeEnabled,
+}: {
+  document: PDFDocumentProxy | null;
+  file: { path: string; fileName: string } | null;
+  running: boolean;
+  onStatus: (msg: string) => void;
+  onComplete: () => void;
+  setRunning: (v: boolean) => void;
+  onClose: () => void;
+  redactions: RedactionArea[];
+  setRedactions?: React.Dispatch<React.SetStateAction<RedactionArea[]>>;
+  redactModeEnabled: boolean;
+  setRedactModeEnabled?: (v: boolean) => void;
+}) {
+  const [useRaster, setUseRaster] = useState(true);
+
+  // 마운트 시 마스킹 드래그 모드 활성화, 언마운트 시 해제
+  useEffect(() => {
+    setRedactModeEnabled?.(true);
+    return () => {
+      setRedactModeEnabled?.(false);
+    };
+  }, [setRedactModeEnabled]);
+
+  async function run() {
+    if (!document || !file) return;
+
+    if (redactions.length === 0) {
+      onStatus(t('redact.noAreas') || '마스킹할 영역을 드래그해서 지정해주세요.');
+      return;
+    }
+
+    const outputPath = await save({
+      defaultPath: file.path.replace(/\.pdf$/i, '_redacted.pdf'),
+      filters: [{ name: t('adv.pdfFilter'), extensions: ['pdf'] }],
+    });
+    if (typeof outputPath !== 'string') return;
+
+    setRunning(true);
+    onStatus(t('redact.running') || '보안 마스킹을 수행하는 중...');
+
+    try {
+      await applyRedactions({
+        pdfjsDoc: document,
+        inputFilePath: file.path,
+        outputFilePath: outputPath,
+        redactions,
+        useRaster,
+        onProgress: (done, total) => {
+          onStatus(
+            t('redact.progress', { done, total }) ||
+              `보안 마스킹 처리 중... (${done} / ${total} 페이지 완료)`
+          );
+        },
+        invokeFn: invoke,
+      });
+
+      onStatus(
+        t('redact.success', { path: outputPath }) ||
+          `보안 마스킹 작업이 성공적으로 완료되었습니다:\n${outputPath}`
+      );
+      setRedactions?.([]);
+      onComplete();
+    } catch (e) {
+      onStatus(t('redact.failed', { error: String(e) }) || `마스킹 실패: ${String(e)}`);
+      setRunning(false);
+    }
+  }
+
+  // 페이지별 그룹화하여 현황 표시
+  const pageGroups = redactions.reduce<Record<number, number>>((acc, r) => {
+    acc[r.pageNumber] = (acc[r.pageNumber] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <FormPanel title={t('redact.title') || '개인정보 보안 마스킹'} onClose={onClose}>
+      <p className="form-description">
+        {t('redact.desc') ||
+          '문서 내에서 가리고 싶은 민감한 개인정보 영역을 뷰어 화면 위에 마우스로 직접 드래그하여 그려주세요.'}
+      </p>
+
+      <div className="form-label" style={{ marginBottom: '15px' }}>
+        <strong>{t('redact.mode') || '마스킹 방식'}</strong>
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="redact_mode"
+              checked={useRaster}
+              onChange={() => setUseRaster(true)}
+              disabled={running}
+            />
+            <div>
+              <strong>{t('redact.modeRaster') || '영구 래스터화 마스킹 (권장)'}</strong>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)' }}>
+                {t('redact.modeRasterDesc') ||
+                  '해당 페이지를 이미지로 완전히 변환하여 텍스트 및 메타데이터를 영구 소멸시킵니다. 가장 안전합니다.'}
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px' }}>
+            <input
+              type="radio"
+              name="redact_mode"
+              checked={!useRaster}
+              onChange={() => setUseRaster(false)}
+              disabled={running}
+            />
+            <div>
+              <strong>{t('redact.modeVector') || '일반 벡터 마스킹'}</strong>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)' }}>
+                {t('redact.modeVectorDesc') ||
+                  '빠르게 검은색 사각형만 위에 덧그립니다. (내부 텍스트 검색 및 복사가 가능할 수 있습니다.)'}
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div className="form-label" style={{ marginBottom: '15px', borderTop: '1px solid var(--border-color, #333)', paddingTop: '15px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <strong>
+            {t('redact.status') || '마스킹 지정 현황'} ({redactions.length}개)
+          </strong>
+          {redactions.length > 0 && (
+            <button
+              type="button"
+              className="danger"
+              style={{ padding: '2px 8px', fontSize: '11px' }}
+              disabled={running}
+              onClick={() => setRedactions?.([])}
+            >
+              {t('redact.clearAll') || '전체 초기화'}
+            </button>
+          )}
+        </div>
+
+        {redactions.length === 0 ? (
+          <div style={{ padding: '15px 0', textAlign: 'center', color: 'var(--muted, #888)', fontSize: '12px' }}>
+            {t('redact.empty') || '뷰어 화면에서 영역을 드래그하여 마스킹을 추가하세요.'}
+          </div>
+        ) : (
+          <div
+            style={{
+              maxHeight: '120px',
+              overflowY: 'auto',
+              marginTop: '8px',
+              padding: '8px',
+              borderRadius: '4px',
+              backgroundColor: 'var(--bg-accent, rgba(255,255,255,0.05))',
+              fontSize: '12px',
+            }}
+          >
+            {Object.entries(pageGroups)
+              .sort((a, b) => Number(a[0]) - Number(b[0]))
+              .map(([page, count]) => (
+                <div key={page} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                  <span>{t('redact.pageText', { n: page }) || `${page}페이지`}</span>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {t('redact.countText', { count }) || `${count}개 영역`}
+                  </span>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <button className="primary" disabled={!document || running || redactions.length === 0} onClick={run}>
+        {running ? t('adv.processing') : t('adv.btn.redact') || '보안 마스킹 적용'}
+      </button>
+    </FormPanel>
+  );
 }

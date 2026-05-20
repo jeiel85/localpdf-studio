@@ -328,6 +328,7 @@ const ko: Dict = {
   'adv.btn.compare': '문서 비교 (TXT diff)',
   'adv.btn.highlight': '주석 (페이지별 하이라이트)',
   'adv.btn.normalize': 'PDF 정규화 (qpdf)',
+  'adv.btn.redact': '보안 마스킹',
   'adv.txtFilter': '텍스트 파일',
   'adv.imgFilter': '이미지 파일',
   'adv.imgFilter2': '이미지',
@@ -507,6 +508,22 @@ const ko: Dict = {
   'pe.resetOrder': '순서 초기화',
   'pe.dragHint': '드래그하여 페이지 순서 변경 · 클릭으로 선택 (Ctrl+클릭 다중 선택)',
   'pe.pageAlt': '페이지 {page}',
+  // RedactPanel
+  'redact.title': '개인정보 보안 마스킹 (Redaction)',
+  'redact.hint': 'PDF 내 민감한 영역을 마우스로 드래그하여 블랙아웃 처리할 영역을 지정하세요.',
+  'redact.mode.raster': '영구 래스터화 마스킹 (100% 안전, 추천)',
+  'redact.mode.vector': '일반 벡터 오버레이 마스킹 (빠른 처리, 복구 가능성 있음)',
+  'redact.apply': '마스킹 적용 및 저장',
+  'redact.noAreas': '지정된 마스킹 영역이 없습니다.',
+  'redact.draftTitle': '지정된 영역 목록 ({count})',
+  'redact.pageLabel': '페이지 {page}',
+  'redact.btnApply': '마스킹 실행',
+  'redact.btnApplying': '마스킹 실행 중...',
+  'redact.done': '보안 마스킹 완료: {path}',
+  'redact.failed': '마스킹 실패: {error}',
+  'redact.modeLabel': '마스킹 모드',
+  'redact.clearAll': '전체 삭제',
+  'redact.modeInfo': '주의: 래스터화 마스킹은 해당 페이지를 이미지로 변환하므로 텍스트 드래그가 차단됩니다. 일반 마스킹은 텍스트 정보가 하단에 남을 수 있습니다.',
 };
 
 const en: Dict = {
@@ -829,6 +846,7 @@ const en: Dict = {
   'adv.btn.compare': 'Compare documents (TXT diff)',
   'adv.btn.highlight': 'Annotate (per-page highlight)',
   'adv.btn.normalize': 'Normalize PDF (qpdf)',
+  'adv.btn.redact': 'Secure Redaction',
   'adv.txtFilter': 'Text file',
   'adv.imgFilter': 'Image file',
   'adv.imgFilter2': 'Image',
@@ -1008,6 +1026,22 @@ const en: Dict = {
   'pe.resetOrder': 'Reset order',
   'pe.dragHint': 'Drag to reorder · click to select (Ctrl+click for multi-select)',
   'pe.pageAlt': 'Page {page}',
+  // RedactPanel
+  'redact.title': 'Secure PDF Redaction',
+  'redact.hint': 'Drag your mouse over sensitive areas in the PDF to select regions to blackout.',
+  'redact.mode.raster': 'Secure Rasterization (100% safe, recommended)',
+  'redact.mode.vector': 'Vector Overlay (Fast, metadata/text may remain underneath)',
+  'redact.apply': 'Apply Redaction & Save',
+  'redact.noAreas': 'No redaction areas specified.',
+  'redact.draftTitle': 'Specified Regions ({count})',
+  'redact.pageLabel': 'Page {page}',
+  'redact.btnApply': 'Apply Redaction',
+  'redact.btnApplying': 'Applying redaction...',
+  'redact.done': 'Redaction completed: {path}',
+  'redact.failed': 'Redaction failed: {error}',
+  'redact.modeLabel': 'Redaction Mode',
+  'redact.clearAll': 'Clear All',
+  'redact.modeInfo': 'Warning: Rasterization mode renders pages as images, which prevents text selection on those pages. Vector mode might leave underlying text searchable.',
 };
 
 const ja: Dict = {
@@ -1330,6 +1364,7 @@ const ja: Dict = {
   'adv.btn.compare': 'ドキュメント比較 (TXT diff)',
   'adv.btn.highlight': '注釈 (ページごとのハイライト)',
   'adv.btn.normalize': 'PDF 正規化 (qpdf)',
+  'adv.btn.redact': 'セキュリティ黒塗り',
   'adv.txtFilter': 'テキストファイル',
   'adv.imgFilter': '画像ファイル',
   'adv.imgFilter2': '画像',
@@ -1509,6 +1544,22 @@ const ja: Dict = {
   'pe.resetOrder': '順序をリセット',
   'pe.dragHint': 'ドラッグで並び替え・クリックで選択 (Ctrl+クリックで複数選択)',
   'pe.pageAlt': 'ページ {page}',
+  // RedactPanel
+  'redact.title': '個人情報セキュリティ黒塗り (Redaction)',
+  'redact.hint': 'PDF内の機密領域をマウスでドラッグして、黒塗りする領域を指定してください。',
+  'redact.mode.raster': '永久ラスタライズ黒塗り (100%安全, 推奨)',
+  'redact.mode.vector': '通常ベクトルオーバーレイ黒塗り (高速処理, 復元の可能性あり)',
+  'redact.apply': '黒塗りを適用して保存',
+  'redact.noAreas': '指定された黒塗り領域はありません。',
+  'redact.draftTitle': '指定された領域リスト ({count})',
+  'redact.pageLabel': 'ページ {page}',
+  'redact.btnApply': '黒塗りを実行',
+  'redact.btnApplying': '黒塗りを実行중...',
+  'redact.done': '黒塗り完了: {path}',
+  'redact.failed': '黒塗り失敗: {error}',
+  'redact.modeLabel': '黒塗りモード',
+  'redact.clearAll': 'すべて削除',
+  'redact.modeInfo': '注意：ラスタライズ黒塗りは対象ページを画像に変換するため、テキストの選択・コピーができなくなります。通常黒塗りの場合は、下部にテキストデータが残る可能性があります。',
 };
 
 const dictionaries: Record<Locale, Dict> = { ko, en, ja };

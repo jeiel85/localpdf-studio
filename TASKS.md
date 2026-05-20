@@ -1,5 +1,17 @@
 # TASKS.md
 
+## v0.14.0 - PDF 개인정보 보안 마스킹 (블랙아웃)
+
+- [x] 오프라인 마스킹 드래그 캡처 및 화면 매핑 (PdfCanvas / PdfContinuousView)
+- [x] 줌 및 회전 상태 동적 대응 unrotated PDF Point 좌표 역산 및 정방향 렌더링 수식 설계
+- [x] 영구 래스터화 마스킹 (Secure Rasterization) 엔진 구현 (300DPI 이미지 대체 및 insertPage/removePage 원자적 교체 전략)
+- [x] 일반 벡터 마스킹 구현 (pdf-lib drawRectangle 오버레이)
+- [x] 고급 기능 탭 내 RedactForm UI 구현 (모드 토글, 방식 지정 라디오, 지정 요약 리스트, 저장 연동)
+- [x] 마스킹 모드 켜짐 상태 시 textLayer/annotationLayer 텍스트 드래그 비활성화 CSS 및 인터랙션 애니메이션 연동
+- [x] ko/en/ja 다국어 번역 리소스 연동
+- [x] Mocking 기반 벡터 및 래스터 방식 통합 테스트 케이스 2종 작성 및 Vitest 41개 테스트 전체 검증
+- [x] tsc typecheck 컴파일 에러 Zero 달성 검증
+
 ## P0 - 저장소 초기 안정화
 
 - [x] GitHub Pages 랜딩 페이지 공개 URL 확인
