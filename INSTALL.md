@@ -64,10 +64,10 @@ Download `LocalPDF.Studio_X.Y.Z_universal.dmg` from
 #### Or via Terminal
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/LocalPDF Studio.app"
+xattr -cr "/Applications/LocalPDF Studio.app"
 ```
 
-This removes the quarantine flag set by macOS Gatekeeper.
+This removes all extended attributes (including quarantine flags) set by macOS Gatekeeper.
 
 ### Option 2 — Homebrew Cask (tap, after publishing)
 

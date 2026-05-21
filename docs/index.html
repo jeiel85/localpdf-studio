@@ -499,7 +499,7 @@
           macOS 빌드는 현재 Apple Developer 서명/공증을 받지 않았습니다 ($99/년 비용 부담). 첫 실행 시
           “확인되지 않은 개발자” 경고가 표시됩니다. 다음 두 가지 방법 중 하나로 우회하세요:
           <br />① Finder → Applications → 앱 우클릭 → “열기” → 대화상자에서 다시 “열기”
-          <br />② 터미널에서 <code>xattr -dr com.apple.quarantine "/Applications/LocalPDF Studio.app"</code>
+          <br />② 터미널에서 <code>xattr -cr "/Applications/LocalPDF Studio.app"</code>
           <br />자세한 절차는
           <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">INSTALL.md</a>
           참고.

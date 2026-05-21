@@ -24,7 +24,25 @@ snapcraft register localpdf-studio
 
 소유 확인 후 Snapcraft Store에 등록됨.
 
-### 3. 빌드 + 업로드
+### 3. 자동화 스크립트로 빌드 + 업로드
+
+저장소 루트에서:
+
+```bash
+# 빌드만 수행
+bash scripts/linux/publish-snap.sh
+
+# 이름 예약 + 빌드 + stable 업로드
+bash scripts/linux/publish-snap.sh --register --upload
+
+# 이미 이름을 예약했다면 stable 업로드만
+bash scripts/linux/publish-snap.sh --upload
+```
+
+스크립트는 `packaging/snap/snapcraft.yaml`의 `name`/`version`을 읽어 산출물 파일을 찾고,
+`--upload`를 지정한 경우 `snapcraft upload --release=stable`까지 실행한다.
+
+### 4. 수동 빌드 + 업로드
 
 ```bash
 cd packaging/snap
@@ -41,7 +59,7 @@ snapcraft login
 snapcraft upload --release=stable localpdf-studio_<버전>_amd64.snap
 ```
 
-### 4. 자동화 (GitHub Actions)
+### 5. 자동화 (GitHub Actions)
 
 ```yaml
 - uses: snapcore/action-build@v1

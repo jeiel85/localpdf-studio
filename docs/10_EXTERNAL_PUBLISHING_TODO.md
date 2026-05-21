@@ -9,7 +9,7 @@
 - `latest.json` updater URL 검증 완료
 - Homebrew tap 게시 완료: <https://github.com/jeiel85/homebrew-tap>
 - winget v0.17.2 PR 제출 완료: <https://github.com/microsoft/winget-pkgs/pull/377220>
-- Chocolatey v0.17.2 `.nupkg` 생성 검증 완료
+- Chocolatey v0.17.2 community push 완료, automated checks/human moderation 대기
 - Snap/AUR/Homebrew/winget/Chocolatey 매니페스트는 v0.17.2 SHA 기준으로 동기화 완료
 
 ## 사용자가 직접 해야 하는 작업
@@ -22,22 +22,21 @@
   - GitHub PR 화면에서 CLA 동의 요청이 뜨면 승인
   - Microsoft validation/review 코멘트가 달리면 해당 코멘트 처리
 
-### 2. Chocolatey community push
+### 2. Chocolatey community moderation 확인
 
-- 필요한 것: Chocolatey 계정 API key
-- API key 발급 위치: <https://community.chocolatey.org/account>
 - 저장소 준비 상태:
   - `packaging/chocolatey/localpdf-studio.nuspec`
   - `packaging/chocolatey/tools/chocolateyInstall.ps1`
   - v0.17.2 SHA 반영 완료
   - `scripts/windows/publish-chocolatey.ps1 -SkipPush` 검증 완료
+  - `scripts/windows/publish-chocolatey.ps1`로 `https://push.chocolatey.org/` push 완료
 
-실행 명령:
-
-```powershell
-$env:CHOCO_API_KEY="발급받은_API_KEY"
-powershell -ExecutionPolicy Bypass -File scripts\windows\publish-chocolatey.ps1
-```
+- 현재 상태: Chocolatey automated checks 및 human moderation 대기
+- 해야 할 일:
+  - Chocolatey 계정 이메일로 automated testing 결과 확인
+  - moderation queue 확인: <https://ch0.co/moderation>
+  - 승인 후 `choco install localpdf-studio` 설치 검증
+  - 이번 작업에 사용한 Chocolatey API key 재발급/회전
 
 ### 3. Snap Store 제출
 
@@ -46,10 +45,12 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\publish-chocolatey.ps1
 - 저장소 준비 상태:
   - `packaging/snap/snapcraft.yaml`
   - v0.17.2 `.deb` URL/SHA 반영 완료
+  - `scripts/linux/publish-snap.sh`로 이름 예약, 빌드, upload/release 자동화
 - 해야 할 일:
-  - Snapcraft 로그인
-  - package name 등록 가능 여부 확인
-  - `packaging/snap/snapcraft.yaml` 기준으로 build/push/release 진행
+  - Ubuntu/WSL/VM 환경에서 `snapcraft login`
+  - 이름 예약 포함 최초 제출: `bash scripts/linux/publish-snap.sh --register --upload`
+  - 이미 이름 예약이 끝났다면: `bash scripts/linux/publish-snap.sh --upload`
+  - 승인 후 `sudo snap install localpdf-studio` 설치 검증
 
 ### 4. AUR 제출
 
@@ -59,10 +60,12 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\publish-chocolatey.ps1
 - 저장소 준비 상태:
   - `packaging/aur/PKGBUILD`
   - v0.17.2 `.deb` URL/SHA 반영 완료
+  - `scripts/linux/publish-aur.sh`로 AUR clone, `.SRCINFO` 생성, `makepkg -si`, commit/push 자동화
 - 해야 할 일:
-  - AUR에 `localpdf-studio-bin` repo 생성
-  - `PKGBUILD` 업로드
-  - 필요 시 `.SRCINFO` 생성 후 함께 push
+  - AUR 계정에 SSH public key 등록
+  - Arch Linux/VM 환경에서 `ssh aur@aur.archlinux.org help` 연결 확인
+  - 검증만: `bash scripts/linux/publish-aur.sh`
+  - AUR 게시: `bash scripts/linux/publish-aur.sh --push`
 
 ### 5. macOS 서명/공증
 

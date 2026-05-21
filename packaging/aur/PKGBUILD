@@ -23,7 +23,7 @@ sha256sums_x86_64=('fbae2f57cb221d15eedacefec29aad9cd0e2fabf008982f67c5a8e6afec9
 
 package() {
   cd "$srcdir"
-  bsdtar -O -xf "$_pkgname-$pkgver-x86_64.deb" data.tar.gz | bsdtar -C "$pkgdir" -xJf -
+  bsdtar -O -xf "$_pkgname-$pkgver-x86_64.deb" data.tar.gz | bsdtar -C "$pkgdir" -xzf -
   # 또는 ar 사용 가능:
   # ar x "$_pkgname-$pkgver-x86_64.deb"
   # tar -C "$pkgdir" -xf data.tar.gz

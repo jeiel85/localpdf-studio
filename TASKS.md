@@ -1,5 +1,15 @@
 # TASKS.md
 
+## v0.18.0 - 외부 배포 마무리 (v0.18.0) 및 macOS Gatekeeper 우회 보강
+
+- [x] macOS Gatekeeper 우회 가이드 보강 (`INSTALL.md`, 랜딩 페이지 `index.html`, `en.html`, `ja.html`에 `xattr -cr` 일괄 적용)
+- [ ] winget PR 머지 후 배포 상태 확인
+- [x] Chocolatey 커뮤니티 배포 제출 완료 (choco push, moderation 대기)
+- [x] Snap/AUR 제출 자동화 스크립트 추가 (`scripts/linux/publish-snap.sh`, `publish-aur.sh`)
+- [x] v0.18.0 변경분 로컬 검증 (`git diff --check`, Bash 문법 검사, `npm run typecheck`, `npm run test`, `npm run build`, `cargo test`, winget/Chocolatey 로컬 검증, 릴리즈 산출물 검증)
+- [ ] Snap Store 정식 등록 완료
+- [ ] AUR 패키지(localpdf-studio-bin) 정식 등록 및 검증
+
 ## v0.17.2 - 파일 command 안전성 + 배포 후속 처리
 
 - [x] `save_text_file` / `save_binary_file` 직접 쓰기를 임시 파일 기반 교체 저장으로 변경

@@ -348,7 +348,7 @@
           macOS builds are currently unsigned because Apple Developer notarization costs $99/year.
           On first launch you'll see “cannot be opened because the developer cannot be verified.” Bypass with either:
           <br />① Finder → Applications → right-click the app → "Open" → confirm in the dialog
-          <br />② Terminal: <code>xattr -dr com.apple.quarantine "/Applications/LocalPDF Studio.app"</code>
+          <br />② Terminal: <code>xattr -cr "/Applications/LocalPDF Studio.app"</code>
           <br />Full instructions in
           <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">INSTALL.md</a>.
         </div>

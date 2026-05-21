@@ -164,3 +164,15 @@
 - 이유: 구현 난도가 낮고 설치 권한 부담이 작다.
 - 한계: 다중 파일 선택 처리 UX는 제한적이다.
 - 후속: SendTo 및 ExplorerCommand COM extension을 검토한다.
+
+## 2026-05-21 - macOS Apple Developer 서명/공증 계획 제외 및 Gatekeeper 우회(xattr -cr) 가이드 보강
+
+- 결정: macOS 배포 시 Apple Developer 계정 등록($99/년)을 진행하지 않고, 미서명 빌드로 배포하되 macOS Gatekeeper를 마우스 우클릭 혹은 터미널 `xattr -cr`을 이용해 우회하는 상세 설치 가이드를 공식 다운로드 페이지 및 문서(`README.md`, `INSTALL.md`)에 전면 적용하고 동기화한다.
+- 이유: 소규모 1인 오픈소스 프로젝트의 지속 가능한 개발을 위해, 비용 부담이 되는 Apple Developer Program 가입은 프로젝트 사용자가 일정 규모 이상 증가할 때까지 보류하는 것이 실용적이다. 터미널 명령어를 기존 `xattr -dr com.apple.quarantine`에서 앱 번들 내 하위 리소스들의 모든 격리 속성까지 한 번에 재귀 제거해 완벽한 실행을 보장하는 `xattr -cr`로 업그레이드하여 사용자 설치 실패 경험을 최소화한다.
+- 안전장치: HTML5 다운로드 페이지 및 설치 마크다운 문서에 한정되며, 사용자가 직접 명령어를 복사-붙여넣기 하기 쉽도록 GUI 우클릭 경로와 CLI 한 줄 명령어를 직관적인 UI 요소(코드 블록 및 주의사항 배지)로 설계했다.
+
+## 2026-05-21 - Snap/AUR 외부 제출 자동화 스크립트 추가
+
+- 결정: Snap Store와 AUR 제출은 계정 로그인/SSH key 등록만 사용자가 직접 처리하고, 이름 예약·빌드·업로드·`.SRCINFO` 생성·AUR commit/push는 `scripts/linux/publish-snap.sh`, `scripts/linux/publish-aur.sh`로 자동화한다.
+- 이유: 외부 배포는 매 릴리즈마다 같은 순서가 반복되며, 수동 명령 복사 과정에서 channel, package name, `.SRCINFO` 누락 같은 실수가 발생하기 쉽다. 스크립트화하면 검증 전용 실행과 실제 publish 실행을 분리할 수 있다.
+- 안전장치: Snap 업로드는 `--upload`, AUR push는 `--push`를 명시한 경우에만 수행한다. AUR 스크립트는 기본적으로 `makepkg -si` 검증을 실행하고, 기존 작업 디렉터리는 `--force-clean`을 명시한 경우에만 삭제한다. Linux 셸 스크립트와 `PKGBUILD`는 `.gitattributes`로 LF 줄끝을 고정한다.

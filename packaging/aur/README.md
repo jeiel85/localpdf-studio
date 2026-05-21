@@ -25,7 +25,28 @@ Host aur.archlinux.org
   User aur
 ```
 
-### 2. 패키지 검증 + sums 갱신
+### 2. 자동화 스크립트로 검증 + 제출 준비
+
+Arch Linux 환경에서 저장소 루트로 이동한 뒤:
+
+```bash
+# AUR SSH 연결, clone, .SRCINFO 생성, makepkg -si 검증, 커밋 준비
+bash scripts/linux/publish-aur.sh
+
+# 검증 후 AUR까지 push
+bash scripts/linux/publish-aur.sh --push
+
+# 이미 별도 환경에서 빌드 검증을 끝냈다면 makepkg -si 생략
+bash scripts/linux/publish-aur.sh --skip-build --push
+
+# 기존 작업 디렉터리를 지우고 새로 clone해야 한다면
+bash scripts/linux/publish-aur.sh --force-clean
+```
+
+기본 실행은 안전하게 push하지 않는다. 스크립트가 출력하는 작업 디렉터리를 확인한 뒤
+`--push`를 붙여 다시 실행하면 AUR에 게시된다.
+
+### 3. 수동 패키지 검증 + sums 갱신
 
 ```bash
 # pacman-contrib 패키지 필요
@@ -41,7 +62,7 @@ makepkg --printsrcinfo > .SRCINFO
 makepkg -si
 ```
 
-### 3. AUR 리포지토리에 푸시
+### 4. AUR 리포지토리에 푸시
 
 ```bash
 # AUR 리포 clone (빈 저장소)

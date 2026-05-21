@@ -1,5 +1,33 @@
 # HISTORY.md
 
+## 2026-05-21 (v0.18.0 - 외부 배포 마무리 및 macOS Gatekeeper 우회 보강)
+
+- 작업: macOS 빌드의 Apple Developer 자동 서명/공증 계획을 비용 문제로 제외하고 우회 설치 안내를 보완하였으며, 패키지 매니저(winget, Chocolatey, Snap Store, AUR) 외부 배포 마무리를 진행함.
+- 변경 파일:
+  - `INSTALL.md` — macOS Gatekeeper 우회 명령어 `xattr -dr com.apple.quarantine`에서 재귀적으로 전체 확장 속성을 확실하게 초기화하는 `xattr -cr`로 보강 및 관련 설명 갱신.
+  - `docs/index.html`, `docs/en.html`, `docs/ja.html` — macOS 다운로드 카드 아래의 Gatekeeper 우회 안내 명령어를 `xattr -cr`로 전면 일괄 적용 및 `docs/ja.html` 버전 최신화(`v0.17.2`).
+  - `scripts/linux/publish-snap.sh` [NEW] — Snapcraft 이름 예약, 빌드, upload/release를 옵션 기반으로 자동화.
+  - `scripts/linux/publish-aur.sh` [NEW] — AUR SSH 확인, repo clone, `.SRCINFO` 생성, `makepkg -si`, commit/push 흐름 자동화.
+  - `.gitattributes` [NEW] — Linux 제출 스크립트와 AUR `PKGBUILD` 줄끝을 LF로 고정.
+  - `packaging/aur/PKGBUILD` — `.deb` 내부 `data.tar.gz` 해제 옵션을 gzip 포맷에 맞게 수정.
+  - `packaging/snap/README.md`, `packaging/aur/README.md`, `docs/10_EXTERNAL_PUBLISHING_TODO.md` — Snap/AUR 자동화 스크립트 사용법 반영.
+  - `TASKS.md`, `CHANGELOG.md`, `DECISION_LOG.md`, `HISTORY.md` — v0.18.0 기록 반영.
+- 검증:
+  - `git diff`를 통해 `INSTALL.md`와 랜딩 페이지 HTML 파일의 macOS Gatekeeper 명령어 일치 확인.
+  - `C:\Program Files\Git\bin\bash.exe -n scripts/linux/publish-snap.sh` / `publish-aur.sh` 통과.
+  - `git diff --check` 통과.
+  - `npm run typecheck` 통과.
+  - `npm run test` 55/55 통과.
+  - `npm run build` 통과.
+  - `cargo test` 40/40 통과.
+  - `scripts\windows\validate-winget-manifests.ps1` 통과.
+  - `scripts\windows\publish-chocolatey.ps1 -SkipPush` 통과.
+  - `scripts\windows\verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform` 통과.
+  - `npm run tauri:build`는 프론트엔드 빌드, Rust release 빌드, NSIS/MSI 생성까지 완료 후 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계에서 실패. 서명은 GitHub Actions secret 주입 환경에서 검증 필요.
+  - `scripts\windows\publish-chocolatey.ps1` 실행으로 `dist-release\localpdf-studio.0.17.2.nupkg` 생성 및 `https://push.chocolatey.org/` push 성공 확인. Chocolatey automated checks/human moderation은 대기.
+
+---
+
 ## 2026-05-20 (v0.17.2 - 파일 command 안전성 + 배포 후속 처리)
 
 - 작업: 프론트에서 호출 가능한 로컬 파일 저장/읽기/삭제 command의 실패 시 원본 보존과 임의 파일 접근 차단을 보강하고, 남은 배포 후속 작업 5개를 스크립트/CI/문서/실제 제출 가능한 범위까지 정리.

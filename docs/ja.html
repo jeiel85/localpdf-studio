@@ -348,7 +348,7 @@
           macOS ビルドは Apple Developer の年額 $99 のコスト負担により、現状は未署名です。
           初回起動時に「開発元を確認できないため開けません」と表示されます。次のいずれかで回避してください:
           <br />① Finder → アプリケーション → アプリを右クリック → 「開く」 → ダイアログで「開く」を選択
-          <br />② ターミナル: <code>xattr -dr com.apple.quarantine "/Applications/LocalPDF Studio.app"</code>
+          <br />② ターミナル: <code>xattr -cr "/Applications/LocalPDF Studio.app"</code>
           <br />詳しい手順は
           <a href="https://github.com/jeiel85/localpdf-studio/blob/master/INSTALL.md#macos" style="color: var(--cyan);">INSTALL.md</a>
           を参照。

@@ -1,8 +1,34 @@
 # CHANGELOG.md
 
-## v0.17.2 - 2026-05-20
+## v0.18.0 - 2026-05-21
 
-파일 command 안전성 보강, 패키지 제출 자동화, cross-platform 릴리즈 matrix 복구.
+macOS Gatekeeper 우회 가이드 보강, 패키지 매니저(winget, Chocolatey, Snap Store, AUR) 외부 배포 마무리 진행.
+
+### Added
+- macOS Gatekeeper 우회 가이드 보강: `INSTALL.md`, 랜딩 페이지 `index.html`, `en.html`, `ja.html`에 `xattr -cr` 일괄 적용하여 재귀적으로 확장 속성을 제거하여 무서명 빌드 실행을 확실히 보장하도록 개선.
+- Chocolatey v0.17.2 `.nupkg`를 community repository에 push 완료. 현재 Chocolatey automated checks/human moderation 대기.
+- `scripts/linux/publish-snap.sh`: Snap Store 이름 예약, 빌드, upload/release를 옵션 기반으로 자동화.
+- `scripts/linux/publish-aur.sh`: AUR SSH 확인, repo clone, `.SRCINFO` 생성, `makepkg -si`, commit/push 흐름 자동화.
+
+### Changed
+- macOS 빌드의 Apple Developer 자동 서명/공증 계획을 비용 문제로 제외하고 우회 가이드 중심으로 배포 전략 수립.
+- AUR `PKGBUILD`의 `.deb` 내부 `data.tar.gz` 해제 옵션을 gzip 포맷에 맞게 수정.
+
+### Verification
+- `git diff --check`: 통과.
+- `bash -n scripts/linux/publish-snap.sh`, `bash -n scripts/linux/publish-aur.sh`: 통과.
+- `npm run typecheck`: 통과.
+- `npm run test`: 55/55 통과.
+- `npm run build`: 통과.
+- `cargo test`: 40/40 통과.
+- `scripts/windows/validate-winget-manifests.ps1`: 통과.
+- `scripts/windows/publish-chocolatey.ps1 -SkipPush`: 통과.
+- `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`: 통과.
+- `npm run tauri:build`: 프론트엔드 빌드, Rust release 빌드, NSIS/MSI 생성 완료 후 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계 실패.
+
+---
+
+## v0.17.2 - 2026-05-20
 
 ### Added
 - `scripts/windows/validate-winget-manifests.ps1`: README가 섞인 디렉터리 검증 실패를 피하도록 YAML만 임시 디렉터리에 복사해 `winget validate` 실행.
