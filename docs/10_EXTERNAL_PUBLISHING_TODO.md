@@ -9,7 +9,8 @@
 - `latest.json` updater URL 검증 완료
 - Homebrew tap 게시 완료: <https://github.com/jeiel85/homebrew-tap>
 - winget v0.17.2 PR 제출 완료: <https://github.com/microsoft/winget-pkgs/pull/377220>
-- Chocolatey v0.17.2 community push 완료, automated checks/human moderation 대기
+- winget 공식 소스는 현재 `0.17.0` 노출, v0.17.2 PR merge/인덱싱 대기
+- Chocolatey v0.17.2 community push 완료, automated checks/human moderation 및 검색 반영 대기
 - Snap/AUR/Homebrew/winget/Chocolatey 매니페스트는 v0.17.2 SHA 기준으로 동기화 완료
 
 ## 사용자가 직접 해야 하는 작업
@@ -31,7 +32,7 @@
   - `scripts/windows/publish-chocolatey.ps1 -SkipPush` 검증 완료
   - `scripts/windows/publish-chocolatey.ps1`로 `https://push.chocolatey.org/` push 완료
 
-- 현재 상태: Chocolatey automated checks 및 human moderation 대기
+- 현재 상태: Chocolatey automated checks 및 human moderation 대기. `choco search localpdf-studio --exact --source https://community.chocolatey.org/api/v2/` 기준으로 아직 검색 미노출.
 - 해야 할 일:
   - Chocolatey 계정 이메일로 automated testing 결과 확인
   - moderation queue 확인: <https://ch0.co/moderation>
@@ -89,6 +90,8 @@
 ```powershell
 git status --short --branch
 gh pr view 377220 --repo microsoft/winget-pkgs --json url,state,reviewDecision,statusCheckRollup
+winget search --id jeiel85.LocalPDFStudio --exact --source winget
+choco search localpdf-studio --exact --source https://community.chocolatey.org/api/v2/
 gh release view v0.17.2 --repo jeiel85/localpdf-studio --json url,assets
 ```
 

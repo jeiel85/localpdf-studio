@@ -9,8 +9,13 @@ macOS Gatekeeper 우회 가이드 보강, 패키지 매니저(winget, Chocolatey
 - Chocolatey v0.17.2 `.nupkg`를 community repository에 push 완료. 현재 Chocolatey automated checks/human moderation 대기.
 - `scripts/linux/publish-snap.sh`: Snap Store 이름 예약, 빌드, upload/release를 옵션 기반으로 자동화.
 - `scripts/linux/publish-aur.sh`: AUR SSH 확인, repo clone, `.SRCINFO` 생성, `makepkg -si`, commit/push 흐름 자동화.
+- `scripts/windows/verify-version-metadata.ps1`: 릴리즈 태그와 `package.json`, `Cargo.toml`, `tauri.conf.json`, `CHANGELOG.md` 버전 일치 여부 검증.
 
 ### Changed
+- 앱 메타데이터 버전을 `0.18.0`으로 동기화하여 v0.18.0 문서/릴리즈 기록과 실제 빌드 버전을 일치시킴.
+- CI와 release workflow에서 버전 검증 대상을 `Cargo.toml`과 `CHANGELOG.md`까지 확장.
+- `AGENTS.md`의 Main Branch와 Version Files를 실제 `master` 브랜치/lockfile 포함 기준으로 정정.
+- README와 랜딩 페이지의 외부 패키지 매니저 상태를 실제 확인 결과에 맞춰 "제출 완료/공식 반영 대기"로 명확화.
 - macOS 빌드의 Apple Developer 자동 서명/공증 계획을 비용 문제로 제외하고 우회 가이드 중심으로 배포 전략 수립.
 - AUR `PKGBUILD`의 `.deb` 내부 `data.tar.gz` 해제 옵션을 gzip 포맷에 맞게 수정.
 
@@ -24,6 +29,9 @@ macOS Gatekeeper 우회 가이드 보강, 패키지 매니저(winget, Chocolatey
 - `scripts/windows/validate-winget-manifests.ps1`: 통과.
 - `scripts/windows/publish-chocolatey.ps1 -SkipPush`: 통과.
 - `scripts/windows/verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform`: 통과.
+- `scripts/windows/verify-version-metadata.ps1 -Version 0.18.0`: 통과.
+- `winget search --id jeiel85.LocalPDFStudio --exact --source winget`: 현재 공식 소스는 `0.17.0` 노출, v0.17.2 PR 반영 대기 확인.
+- `choco search localpdf-studio --exact --source https://community.chocolatey.org/api/v2/`: 현재 검색 미노출, moderation/검색 반영 대기 확인.
 - `npm run tauri:build`: 프론트엔드 빌드, Rust release 빌드, NSIS/MSI 생성 완료 후 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계 실패.
 
 ---

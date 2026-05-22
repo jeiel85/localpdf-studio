@@ -1,5 +1,12 @@
 # DECISION_LOG.md
 
+## 2026-05-22 - v0.18.0 배포 메타데이터 정합성 보강
+
+- 결정: v0.18.0 문서 기록과 실제 앱 메타데이터를 `0.18.0`으로 맞추고, `verify-version-metadata.ps1`을 CI/release/release helper에 연결한다.
+- 이유: `CHANGELOG.md`와 `TASKS.md`는 v0.18.0을 기록하지만 `package.json`, `Cargo.toml`, `tauri.conf.json`이 0.17.2에 머물면 다음 태그 배포 시 릴리즈 노트와 바이너리 버전이 어긋날 수 있다.
+- 안전장치: 검증 스크립트는 태그 버전 기준으로 `package.json`, `Cargo.toml`, `tauri.conf.json`, `CHANGELOG.md` 섹션을 모두 확인한다. CI는 현재 package version을 기준으로 상시 검증하고, release job은 태그 버전을 기준으로 검증한다.
+- 한계: winget/Chocolatey/Snap/AUR 같은 외부 채널은 각 플랫폼의 심사/검색 반영 지연이 있어 저장소 검증만으로 설치 가능 상태를 보장할 수 없다. README와 랜딩 페이지에는 제출 완료와 공식 반영 대기를 구분해 표시한다.
+
 ## 2026-05-20 - 파일 command 안전성 보강
 
 - 결정: 프론트에서 직접 호출 가능한 범용 파일 command는 저장, 읽기, 삭제 각각의 용도에 맞춰 허용 범위를 명시적으로 제한한다. 저장은 임시 파일 작성 후 교체 흐름으로 통일하고, 텍스트 읽기는 `.json`/`.txt`, 임시 삭제는 이미지 파일과 `.json`/`.txt`만 허용한다.

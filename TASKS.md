@@ -7,6 +7,9 @@
 - [x] Chocolatey 커뮤니티 배포 제출 완료 (choco push, moderation 대기)
 - [x] Snap/AUR 제출 자동화 스크립트 추가 (`scripts/linux/publish-snap.sh`, `publish-aur.sh`)
 - [x] v0.18.0 변경분 로컬 검증 (`git diff --check`, Bash 문법 검사, `npm run typecheck`, `npm run test`, `npm run build`, `cargo test`, winget/Chocolatey 로컬 검증, 릴리즈 산출물 검증)
+- [x] v0.18.0 앱 버전 메타데이터 동기화 및 CI/release 버전 검증 보강
+- [x] AGENTS.md 배포 브랜치/버전 파일 기준 정정
+- [x] README/랜딩 페이지 패키지 매니저 상태를 실제 공개/대기 상태로 정리
 - [ ] Snap Store 정식 등록 완료
 - [ ] AUR 패키지(localpdf-studio-bin) 정식 등록 및 검증
 

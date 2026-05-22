@@ -34,13 +34,7 @@ jobs:
 
       - name: Verify tag matches app version
         shell: pwsh
-        run: |
-          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $tagVersion = '${{ steps.version.outputs.VERSION }}'
-          if ($packageVersion -ne $tagVersion -or $tauriVersion -ne $tagVersion) {
-            throw "Version mismatch. tag=$tagVersion package.json=$packageVersion tauri.conf.json=$tauriVersion"
-          }
+        run: ./scripts/windows/verify-version-metadata.ps1 -Version '${{ steps.version.outputs.VERSION }}'
 
       - name: Typecheck
         run: npm run typecheck
@@ -111,13 +105,7 @@ jobs:
 
       - name: Verify tag matches app version
         shell: pwsh
-        run: |
-          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $tagVersion = '${{ steps.version.outputs.VERSION }}'
-          if ($packageVersion -ne $tagVersion -or $tauriVersion -ne $tagVersion) {
-            throw "Version mismatch. tag=$tagVersion package.json=$packageVersion tauri.conf.json=$tauriVersion"
-          }
+        run: ./scripts/windows/verify-version-metadata.ps1 -Version '${{ steps.version.outputs.VERSION }}'
 
       - name: Build macOS app and DMG
         run: npm run tauri:build -- --target universal-apple-darwin --bundles app,dmg
@@ -173,13 +161,7 @@ jobs:
 
       - name: Verify tag matches app version
         shell: pwsh
-        run: |
-          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $tagVersion = '${{ steps.version.outputs.VERSION }}'
-          if ($packageVersion -ne $tagVersion -or $tauriVersion -ne $tagVersion) {
-            throw "Version mismatch. tag=$tagVersion package.json=$packageVersion tauri.conf.json=$tauriVersion"
-          }
+        run: ./scripts/windows/verify-version-metadata.ps1 -Version '${{ steps.version.outputs.VERSION }}'
 
       - name: Build Linux packages
         run: npm run tauri:build -- --bundles deb,rpm,appimage

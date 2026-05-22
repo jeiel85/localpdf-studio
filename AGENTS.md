@@ -7,13 +7,13 @@
 ```text
 Project Name: LocalPDF Studio
 Repository: https://github.com/jeiel85/localpdf-studio.git
-Main Branch: main
+Main Branch: master
 Primary Spec: README.md
 History Document: HISTORY.md
 Changelog: CHANGELOG.md
 Task Document: TASKS.md
 Decision Log: DECISION_LOG.md
-Version Files: package.json, src-tauri/Cargo.toml, src-tauri/tauri.conf.json, CHANGELOG.md
+Version Files: package.json, package-lock.json, src-tauri/Cargo.toml, src-tauri/Cargo.lock, src-tauri/tauri.conf.json, CHANGELOG.md
 Build/Test Commands: npm run typecheck, npm run build, npm run tauri:build
 Release Trigger: tag push
 CI System: GitHub Actions

@@ -48,7 +48,9 @@ try {
 
   cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
 
-  git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json CHANGELOG.md HISTORY.md TASKS.md DECISION_LOG.md README.md .github/workflows/release.yml scripts/windows/generate-latest-json.ps1 scripts/windows/release.ps1
+  ./scripts/windows/verify-version-metadata.ps1 -Version $next
+
+  git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json CHANGELOG.md HISTORY.md TASKS.md DECISION_LOG.md README.md .github/workflows/release.yml .github/workflows/ci.yml scripts/windows/generate-latest-json.ps1 scripts/windows/release.ps1 scripts/windows/verify-version-metadata.ps1
   git commit -m "chore: release $tag"
   git tag $tag
   git push origin master $tag
