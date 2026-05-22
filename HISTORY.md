@@ -13,6 +13,7 @@
   - `scripts/windows/verify-version-metadata.ps1` [NEW], `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `scripts/windows/release.ps1` — 태그/앱/CHANGELOG 버전 불일치를 CI와 release에서 사전 차단하도록 검증 보강.
   - `AGENTS.md` — 실제 원격 HEAD/CI 기준에 맞춰 Main Branch를 `master`로 정정하고 lockfile을 버전 파일 목록에 포함.
   - `README.md`, `docs/index.html`, `docs/en.html`, `docs/ja.html`, `docs/10_EXTERNAL_PUBLISHING_TODO.md` — winget/Chocolatey/Snap/AUR 상태를 실제 공개 여부와 대기 상태가 구분되도록 정리.
+  - `packaging/winget/*`, `packaging/chocolatey/*`, `packaging/homebrew/localpdf-studio.rb`, `packaging/snap/snapcraft.yaml`, `packaging/aur/PKGBUILD` — v0.18.0 GitHub Release 산출물 SHA 기준으로 동기화.
   - `packaging/aur/PKGBUILD` — `.deb` 내부 `data.tar.gz` 해제 옵션을 gzip 포맷에 맞게 수정.
   - `packaging/snap/README.md`, `packaging/aur/README.md`, `docs/10_EXTERNAL_PUBLISHING_TODO.md` — Snap/AUR 자동화 스크립트 사용법 반영.
   - `TASKS.md`, `CHANGELOG.md`, `DECISION_LOG.md`, `HISTORY.md` — v0.18.0 기록 반영.
@@ -28,6 +29,9 @@
   - `scripts\windows\publish-chocolatey.ps1 -SkipPush` 통과.
   - `scripts\windows\verify-release-assets.ps1 -Version 0.17.2 -RequireCrossPlatform` 통과.
   - `scripts\windows\verify-version-metadata.ps1 -Version 0.18.0` 통과.
+  - GitHub Actions `Build & Release` v0.18.0 성공.
+  - `scripts\windows\verify-release-assets.ps1 -Version 0.18.0 -RequireCrossPlatform` 통과.
+  - `scripts\windows\sync-package-manifests.ps1 -Version 0.18.0` 통과. NSIS sha256 `62cf45f8be320b07a29cae31bf9fd5622842f833f25084560533d529e3b36186`.
   - `winget search --id jeiel85.LocalPDFStudio --exact --source winget`: 공식 소스는 아직 `0.17.0` 노출.
   - `choco search localpdf-studio --exact --source https://community.chocolatey.org/api/v2/`: 아직 검색 미노출.
   - `npm run tauri:build`는 프론트엔드 빌드, Rust release 빌드, NSIS/MSI 생성까지 완료 후 로컬 `TAURI_SIGNING_PRIVATE_KEY` 부재로 updater 서명 단계에서 실패. 서명은 GitHub Actions secret 주입 환경에서 검증 필요.

@@ -2,7 +2,7 @@
 
 pkgname=localpdf-studio-bin
 _pkgname=localpdf-studio
-pkgver=0.17.2
+pkgver=0.18.0
 pkgrel=1
 pkgdesc="Local-first desktop PDF viewer and utility suite (Tauri 2 + React)"
 arch=('x86_64')
@@ -19,7 +19,7 @@ provides=("$_pkgname")
 conflicts=("$_pkgname")
 
 source_x86_64=("$_pkgname-$pkgver-x86_64.deb::https://github.com/jeiel85/localpdf-studio/releases/download/v$pkgver/LocalPDF.Studio_${pkgver}_amd64.deb")
-sha256sums_x86_64=('fbae2f57cb221d15eedacefec29aad9cd0e2fabf008982f67c5a8e6afec9aa72')
+sha256sums_x86_64=('d2296600e91370bf6bf61ad42c25f6b7ad198b6eceb3738ecd6596e288256b08')
 
 package() {
   cd "$srcdir"

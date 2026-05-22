@@ -1,6 +1,6 @@
 cask "localpdf-studio" do
-  version "0.17.2"
-  sha256 "d8c648e0a12f7c43a3f832b6f2831cf13fceef2a57820d57c7a66a8223394a7a"
+  version "0.18.0"
+  sha256 "45e6f282670a395b5bcfba656e4bce5edbfe4584424a98ed95114da132cbd20b"
 
   url "https://github.com/jeiel85/localpdf-studio/releases/download/v#{version}/LocalPDF.Studio_#{version}_universal.dmg",
       verified: "github.com/jeiel85/localpdf-studio/"

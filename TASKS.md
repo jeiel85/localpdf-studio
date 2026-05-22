@@ -10,6 +10,8 @@
 - [x] v0.18.0 앱 버전 메타데이터 동기화 및 CI/release 버전 검증 보강
 - [x] AGENTS.md 배포 브랜치/버전 파일 기준 정정
 - [x] README/랜딩 페이지 패키지 매니저 상태를 실제 공개/대기 상태로 정리
+- [x] v0.18.0 태그 배포 및 GitHub Release 산출물 검증
+- [x] v0.18.0 릴리즈 산출물 SHA-256으로 winget/Chocolatey/Homebrew/Snap/AUR 매니페스트 갱신
 - [ ] Snap Store 정식 등록 완료
 - [ ] AUR 패키지(localpdf-studio-bin) 정식 등록 및 검증
 

@@ -1,5 +1,5 @@
 PackageIdentifier: jeiel85.LocalPDFStudio
-PackageVersion: 0.17.2
+PackageVersion: 0.18.0
 PackageLocale: ko-KR
 Publisher: Aiden Park
 PublisherUrl: https://github.com/jeiel85
@@ -27,6 +27,6 @@ Tags:
   - 편집기
   - ocr
   - 로컬-우선
-ReleaseNotesUrl: https://github.com/jeiel85/localpdf-studio/releases/tag/v0.17.2
+ReleaseNotesUrl: https://github.com/jeiel85/localpdf-studio/releases/tag/v0.18.0
 ManifestType: locale
 ManifestVersion: 1.6.0
